@@ -1,0 +1,97 @@
+# Development files
+.env*
+.vscode/
+.idea/
+*.log
+*.pid
+*.seed
+*.pid.lock
+
+# Testing
+tests/
+coverage/
+.nyc_output/
+junit.xml
+
+# Development dependencies and cache
+node_modules/
+.npm/
+.eslintcache
+.cache/
+
+# Next.js specific excludes
+apps/web/.next/cache/
+apps/web/.next/build/
+apps/web/.next/server/
+apps/web/node_modules/
+apps/api/node_modules/
+
+# Source maps and TypeScript
+*.map
+tsconfig.json
+tsconfig.*.json
+tsconfig.base.json
+
+# Documentation (keep README.md)
+documentation/
+docs/
+*.md
+!README.md
+
+# Git and CI
+.git/
+.github/
+.gitignore
+.gitattributes
+
+# Package managers
+yarn.lock
+package-lock.json
+.pnpm-debug.log
+pnpm-workspace.yaml
+
+# Build artifacts (we want to include built files)
+# But exclude source TypeScript files from workspace packages
+packages/*/src/
+apps/*/src/
+!apps/*/dist/
+!packages/*/dist/
+
+# Temporary files
+.tmp/
+temp/
+tmp/
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Development configuration
+.editorconfig
+.eslintrc*
+.prettierrc*
+prettier.config.*
+eslint.config.*
+
+# Workspace configuration
+.devcontainer/
+docker-compose*.yml
+Dockerfile*
+
+# Claude and AI temp files
+CLAUDE.md
+.claude/

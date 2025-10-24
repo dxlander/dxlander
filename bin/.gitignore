@@ -1,0 +1,6 @@
+# Only dxlander.js should be committed
+# The actual 'dxlander' executable is generated during build
+
+dxlander
+dxlander.cmd
+*.log

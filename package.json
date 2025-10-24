@@ -1,0 +1,113 @@
+{
+  "name": "dxlander",
+  "version": "0.1.0-alpha.1",
+  "description": "AI-powered zero-configuration deployment platform that automates project deployment and testing (DEVELOPMENT VERSION - Heavy development in progress)",
+  "private": false,
+  "author": {
+    "name": "DXLander Team",
+    "email": "hello@dxlander.dev",
+    "url": "https://github.com/dxlander"
+  },
+  "organization": {
+    "name": "DXLander",
+    "url": "https://github.com/dxlander"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "keywords": [
+    "deployment",
+    "automation",
+    "ai",
+    "devops",
+    "docker",
+    "kubernetes",
+    "self-hosted"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dxlander/dxlander.git"
+  },
+  "bugs": {
+    "url": "https://github.com/dxlander/dxlander/issues"
+  },
+  "homepage": "https://github.com/dxlander/dxlander#readme",
+  "bin": {
+    "dxlander": "./bin/dxlander.js"
+  },
+  "main": "./bin/dxlander.js",
+  "files": [
+    "bin/",
+    "apps/web/.next/server/**",
+    "apps/web/.next/static/**",
+    "apps/web/.next/*.json",
+    "apps/web/package.json",
+    "apps/api/dist/**",
+    "apps/api/package.json",
+    "packages/*/dist/**",
+    "packages/*/package.json",
+    "!apps/**/.next/cache/**",
+    "!apps/**/node_modules/**",
+    "README.md",
+    "LICENSE",
+    "package.json",
+    "pnpm-lock.yaml"
+  ],
+  "scripts": {
+    "dev": "concurrently \"pnpm run dev:api\" \"pnpm run dev:web\"",
+    "dev:web": "pnpm --filter @dxlander/web run dev",
+    "dev:api": "pnpm --filter @dxlander/api run dev",
+    "build": "pnpm run build:packages && pnpm run build:api && pnpm run build:web",
+    "build:production": "node scripts/build-production.mjs",
+    "build:packages": "pnpm run build:shared && pnpm run build:ai-agents && pnpm run build:database",
+    "build:shared": "pnpm --filter @dxlander/shared run build",
+    "build:ai-agents": "pnpm --filter @dxlander/ai-agents run build",
+    "build:database": "pnpm --filter @dxlander/database run build",
+    "build:api": "pnpm --filter @dxlander/api run build",
+    "build:web": "pnpm --filter @dxlander/web run build",
+    "test": "pnpm test",
+    "test:unit": "vitest tests/unit",
+    "test:integration": "vitest tests/integration",
+    "test:e2e": "vitest tests/e2e",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "pnpm run typecheck:packages && pnpm run typecheck:apps",
+    "typecheck:packages": "pnpm --filter @dxlander/shared run typecheck",
+    "typecheck:apps": "pnpm --filter @dxlander/api run typecheck && pnpm --filter @dxlander/web run typecheck",
+    "db:setup": "pnpm --filter @dxlander/database run setup",
+    "db:migrate": "pnpm --filter @dxlander/database run migrate",
+    "db:seed": "pnpm --filter @dxlander/database run seed",
+    "prepublishOnly": "echo 'Building production release...' && pnpm run build",
+    "prepack": "echo 'Packaging DXLander production build...'",
+    "publish:npm": "cd dist-production && npm publish --access public --tag alpha",
+    "release:alpha": "pnpm run build:production && cd dist-production && npm publish --access public --tag alpha",
+    "release:beta": "pnpm run build:production && cd dist-production && npm publish --access public --tag beta",
+    "release:stable": "pnpm run build:production && cd dist-production && npm publish --access public"
+  },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.2.5",
+    "typescript": "^5.4.0",
+    "vitest": "^1.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0",
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.14"
+  }
+}
