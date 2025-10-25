@@ -31,7 +31,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
         ref={ref}
         className={cn(
           "relative",
-          showBorder && "border-b border-ocean-200/30 shadow-sm",
+          showBorder && "border-b border-ocean-200/60",
           transparent ? "bg-transparent" : "bg-white/95 backdrop-blur-sm",
           className
         )}

@@ -277,18 +277,18 @@ export default function ImportPage() {
                       onClick={() => !isDisabled && setSelectedMethod(method.id)}
                       disabled={isDisabled}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${isDisabled
-                          ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
-                          : selectedMethod === method.id
-                            ? 'border-ocean-500 bg-ocean-50 shadow-md cursor-pointer'
-                            : 'border-gray-200 hover:border-ocean-300 hover:bg-gray-50 cursor-pointer'
+                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                        : selectedMethod === method.id
+                          ? 'border-ocean-500 bg-ocean-50 shadow-md cursor-pointer'
+                          : 'border-gray-200 hover:border-ocean-300 hover:bg-gray-50 cursor-pointer'
                         }`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`p-2 rounded-lg ${isDisabled
-                            ? 'bg-gray-100 text-gray-400'
-                            : selectedMethod === method.id
-                              ? 'bg-ocean-100 text-ocean-600'
-                              : 'bg-gray-100 text-gray-600'
+                          ? 'bg-gray-100 text-gray-400'
+                          : selectedMethod === method.id
+                            ? 'bg-ocean-100 text-ocean-600'
+                            : 'bg-gray-100 text-gray-600'
                           }`}>
                           {method.icon}
                         </div>
@@ -388,7 +388,7 @@ export default function ImportPage() {
                         disabled={isImporting}
                       />
 
-                      <div className="grid grid-cols-2 gap-4">
+                      <div className="grid grid-cols-2 gap-4 items-end">
                         <FloatingInput
                           label="Branch (Optional)"
                           leftIcon={<GitBranch className="h-4 w-4" />}
@@ -397,7 +397,7 @@ export default function ImportPage() {
                           disabled={isImporting}
                         />
                         <div className="space-y-2">
-                          <Label>Repository Type</Label>
+                          <Label className="text-sm font-semibold text-gray-700">Repository Type</Label>
                           <Select
                             value={githubRepoType}
                             onValueChange={(value) => setGithubRepoType(value as 'public' | 'private')}
@@ -528,10 +528,10 @@ export default function ImportPage() {
                         onDrop={handleDrop}
                         onClick={() => document.getElementById('file-input')?.click()}
                         className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${isDragging
-                            ? 'border-ocean-500 bg-ocean-100'
-                            : selectedFile
-                              ? 'border-green-400 bg-green-50'
-                              : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
+                          ? 'border-ocean-500 bg-ocean-100'
+                          : selectedFile
+                            ? 'border-green-400 bg-green-50'
+                            : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
                           }`}
                       >
                         <input
@@ -544,8 +544,8 @@ export default function ImportPage() {
                         />
                         <div className="flex flex-col items-center gap-4">
                           <div className={`p-4 rounded-full transition-colors ${selectedFile
-                              ? 'bg-green-100'
-                              : 'bg-ocean-100 group-hover:bg-ocean-200'
+                            ? 'bg-green-100'
+                            : 'bg-ocean-100 group-hover:bg-ocean-200'
                             }`}>
                             {selectedFile ? (
                               <CheckCircle2 className="h-10 w-10 text-green-600" />
