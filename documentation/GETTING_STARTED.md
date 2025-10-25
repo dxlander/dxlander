@@ -6,7 +6,7 @@ This guide will get you up and running with DXLander locally for development.
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js** 18.0.0 or higher - [Download from nodejs.org](https://nodejs.org/)
+- **Node.js** 18.0.0 or higher
 - **pnpm** 8.0.0 or higher - Install with `npm install -g pnpm`
 - **Git** - For version control
 
@@ -145,31 +145,11 @@ DXLander works out of the box with sensible defaults:
 - **Storage:** Files at `~/.dxlander/projects/`
 - **Encryption:** Auto-generated key at `~/.dxlander/encryption.key`
 
-### Optional Environment Variables
-
-Create a `.env` file in the root directory for custom configuration:
-
-```bash
-# Database (optional - defaults to SQLite)
-DATABASE_URL="postgresql://user:pass@localhost:5432/dxlander"
-
-# API Server
-PORT=3001
-NODE_ENV=development
-
-# Encryption (optional - defaults to file-based)
-DXLANDER_ENCRYPTION_KEY="your-32-byte-base64-key"
-
-# AI Providers (configure in UI)
-OPENAI_API_KEY="your-openai-key"
-ANTHROPIC_API_KEY="your-anthropic-key"
-```
-
 ## Understanding the Codebase
 
 ### API Server (`apps/api/`)
 
-The backend uses **Hono** (lightweight framework) with **tRPC** for type-safe APIs:
+The backend uses **Hono** with **tRPC** for type-safe APIs:
 
 ```typescript
 // Example API route structure

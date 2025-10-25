@@ -120,7 +120,7 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 
 ### Prerequisites
 - **Node.js 18+**
-- **pnpm** (recommended) or npm
+- **pnpm**
 
 ### Production Usage
 ```bash
@@ -245,20 +245,6 @@ This means you can:
 
 ---
 
-## Current Status
-
-**Overall Progress**: 70% of MVP complete
-**Active Development**: Yes
-**Production Ready**: No (in development)
-
-### Recent Updates
-- October 10, 2025 - Build configuration management UI complete
-- October 9, 2025 - ZIP upload functionality complete
-- October 8, 2025 - GitHub import system complete
-- September 2025 - MVP foundation & setup wizard complete
-
----
-
 ## Quick Commands Summary
 
 ```bash
@@ -267,9 +253,6 @@ npx dxlander
 
 # Development
 pnpm install && pnpm dev
-
-# Start just the CLI
-node bin/dxlander.js
 
 # Build for production
 pnpm build

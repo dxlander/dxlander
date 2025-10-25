@@ -21,8 +21,7 @@ dxlander/
 │   └── integrations/       # External service integrations
 ├── bin/                    # CLI entry point
 ├── tests/                  # Test suites
-├── documentation/          # Contributor documentation
-└── .claude/               # Internal development docs
+└── documentation/          # documentation
 ```
 
 ## Applications (`apps/`)
@@ -267,5 +266,3 @@ packages/shared → packages/database (types only)
 - Memoized AI analysis results
 - Configuration template caching
 - Static asset optimization
-
-This architecture provides a solid foundation for DXLander's growth while maintaining security, performance, and developer experience.
