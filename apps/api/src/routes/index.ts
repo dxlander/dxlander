@@ -2,6 +2,7 @@ import { router } from '@dxlander/shared'
 import { projectsRouter } from './projects'
 import { analysisRouter } from './analysis'
 import { deploymentsRouter } from './deployments'
+import { deploymentTargetsRouter } from './deployment-targets'
 import { integrationsRouter } from './integrations'
 import { setupRouter } from './setup'
 import { settingsRouter } from './settings'
@@ -13,6 +14,7 @@ export const appRouter = router({
   projects: projectsRouter,
   analysis: analysisRouter,
   deployments: deploymentsRouter,
+  deploymentTargets: deploymentTargetsRouter,
   integrations: integrationsRouter,
   settings: settingsRouter,
   configs: configsRouter,

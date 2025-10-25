@@ -44,6 +44,7 @@ dxlander/
 - `/setup` - First-time setup wizard
 - `/projects` - Project CRUD, GitHub import, file management
 - `/ai-providers` - AI service configuration (OpenAI, Claude, etc.)
+- `/deployment-targets` - Deployment credential management
 - `/configs` - Build configuration generation and management
 - `/deployments` - Deployment tracking and execution
 - `/settings` - Application settings and encryption key management
@@ -72,6 +73,12 @@ dxlander/
 - `/login` - User authentication
 - `/dashboard` - Main project overview
 - `/dashboard/import` - Project import (GitHub, ZIP upload)
+- `/dashboard/deployments` - Deployment targets and credential management
+- `/dashboard/settings` - Settings hub with card-based navigation
+- `/dashboard/settings/ai-providers` - AI provider configuration
+- `/dashboard/settings/security` - Security and encryption management
+- `/dashboard/settings/database` - Database configuration and analytics
+- `/dashboard/settings/backup` - Backup and restore management
 - `/project/[id]` - Project detail and management
 - `/project/[id]/configs` - Build configuration management
 

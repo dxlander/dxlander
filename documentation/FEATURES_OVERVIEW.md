@@ -67,7 +67,23 @@ This document provides a comprehensive overview of DXLander's current features a
 - **Testing interface:** Validate API keys and connectivity
 - **Multiple providers:** Support for multiple configured providers simultaneously
 
-### 5. User Interface & Design System
+### 5. Deployment Targets Management
+
+#### Platform Credentials
+- **Supported platforms:** Vercel, Railway, Netlify, AWS, GCP, Azure, Docker Registry, Kubernetes, Render, Fly.io, DigitalOcean, Heroku, etc
+- **Encrypted storage:** All deployment credentials encrypted with AES-256-GCM
+- **Platform-specific configuration:** Custom forms for each platform's required fields
+- **Connection testing:** Validate API keys and credentials before saving
+- **Default credential management:** Set preferred credentials per platform
+
+#### Deployment Interface
+- **Category filtering:** PaaS, Cloud Providers, Container Registries
+- **Search functionality:** Find platforms quickly
+- **Grid layout:** Visual platform cards with icons
+- **Usage tracking:** Monitor credential usage and last used timestamps
+- **Status indicators:** Connected/Error badges for quick health checks
+
+### 6. User Interface & Design System
 
 #### Ocean Design System
 - **Color scheme:** Ocean-inspired blues (#3b82f6 primary)
@@ -80,9 +96,14 @@ This document provides a comprehensive overview of DXLander's current features a
 - **Dashboard:** Project overview with status cards and quick actions
 - **Import interface:** GitHub and ZIP upload with progress tracking
 - **Project details:** Comprehensive project management interface
-- **Settings:** AI provider configuration and system settings
+- **Deployment targets:** Platform credential management with testing
+- **Settings hub:** Card-based dashboard linking to dedicated settings pages
+  - **AI Providers:** Full AI model configuration page
+  - **Security & Encryption:** Master key management and audit logs
+  - **Database:** Connection settings and storage analytics
+  - **Backup & Restore:** Automatic backups and restore points
 
-### 6. Database Architecture
+### 7. Database Architecture
 
 #### Storage Strategy
 - **SQLite default:** Single-user deployment with local database
@@ -94,8 +115,34 @@ This document provides a comprehensive overview of DXLander's current features a
 - **Users:** Account management with encrypted passwords
 - **Projects:** Import metadata, file tracking, analysis results
 - **AI Providers:** Encrypted credential storage
+- **Deployment Credentials:** Platform credentials with encrypted API keys
 - **Build Configs:** Generated configuration storage
 - **Settings:** Application configuration and preferences
+
+### 8. Backup & Restore System
+
+#### Automatic Backups
+- **Scheduled backups:** Configurable frequency (hourly, daily, weekly, monthly)
+- **Custom timing:** Set specific backup times
+- **Retention policies:** 7, 30, 90 days, or keep forever
+- **Auto-cleanup:** Remove old backups based on retention settings
+
+#### Manual Backups
+- **On-demand creation:** Create backups anytime
+- **Named backups:** Custom labels for important restore points
+- **Pre-update backups:** Manual backups before major changes
+
+#### Restore Operations
+- **Point-in-time recovery:** Restore from any backup
+- **Backup preview:** View backup metadata before restoring
+- **Safety warnings:** Confirmation dialogs with impact warnings
+- **Auto-backup before restore:** Creates current state backup first
+
+#### Backup Management
+- **Backup history:** List all available backups with metadata
+- **Import/Export:** Transfer backups between instances
+- **Storage analytics:** Track backup storage usage
+- **Encrypted backups:** All backups encrypted with master key
 
 ## 🚧 In Development
 
@@ -161,6 +208,8 @@ This document provides a comprehensive overview of DXLander's current features a
 - [x] Project import (GitHub, ZIP)
 - [x] Security and encryption
 - [x] Database and storage
+- [x] Deployment targets management
+- [x] Backup and restore system
 - [ ] AI project analysis (in development)
 - [ ] Configuration generation (in development)
 - [ ] Deployment execution (planned)
@@ -187,6 +236,8 @@ This document provides a comprehensive overview of DXLander's current features a
 - Authentication and authorization
 - Data encryption and security
 - Project import and file management
+- Deployment credential management
+- Backup and restore system
 - User interface and design system
 - Database operations and migrations
 
