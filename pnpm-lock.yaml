@@ -130,6 +130,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@dxlander/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@radix-ui/react-avatar':
         specifier: ^1.1.10
         version: 1.1.10(@types/react-dom@19.1.9)(@types/react@19.1.13)(react-dom@19.1.0)(react@19.1.0)
@@ -205,6 +208,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@4.1.13)
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
