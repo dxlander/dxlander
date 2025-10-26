@@ -16,6 +16,10 @@ Welcome to the DXLander contributor documentation. This directory contains all t
 1. **[Project Architecture](./PROJECT_ARCHITECTURE.md)** - Technical structure and design decisions
 2. **[Features Overview](./FEATURES_OVERVIEW.md)** - Complete feature breakdown with status
 
+### For Deployment
+
+1. **[Docker Deployment](./DOCKER.md)** - Complete Docker and container deployment guide
+
 ### For Development
 
 1. **[Getting Started](./GETTING_STARTED.md)** - Development setup and workflow
@@ -31,6 +35,7 @@ documentation/
 ├── DEVELOPMENT_WORKFLOW.md     # Code quality, CI/CD, and PR process
 ├── PROJECT_ARCHITECTURE.md     # Technical architecture and design
 ├── FEATURES_OVERVIEW.md        # Current features and roadmap
+├── DOCKER.md                   # Docker deployment guide
 └── ... (more docs as needed)
 ```
 

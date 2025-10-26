@@ -1,6 +1,11 @@
 #!/usr/bin/env node
 /**
  * Bundle API using esbuild
+ * 
+ * This script bundles the API server code into a single file while:
+ * - Externalizing all npm dependencies (they'll be installed separately)
+ * - Bundling workspace packages (@dxlander/*) into the output
+ * - Collecting dependencies from workspace packages for package.json
  */
 
 import { build } from 'esbuild';
@@ -13,13 +18,32 @@ const __dirname = path.dirname(__filename);
 const rootDir = path.join(__dirname, '..');
 
 async function bundleAPI() {
-    // Read API package.json to get dependencies
+    // Read API package.json to get its direct dependencies
     const apiPackageJsonPath = path.join(rootDir, 'apps', 'api', 'package.json');
     const apiPackageJson = JSON.parse(await readFile(apiPackageJsonPath, 'utf-8'));
 
-    // External packages: all npm dependencies except scoped @dxlander/*
-    const externalDeps = Object.keys(apiPackageJson.dependencies || {})
-        .filter(dep => !dep.startsWith('@dxlander/'));
+    // Workspace packages that are bundled into the API
+    const workspacePackages = [
+        'packages/shared/package.json',
+        'packages/database/package.json',
+        'packages/ai-agents/package.json',
+    ];
+
+    const allDeps = new Set(Object.keys(apiPackageJson.dependencies || {}));
+
+    // Collect dependencies from workspace packages (they'll be bundled)
+    for (const pkgPath of workspacePackages) {
+        const pkgJsonPath = path.join(rootDir, pkgPath);
+        try {
+            const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf-8'));
+            Object.keys(pkgJson.dependencies || {}).forEach(dep => allDeps.add(dep));
+        } catch (error) {
+            // Package might not exist, skip
+        }
+    }
+
+    // External packages: all npm dependencies (excluding workspace @dxlander/* packages)
+    const externalDeps = Array.from(allDeps).filter(dep => !dep.startsWith('@dxlander/'));
 
     try {
         await build({
@@ -34,6 +58,8 @@ async function bundleAPI() {
                 js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);"
             }
         });
+
+        console.log('✓API bundled successfully');
 
     } catch (error) {
         console.error('✗ Failed to bundle API');

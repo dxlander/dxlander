@@ -1,0 +1,70 @@
+# Dependencies (will be installed in container)
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs (will be built in container)
+# Note: dist-production/apps/*/dist and .next folders are included for Docker builds
+/dist
+/.next
+out
+build
+/apps/**/dist
+/apps/**/.next
+/packages/**/dist
+
+# Development files
+.git
+.github/workflows
+.vscode
+.idea
+*.log
+*.swp
+*.swo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing
+coverage
+.nyc_output
+tests
+__tests__
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Documentation (keep README for context)
+documentation
+*.md
+!README.md
+
+# Local data and cache
+.dxlander
+~/.dxlander
+.cache
+.turbo
+
+# Production build output (needed for Docker builds)
+# dist-production
+
+# Package manager files
+.npmrc
+.yarnrc
+.pnp.*
+
+# IDE
+.vscode
+.idea
