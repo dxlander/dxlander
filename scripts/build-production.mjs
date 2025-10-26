@@ -67,9 +67,9 @@ function log(message, type = 'info') {
 }
 
 function printHeader(title) {
-  console.log(`\n${  '='.repeat(60)}`);
+  console.log(`\n${'='.repeat(60)}`);
   console.log(`  ${title}`);
-  console.log(`${'='.repeat(60)  }\n`);
+  console.log(`${'='.repeat(60)}\n`);
 }
 
 async function runCommand(command, description) {
@@ -163,13 +163,7 @@ async function build() {
       await readFile(path.join(config.apiDir, 'package.json'), 'utf-8')
     );
 
-    // Copy node_modules from pnpm deploy (includes all deps with native bindings)
-    await cp(
-      path.join(apiDeployPath, 'node_modules'),
-      path.join(apiDestPath, 'node_modules'),
-      { recursive: true }
-    );
-
+    // Copy built API code
     await cp(
       path.join(config.apiDir, 'dist'),
       path.join(apiDestPath, 'dist'),
@@ -188,10 +182,34 @@ async function build() {
     );
 
     // Create clean package.json with only npm dependencies (no workspace deps)
+    // Also merge in dependencies from workspace packages that are bundled into the API
     const cleanDeps = Object.fromEntries(
       Object.entries(apiPackageJson.dependencies || {})
         .filter(([name]) => !name.startsWith('@dxlander/'))
     );
+
+    // Get dependencies from workspace packages that are bundled into the API
+    const workspacePackages = [
+      'packages/shared/package.json',
+      'packages/database/package.json',
+      'packages/ai-agents/package.json',
+      'packages/config-gen/package.json',
+      'packages/integrations/package.json',
+    ];
+
+    for (const pkgPath of workspacePackages) {
+      const pkgJsonPath = path.join(config.rootDir, pkgPath);
+      try {
+        const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf-8'));
+        Object.entries(pkgJson.dependencies || {}).forEach(([name, version]) => {
+          if (!name.startsWith('@dxlander/')) {
+            cleanDeps[name] = version;
+          }
+        });
+      } catch (error) {
+        // Package might not exist, skip
+      }
+    }
 
     await writeFile(
       path.join(apiDestPath, 'package.json'),
@@ -308,6 +326,7 @@ node "%~dp0\\dxlander" %*
       name: rootPackageJson.name,
       version: rootPackageJson.version,
       description: rootPackageJson.description,
+      type: 'module',
       main: 'bin/dxlander',
       bin: {
         dxlander: './bin/dxlander'

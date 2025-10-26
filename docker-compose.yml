@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  dxlander:
+    image: ghcr.io/dxlander/dxlander:latest
+    container_name: dxlander
+    ports:
+      - "3000:3000" # Web UI
+      - "3001:3001" # API
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - API_PORT=3001
+      - DXLANDER_HOME=/app/.dxlander
+      # Optional: Set encryption key for production
+      # - DXLANDER_ENCRYPTION_KEY=your-secure-key-here
+    volumes:
+      # Persist database and project data
+      - dxlander-data:/app/.dxlander
+      # Alternative: Mount host directory for easy access
+      # - ~/.dxlander:/app/.dxlander
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  dxlander-data:
+    driver: local
+    # Data is stored in:
+    # - Database: /app/.dxlander/data/dxlander.db
+    # - Projects: /app/.dxlander/projects/
+    # - Encryption: /app/.dxlander/encryption.key

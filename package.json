@@ -88,7 +88,9 @@
     "publish:npm": "cd dist-production && npm publish --access public --tag alpha",
     "release:alpha": "pnpm run build:production && cd dist-production && npm publish --access public --tag alpha",
     "release:beta": "pnpm run build:production && cd dist-production && npm publish --access public --tag beta",
-    "release:stable": "pnpm run build:production && cd dist-production && npm publish --access public"
+    "release:stable": "pnpm run build:production && cd dist-production && npm publish --access public",
+    "build:docker": "docker build -t ghcr.io/dxlander/dxlander:latest .",
+    "release:docker": "node scripts/release-docker.mjs"
   },
   "workspaces": [
     "apps/*",
@@ -99,6 +101,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "concurrently": "^8.2.2",
+    "esbuild": "^0.19.12",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.0.11",

@@ -136,14 +136,64 @@ DXLander is a **self-hosted platform** that lets you test and deploy any project
 
 ### Prerequisites
 
-- **Node.js 18+**
-- **pnpm**
+- **Node.js 18+** (for npm/source installation)
+- **pnpm** (for development)
+- **Docker** (optional, for containerized deployment)
 
-### Production Usage
+### Installation Options
+
+#### Option 1: NPM
 
 ```bash
 # Run directly without installation
 npx dxlander
+
+# Or install globally
+npm install -g dxlander
+dxlander
+```
+
+#### Option 2: Docker
+
+```bash
+# Pull and run the latest version
+docker pull ghcr.io/dxlander/dxlander:latest
+docker run -d \
+  -p 3000:3000 \
+  -p 3001:3001 \
+  -v dxlander-data:/app/.dxlander \
+  --name dxlander \
+  ghcr.io/dxlander/dxlander:latest
+
+# Access at http://localhost:3000
+```
+
+**Data Persistence**
+
+Your data is automatically stored in the `dxlander-data` volume:
+
+- Database: `/app/.dxlander/data/dxlander.db`
+- Projects: `/app/.dxlander/projects/`
+- Encryption keys: `/app/.dxlander/encryption.key`
+
+**Useful Commands**
+
+```bash
+# View logs
+docker logs -f dxlander
+
+# Stop the container
+docker stop dxlander
+
+# Restart the container
+docker restart dxlander
+
+# Remove the container
+docker rm -f dxlander
+
+# Backup your data
+docker run --rm -v dxlander-data:/data -v $(pwd):/backup alpine \
+  tar czf /backup/dxlander-backup.tar.gz -C /data .
 ```
 
 ### Development Setup
@@ -212,6 +262,7 @@ pnpm test             # Run tests
 ### Quick Links
 
 - [Setup Guide](#quick-start)
+- [Docker Deployment](documentation/DOCKER.md)
 - [Architecture](#technology-stack)
 - [Contributing](CONTRIBUTING.md)
 
@@ -283,8 +334,14 @@ This means you can:
 ## Quick Commands Summary
 
 ```bash
-# Try DXLander instantly
+# NPM - Try DXLander instantly
 npx dxlander
+
+# Docker - Run in container
+docker run -p 3000:3000 -p 3001:3001 ghcr.io/dxlander/dxlander:latest
+
+# Docker Compose - Full setup
+docker compose up -d
 
 # Development
 pnpm install && pnpm dev
