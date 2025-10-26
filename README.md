@@ -65,7 +65,7 @@ DXLander is a **self-hosted platform** that lets you test and deploy any project
 
 <div align="center">
 <img src="documentation/assets/screenshots/deployment.png" alt="Deployment Targets Management" width="800"/>
-<p><em>Manage deployment platform</em></p>
+<p><em>Manage deployment platforms</em></p>
 </div>
 
 ---
