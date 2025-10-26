@@ -229,7 +229,3 @@ Contributors will be:
 ## License
 
 By contributing, you agree that your contributions will be licensed under the MIT License.
-
----
-
-Thank you for helping make DXLander better! 🚀
