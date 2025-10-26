@@ -1,13 +1,13 @@
-'use client'
+'use client';
 
-import { use, useState, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { PageLayout, Header, Section } from '@/components/layouts'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { AIActivityMonitor } from '@/components/analysis'
+import { use, useState, useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AIActivityMonitor } from '@/components/analysis';
 import {
   ArrowLeft,
   FileCode,
@@ -19,13 +19,13 @@ import {
   GitBranch,
   Settings,
   Zap,
-  XCircle
-} from 'lucide-react'
-import { trpc } from '@/lib/trpc'
-import { cn } from '@/lib/utils'
+  XCircle,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
+import { cn } from '@/lib/utils';
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 const configTypes = [
@@ -35,7 +35,7 @@ const configTypes = [
     description: 'Containerized deployment with Docker (automatically detects multi-service needs)',
     icon: Container,
     files: ['Dockerfile', 'docker-compose.yml (if needed)', '.dockerignore'],
-    recommended: true
+    recommended: true,
   },
   {
     id: 'kubernetes',
@@ -43,7 +43,7 @@ const configTypes = [
     description: 'Production-grade container orchestration',
     icon: GitBranch,
     files: ['deployment.yaml', 'service.yaml', 'ingress.yaml', 'configmap.yaml'],
-    recommended: false
+    recommended: false,
   },
   {
     id: 'bash',
@@ -51,64 +51,72 @@ const configTypes = [
     description: 'Deployment automation with shell scripts',
     icon: Terminal,
     files: ['deploy.sh', 'setup.sh'],
-    recommended: false
-  }
-]
+    recommended: false,
+  },
+];
 
 export default function NewConfigurationPage({ params }: PageProps) {
-  const resolvedParams = use(params)
-  const router = useRouter()
-  const [selectedType, setSelectedType] = useState<string>('docker')
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [analysisId, setAnalysisId] = useState<string | null>(null)
-  const [stage, setStage] = useState<'select' | 'analyzing' | 'generating'>('select')
+  const resolvedParams = use(params);
+  const router = useRouter();
+  const [selectedType, setSelectedType] = useState<string>('docker');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
+  const [stage, setStage] = useState<'select' | 'analyzing' | 'generating'>('select');
 
-  const { data: project, isLoading, error } = trpc.projects.get.useQuery({
-    id: resolvedParams.id
-  })
+  const {
+    data: project,
+    isLoading,
+    error,
+  } = trpc.projects.get.useQuery({
+    id: resolvedParams.id,
+  });
 
   // Get AI provider status
-  const { data: aiProviderStatus, isLoading: isLoadingProviderStatus } = trpc.aiProviders.getDefaultStatus.useQuery()
+  const { data: aiProviderStatus, isLoading: isLoadingProviderStatus } =
+    trpc.aiProviders.getDefaultStatus.useQuery();
 
   // Mutation for starting analysis
-  const analyzeMutation = trpc.analysis.analyze.useMutation()
+  const analyzeMutation = trpc.analysis.analyze.useMutation();
 
   // Mutation for generating config
-  const generateConfigMutation = trpc.configs.generate.useMutation()
+  const generateConfigMutation = trpc.configs.generate.useMutation();
 
   // Poll analysis progress (faster for better UX)
-  const { data: analysisProgress, isLoading: isLoadingProgress } = trpc.analysis.getProgress.useQuery(
+  const { data: analysisProgress } = trpc.analysis.getProgress.useQuery(
     { analysisId: analysisId! },
     {
       enabled: !!analysisId && stage === 'analyzing',
       refetchInterval: 500, // Poll every 500ms for real-time feel
-      refetchIntervalInBackground: true // Keep polling even when tab is not focused
+      refetchIntervalInBackground: true, // Keep polling even when tab is not focused
     }
-  )
+  );
 
   // Watch for analysis completion and start config generation
   useEffect(() => {
     if (analysisProgress?.status === 'complete' && stage === 'analyzing') {
-      setStage('generating')
+      setStage('generating');
 
       // Start config generation
-      generateConfigMutation.mutate({
-        projectId: resolvedParams.id,
-        analysisId: analysisId!,
-        configType: selectedType as 'docker' | 'kubernetes' | 'bash'
-      }, {
-        onSuccess: (result) => {
-          // Redirect to the generated config view
-          router.push(`/project/${resolvedParams.id}/configs/${result.configSetId}`)
+      generateConfigMutation.mutate(
+        {
+          projectId: resolvedParams.id,
+          analysisId: analysisId!,
+          configType: selectedType as 'docker' | 'kubernetes' | 'bash',
         },
-        onError: (error) => {
-          console.error('Config generation failed:', error)
-          setStage('select')
-          setIsGenerating(false)
+        {
+          onSuccess: (result) => {
+            // Redirect to the generated config view
+            router.push(`/project/${resolvedParams.id}/configs/${result.configSetId}`);
+          },
+          onError: (error) => {
+            console.error('Config generation failed:', error);
+            setStage('select');
+            setIsGenerating(false);
+          },
         }
-      })
+      );
     }
-  }, [analysisProgress?.status, stage])
+  }, [analysisProgress?.status, stage]);
 
   if (isLoading) {
     return (
@@ -122,7 +130,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
           </div>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   if (error || !project) {
@@ -146,40 +154,40 @@ export default function NewConfigurationPage({ params }: PageProps) {
           </Card>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   const handleGenerate = async () => {
     // Check if AI provider is configured
     if (!aiProviderStatus?.hasProvider) {
-      return // Button should be disabled, but just in case
+      return; // Button should be disabled, but just in case
     }
 
-    setIsGenerating(true)
-    setStage('analyzing')
+    setIsGenerating(true);
+    setStage('analyzing');
 
     try {
       // Start AI analysis
       const result = await analyzeMutation.mutateAsync({
         projectId: resolvedParams.id,
-        forceReanalysis: false // Use cached if available
-      })
+        forceReanalysis: false, // Use cached if available
+      });
 
-      setAnalysisId(result.analysisId)
+      setAnalysisId(result.analysisId);
       // Analysis progress will be polled automatically
       // When complete, useEffect will trigger config generation
     } catch (error: any) {
-      console.error('Failed to start analysis:', error)
+      console.error('Failed to start analysis:', error);
 
       // Show error message if it's about missing AI provider
       if (error.message?.includes('No default AI provider')) {
         // Error banner is already shown above
       }
 
-      setIsGenerating(false)
-      setStage('select')
+      setIsGenerating(false);
+      setStage('select');
     }
-  }
+  };
 
   const headerActions = (
     <div className="flex items-center gap-3">
@@ -190,7 +198,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -252,11 +260,15 @@ export default function NewConfigurationPage({ params }: PageProps) {
                           No AI Provider Configured
                         </h3>
                         <p className="text-sm text-gray-700 mb-4">
-                          To generate configuration files, you need to configure an AI provider first.
-                          This will enable automatic project analysis and intelligent configuration generation.
+                          To generate configuration files, you need to configure an AI provider
+                          first. This will enable automatic project analysis and intelligent
+                          configuration generation.
                         </p>
                         <Link href="/dashboard/settings?tab=ai-providers">
-                          <Button size="sm" className="bg-gradient-to-r from-ocean-600 to-ocean-500">
+                          <Button
+                            size="sm"
+                            className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                          >
                             <Settings className="h-4 w-4 mr-2" />
                             Configure AI Provider
                           </Button>
@@ -277,7 +289,13 @@ export default function NewConfigurationPage({ params }: PageProps) {
                   progress={analysisProgress.progress || 0}
                   currentActivity={analysisProgress.currentAction || 'Starting discovery...'}
                   activityLog={analysisProgress.activityLog || []}
-                  status={analysisProgress.status === 'complete' ? 'complete' : analysisProgress.status === 'failed' ? 'error' : 'analyzing'}
+                  status={
+                    analysisProgress.status === 'complete'
+                      ? 'complete'
+                      : analysisProgress.status === 'failed'
+                        ? 'error'
+                        : 'analyzing'
+                  }
                 />
               ) : (
                 <Card variant="elevated">
@@ -300,9 +318,12 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 <div className="flex items-center gap-3 p-4">
                   <Loader2 className="h-6 w-6 text-ocean-600 animate-spin" />
                   <div>
-                    <p className="font-medium text-gray-900">Creating {selectedType} configuration files...</p>
+                    <p className="font-medium text-gray-900">
+                      Creating {selectedType} configuration files...
+                    </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      AI is generating optimized deployment configurations based on discovery results
+                      AI is generating optimized deployment configurations based on discovery
+                      results
                     </p>
                   </div>
                 </div>
@@ -314,11 +335,13 @@ export default function NewConfigurationPage({ params }: PageProps) {
           {stage === 'select' && (
             <>
               <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Select Configuration Type</h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Select Configuration Type
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {configTypes.map((type) => {
-                    const Icon = type.icon
-                    const isSelected = selectedType === type.id
+                    const Icon = type.icon;
+                    const isSelected = selectedType === type.id;
 
                     return (
                       <Card
@@ -375,7 +398,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                           </div>
                         </CardContent>
                       </Card>
-                    )
+                    );
                   })}
                 </div>
               </div>
@@ -420,9 +443,15 @@ export default function NewConfigurationPage({ params }: PageProps) {
                       </Link>
                       <Button
                         onClick={handleGenerate}
-                        disabled={isGenerating || !aiProviderStatus?.hasProvider || isLoadingProviderStatus}
+                        disabled={
+                          isGenerating || !aiProviderStatus?.hasProvider || isLoadingProviderStatus
+                        }
                         className="bg-gradient-to-r from-ocean-600 to-ocean-500"
-                        title={!aiProviderStatus?.hasProvider ? 'Configure an AI provider first' : undefined}
+                        title={
+                          !aiProviderStatus?.hasProvider
+                            ? 'Configure an AI provider first'
+                            : undefined
+                        }
                       >
                         {isGenerating ? (
                           <>
@@ -445,5 +474,5 @@ export default function NewConfigurationPage({ params }: PageProps) {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

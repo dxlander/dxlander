@@ -1,5 +1,7 @@
-import { Context } from 'hono'
-import { HTTPException } from 'hono/http-exception'
+import { TRPCError } from '@trpc/server';
+import { Context } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { ZodError } from 'zod';
 
 /**
  * Global Error Handling Middleware
@@ -7,13 +9,13 @@ import { HTTPException } from 'hono/http-exception'
  */
 
 interface ErrorResponse {
-  success: false
+  success: false;
   error: {
-    message: string
-    code?: string
-    details?: any
-  }
-  timestamp: string
+    message: string;
+    code?: string;
+    details?: unknown;
+  };
+  timestamp: string;
 }
 
 export const errorHandler = (err: Error, c: Context) => {
@@ -22,8 +24,8 @@ export const errorHandler = (err: Error, c: Context) => {
     stack: err.stack,
     path: c.req.path,
     method: c.req.method,
-    timestamp: new Date().toISOString()
-  })
+    timestamp: new Date().toISOString(),
+  });
 
   // Handle HTTP exceptions (thrown by our middleware/handlers)
   if (err instanceof HTTPException) {
@@ -32,32 +34,32 @@ export const errorHandler = (err: Error, c: Context) => {
       error: {
         message: err.message,
         code: err.cause as string,
-        details: err.getResponse()
+        details: err.getResponse(),
       },
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    return c.json(response, err.status)
+    return c.json(response, err.status);
   }
 
   // Handle validation errors (Zod, tRPC, etc.)
-  if (err.name === 'ZodError') {
+  if (err instanceof ZodError) {
     const response: ErrorResponse = {
       success: false,
       error: {
         message: 'Validation failed',
         code: 'VALIDATION_ERROR',
-        details: (err as any).errors
+        details: err.errors,
       },
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    return c.json(response, 400)
+    return c.json(response, 400);
   }
 
   // Handle tRPC errors
-  if (err.name === 'TRPCError') {
-    const trpcError = err as any
+  if (err instanceof TRPCError) {
+    const trpcError = err;
     const statusMap: Record<string, number> = {
       BAD_REQUEST: 400,
       UNAUTHORIZED: 401,
@@ -72,21 +74,21 @@ export const errorHandler = (err: Error, c: Context) => {
       TOO_MANY_REQUESTS: 429,
       CLIENT_CLOSED_REQUEST: 499,
       INTERNAL_SERVER_ERROR: 500,
-    }
+    };
 
-    const status = (statusMap[trpcError.code as string] || 500) as any
+    const status = statusMap[trpcError.code] || 500;
 
     const response: ErrorResponse = {
       success: false,
       error: {
         message: trpcError.message,
         code: trpcError.code,
-        details: trpcError.cause
+        details: trpcError.cause,
       },
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    return c.json(response, status)
+    return c.json(response, status as any);
   }
 
   // Handle database errors
@@ -95,12 +97,12 @@ export const errorHandler = (err: Error, c: Context) => {
       success: false,
       error: {
         message: 'Database operation failed',
-        code: 'DATABASE_ERROR'
+        code: 'DATABASE_ERROR',
       },
-      timestamp: new Date().toISOString()
-    }
+      timestamp: new Date().toISOString(),
+    };
 
-    return c.json(response, 500)
+    return c.json(response, 500);
   }
 
   // Default internal server error
@@ -109,10 +111,10 @@ export const errorHandler = (err: Error, c: Context) => {
     error: {
       message: 'Internal server error',
       code: 'INTERNAL_ERROR',
-      details: process.env.NODE_ENV === 'development' ? err.message : undefined
+      details: process.env.NODE_ENV === 'development' ? err.message : undefined,
     },
-    timestamp: new Date().toISOString()
-  }
+    timestamp: new Date().toISOString(),
+  };
 
-  return c.json(response, 500)
-}
+  return c.json(response, 500);
+};

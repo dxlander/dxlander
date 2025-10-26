@@ -1,75 +1,86 @@
-import { randomUUID } from 'crypto'
-import { eq, and, desc, sql } from 'drizzle-orm'
-import { db, deploymentCredentials } from '@dxlander/database'
-import { encryptionService } from '@dxlander/shared'
+import { randomUUID } from 'crypto';
+import { eq, and, desc, sql } from 'drizzle-orm';
+import { db, deploymentCredentials } from '@dxlander/database';
+import { encryptionService } from '@dxlander/shared';
 
 export interface DeploymentPlatformConfig {
-  platform: 'vercel' | 'railway' | 'netlify' | 'aws' | 'gcp' | 'azure' | 'docker-registry' | 'kubernetes' | 'render' | 'fly-io' | 'digital-ocean' | 'heroku'
-  name: string
-  apiKey?: string
-  config?: Record<string, any>
-  settings?: Record<string, any>
+  platform:
+    | 'vercel'
+    | 'railway'
+    | 'netlify'
+    | 'aws'
+    | 'gcp'
+    | 'azure'
+    | 'docker-registry'
+    | 'kubernetes'
+    | 'render'
+    | 'fly-io'
+    | 'digital-ocean'
+    | 'heroku';
+  name: string;
+  apiKey?: string;
+  config?: Record<string, any>;
+  settings?: Record<string, any>;
 }
 
 export interface CreateDeploymentCredentialInput {
-  userId: string
-  name: string
-  platform: string
-  apiKey?: string
-  config?: Record<string, any>
-  settings?: Record<string, any>
-  isDefault?: boolean
+  userId: string;
+  name: string;
+  platform: string;
+  apiKey?: string;
+  config?: Record<string, any>;
+  settings?: Record<string, any>;
+  isDefault?: boolean;
 }
 
 export interface UpdateDeploymentCredentialInput {
-  name?: string
-  apiKey?: string
-  config?: Record<string, any>
-  settings?: Record<string, any>
-  isActive?: boolean
-  isDefault?: boolean
+  name?: string;
+  apiKey?: string;
+  config?: Record<string, any>;
+  settings?: Record<string, any>;
+  isActive?: boolean;
+  isDefault?: boolean;
 }
 
 export interface DeploymentCredential {
-  id: string
-  userId: string
-  name: string
-  platform: string
-  settings?: Record<string, any>
-  isActive: boolean
-  isDefault: boolean
-  lastTested?: Date
-  lastTestStatus?: string
-  lastError?: string
-  usageCount: number
-  lastUsed?: Date
-  createdAt: Date
-  updatedAt: Date
+  id: string;
+  userId: string;
+  name: string;
+  platform: string;
+  settings?: Record<string, any>;
+  isActive: boolean;
+  isDefault: boolean;
+  lastTested?: Date;
+  lastTestStatus?: string;
+  lastError?: string;
+  usageCount: number;
+  lastUsed?: Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export class DeploymentService {
-
   /**
    * Create a new deployment credential
    */
-  async createDeploymentCredential(input: CreateDeploymentCredentialInput): Promise<DeploymentCredential> {
-    const credentialId = randomUUID()
+  async createDeploymentCredential(
+    input: CreateDeploymentCredentialInput
+  ): Promise<DeploymentCredential> {
+    const credentialId = randomUUID();
 
     // Encrypt sensitive data
-    const encryptedApiKey = input.apiKey 
-      ? encryptionService.encryptForStorage(input.apiKey)
-      : null
+    const encryptedApiKey = input.apiKey ? encryptionService.encryptForStorage(input.apiKey) : null;
 
     const encryptedConfig = input.config
       ? encryptionService.encryptForStorage(JSON.stringify(input.config))
-      : null
+      : null;
 
     // If this should be the default, unset all other defaults for this user
     if (input.isDefault) {
       await db
         .update(deploymentCredentials)
         .set({ isDefault: false, updatedAt: new Date() })
-        .where(eq(deploymentCredentials.userId, input.userId))
+        .where(eq(deploymentCredentials.userId, input.userId));
     }
 
     // Insert new credential
@@ -89,9 +100,9 @@ export class DeploymentService {
         createdAt: new Date(),
         updatedAt: new Date(),
       })
-      .returning()
+      .returning();
 
-    return this.formatCredential(credential)
+    return this.formatCredential(credential);
   }
 
   /**
@@ -100,28 +111,31 @@ export class DeploymentService {
   async getDeploymentCredentials(userId: string): Promise<DeploymentCredential[]> {
     const credentials = await db.query.deploymentCredentials.findMany({
       where: eq(deploymentCredentials.userId, userId),
-      orderBy: [desc(deploymentCredentials.isDefault), desc(deploymentCredentials.createdAt)]
-    })
+      orderBy: [desc(deploymentCredentials.isDefault), desc(deploymentCredentials.createdAt)],
+    });
 
-    return credentials.map(cred => this.formatCredential(cred))
+    return credentials.map((cred) => this.formatCredential(cred));
   }
 
   /**
    * Get a single deployment credential by ID
    */
-  async getDeploymentCredential(credentialId: string, userId: string): Promise<DeploymentCredential | null> {
+  async getDeploymentCredential(
+    credentialId: string,
+    userId: string
+  ): Promise<DeploymentCredential | null> {
     const credential = await db.query.deploymentCredentials.findFirst({
       where: and(
         eq(deploymentCredentials.id, credentialId),
         eq(deploymentCredentials.userId, userId)
-      )
-    })
+      ),
+    });
 
     if (!credential) {
-      return null
+      return null;
     }
 
-    return this.formatCredential(credential)
+    return this.formatCredential(credential);
   }
 
   /**
@@ -132,33 +146,36 @@ export class DeploymentService {
       where: and(
         eq(deploymentCredentials.id, credentialId),
         eq(deploymentCredentials.userId, userId)
-      )
-    })
+      ),
+    });
 
     if (!credential || !credential.encryptedApiKey) {
-      return null
+      return null;
     }
 
-    return encryptionService.decryptFromStorage(credential.encryptedApiKey)
+    return encryptionService.decryptFromStorage(credential.encryptedApiKey);
   }
 
   /**
    * Get decrypted config for a credential (used during deployment)
    */
-  async getDecryptedConfig(credentialId: string, userId: string): Promise<Record<string, any> | null> {
+  async getDecryptedConfig(
+    credentialId: string,
+    userId: string
+  ): Promise<Record<string, any> | null> {
     const credential = await db.query.deploymentCredentials.findFirst({
       where: and(
         eq(deploymentCredentials.id, credentialId),
         eq(deploymentCredentials.userId, userId)
-      )
-    })
+      ),
+    });
 
     if (!credential || !credential.encryptedConfig) {
-      return null
+      return null;
     }
 
-    const decrypted = encryptionService.decryptFromStorage(credential.encryptedConfig)
-    return JSON.parse(decrypted)
+    const decrypted = encryptionService.decryptFromStorage(credential.encryptedConfig);
+    return JSON.parse(decrypted);
   }
 
   /**
@@ -170,9 +187,9 @@ export class DeploymentService {
     input: UpdateDeploymentCredentialInput
   ): Promise<DeploymentCredential | null> {
     // Verify ownership
-    const existing = await this.getDeploymentCredential(credentialId, userId)
+    const existing = await this.getDeploymentCredential(credentialId, userId);
     if (!existing) {
-      return null
+      return null;
     }
 
     // If setting as default, unset all other defaults
@@ -180,148 +197,144 @@ export class DeploymentService {
       await db
         .update(deploymentCredentials)
         .set({ isDefault: false, updatedAt: new Date() })
-        .where(and(
-          eq(deploymentCredentials.userId, userId),
-          eq(deploymentCredentials.isActive, true)
-        ))
+        .where(
+          and(eq(deploymentCredentials.userId, userId), eq(deploymentCredentials.isActive, true))
+        );
     }
 
     // Prepare update data
     const updateData: any = {
-      updatedAt: new Date()
-    }
+      updatedAt: new Date(),
+    };
 
-    if (input.name !== undefined) updateData.name = input.name
-    if (input.isActive !== undefined) updateData.isActive = input.isActive
-    if (input.isDefault !== undefined) updateData.isDefault = input.isDefault
+    if (input.name !== undefined) updateData.name = input.name;
+    if (input.isActive !== undefined) updateData.isActive = input.isActive;
+    if (input.isDefault !== undefined) updateData.isDefault = input.isDefault;
 
     if (input.apiKey !== undefined) {
-      updateData.encryptedApiKey = input.apiKey 
+      updateData.encryptedApiKey = input.apiKey
         ? encryptionService.encryptForStorage(input.apiKey)
-        : null
+        : null;
     }
 
     if (input.config !== undefined) {
       updateData.encryptedConfig = input.config
         ? encryptionService.encryptForStorage(JSON.stringify(input.config))
-        : null
+        : null;
     }
 
     if (input.settings !== undefined) {
-      updateData.settings = input.settings 
-        ? JSON.stringify(input.settings)
-        : null
+      updateData.settings = input.settings ? JSON.stringify(input.settings) : null;
     }
 
     // Update credential
     const [updated] = await db
       .update(deploymentCredentials)
       .set(updateData)
-      .where(and(
-        eq(deploymentCredentials.id, credentialId),
-        eq(deploymentCredentials.userId, userId)
-      ))
-      .returning()
+      .where(
+        and(eq(deploymentCredentials.id, credentialId), eq(deploymentCredentials.userId, userId))
+      )
+      .returning();
 
-    return this.formatCredential(updated)
+    return this.formatCredential(updated);
   }
 
   /**
    * Delete a deployment credential
    */
   async deleteDeploymentCredential(credentialId: string, userId: string): Promise<boolean> {
-    const result = await db
+    await db
       .delete(deploymentCredentials)
-      .where(and(
-        eq(deploymentCredentials.id, credentialId),
-        eq(deploymentCredentials.userId, userId)
-      ))
+      .where(
+        and(eq(deploymentCredentials.id, credentialId), eq(deploymentCredentials.userId, userId))
+      );
 
-    return true
+    return true;
   }
 
   /**
    * Set a credential as default
    */
-  async setDefaultCredential(credentialId: string, userId: string): Promise<DeploymentCredential | null> {
+  async setDefaultCredential(
+    credentialId: string,
+    userId: string
+  ): Promise<DeploymentCredential | null> {
     // Unset all current defaults
     await db
       .update(deploymentCredentials)
       .set({ isDefault: false, updatedAt: new Date() })
-      .where(eq(deploymentCredentials.userId, userId))
+      .where(eq(deploymentCredentials.userId, userId));
 
     // Set new default
     const [updated] = await db
       .update(deploymentCredentials)
       .set({ isDefault: true, updatedAt: new Date() })
-      .where(and(
-        eq(deploymentCredentials.id, credentialId),
-        eq(deploymentCredentials.userId, userId)
-      ))
-      .returning()
+      .where(
+        and(eq(deploymentCredentials.id, credentialId), eq(deploymentCredentials.userId, userId))
+      )
+      .returning();
 
     if (!updated) {
-      return null
+      return null;
     }
 
-    return this.formatCredential(updated)
+    return this.formatCredential(updated);
   }
 
   /**
    * Test deployment credential connection
    */
-  async testConnection(credentialId: string, userId: string): Promise<{
-    success: boolean
-    message: string
-    details?: any
+  async testConnection(
+    credentialId: string,
+    userId: string
+  ): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
   }> {
     const credential = await db.query.deploymentCredentials.findFirst({
       where: and(
         eq(deploymentCredentials.id, credentialId),
         eq(deploymentCredentials.userId, userId)
-      )
-    })
+      ),
+    });
 
     if (!credential) {
       return {
         success: false,
-        message: 'Credential not found'
-      }
+        message: 'Credential not found',
+      };
     }
 
     try {
       // Platform-specific connection testing
-      const apiKey = credential.encryptedApiKey 
+      const apiKey = credential.encryptedApiKey
         ? encryptionService.decryptFromStorage(credential.encryptedApiKey)
-        : null
+        : null;
 
-      const config = credential.encryptedConfig
-        ? JSON.parse(encryptionService.decryptFromStorage(credential.encryptedConfig))
-        : {}
-
-      let testResult: { success: boolean; message: string; details?: any }
+      let testResult: { success: boolean; message: string; details?: any };
 
       switch (credential.platform) {
         case 'vercel':
-          testResult = await this.testVercelConnection(apiKey, config)
-          break
+          testResult = await this.testVercelConnection(apiKey);
+          break;
         case 'railway':
-          testResult = await this.testRailwayConnection(apiKey, config)
-          break
+          testResult = await this.testRailwayConnection(apiKey);
+          break;
         case 'netlify':
-          testResult = await this.testNetlifyConnection(apiKey, config)
-          break
+          testResult = await this.testNetlifyConnection(apiKey);
+          break;
         case 'aws':
-          testResult = await this.testAWSConnection(config)
-          break
+          testResult = await this.testAWSConnection();
+          break;
         case 'gcp':
-          testResult = await this.testGCPConnection(config)
-          break
+          testResult = await this.testGCPConnection();
+          break;
         default:
           testResult = {
             success: true,
-            message: 'Connection test not implemented for this platform'
-          }
+            message: 'Connection test not implemented for this platform',
+          };
       }
 
       // Update test status
@@ -331,11 +344,11 @@ export class DeploymentService {
           lastTested: new Date(),
           lastTestStatus: testResult.success ? 'success' : 'failed',
           lastError: testResult.success ? null : testResult.message,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(deploymentCredentials.id, credentialId))
+        .where(eq(deploymentCredentials.id, credentialId));
 
-      return testResult
+      return testResult;
     } catch (error: any) {
       // Update error status
       await db
@@ -344,14 +357,14 @@ export class DeploymentService {
           lastTested: new Date(),
           lastTestStatus: 'failed',
           lastError: error.message,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
-        .where(eq(deploymentCredentials.id, credentialId))
+        .where(eq(deploymentCredentials.id, credentialId));
 
       return {
         success: false,
-        message: error.message || 'Connection test failed'
-      }
+        message: error.message || 'Connection test failed',
+      };
     }
   }
 
@@ -364,60 +377,60 @@ export class DeploymentService {
       .set({
         usageCount: sql`${deploymentCredentials.usageCount} + 1`,
         lastUsed: new Date(),
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(eq(deploymentCredentials.id, credentialId))
+      .where(eq(deploymentCredentials.id, credentialId));
   }
 
   // Platform-specific connection tests
 
-  private async testVercelConnection(apiKey: string | null, config: any): Promise<{
-    success: boolean
-    message: string
-    details?: any
+  private async testVercelConnection(apiKey: string | null): Promise<{
+    success: boolean;
+    message: string;
+    details?: any;
   }> {
     if (!apiKey) {
-      return { success: false, message: 'API key required for Vercel' }
+      return { success: false, message: 'API key required for Vercel' };
     }
 
     try {
       // Test Vercel API
       const response = await fetch('https://api.vercel.com/v2/user', {
         headers: {
-          Authorization: `Bearer ${apiKey}`
-        }
-      })
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
 
       if (response.ok) {
-        const user = await response.json()
+        const user = await response.json();
         return {
           success: true,
           message: 'Successfully connected to Vercel',
           details: {
             username: user.user?.username,
-            email: user.user?.email
-          }
-        }
+            email: user.user?.email,
+          },
+        };
       } else {
         return {
           success: false,
-          message: `Vercel API error: ${response.statusText}`
-        }
+          message: `Vercel API error: ${response.statusText}`,
+        };
       }
     } catch (error: any) {
       return {
         success: false,
-        message: error.message || 'Failed to connect to Vercel'
-      }
+        message: error.message || 'Failed to connect to Vercel',
+      };
     }
   }
 
-  private async testRailwayConnection(apiKey: string | null, config: any): Promise<{
-    success: boolean
-    message: string
+  private async testRailwayConnection(apiKey: string | null): Promise<{
+    success: boolean;
+    message: string;
   }> {
     if (!apiKey) {
-      return { success: false, message: 'API key required for Railway' }
+      return { success: false, message: 'API key required for Railway' };
     }
 
     try {
@@ -426,93 +439,93 @@ export class DeploymentService {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`
+          Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          query: '{ me { id email } }'
-        })
-      })
+          query: '{ me { id email } }',
+        }),
+      });
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
         if (data.errors) {
           return {
             success: false,
-            message: data.errors[0]?.message || 'Railway API error'
-          }
+            message: data.errors[0]?.message || 'Railway API error',
+          };
         }
         return {
           success: true,
-          message: 'Successfully connected to Railway'
-        }
+          message: 'Successfully connected to Railway',
+        };
       } else {
         return {
           success: false,
-          message: `Railway API error: ${response.statusText}`
-        }
+          message: `Railway API error: ${response.statusText}`,
+        };
       }
     } catch (error: any) {
       return {
         success: false,
-        message: error.message || 'Failed to connect to Railway'
-      }
+        message: error.message || 'Failed to connect to Railway',
+      };
     }
   }
 
-  private async testNetlifyConnection(apiKey: string | null, config: any): Promise<{
-    success: boolean
-    message: string
+  private async testNetlifyConnection(apiKey: string | null): Promise<{
+    success: boolean;
+    message: string;
   }> {
     if (!apiKey) {
-      return { success: false, message: 'API key required for Netlify' }
+      return { success: false, message: 'API key required for Netlify' };
     }
 
     try {
       const response = await fetch('https://api.netlify.com/api/v1/user', {
         headers: {
-          Authorization: `Bearer ${apiKey}`
-        }
-      })
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
 
       if (response.ok) {
         return {
           success: true,
-          message: 'Successfully connected to Netlify'
-        }
+          message: 'Successfully connected to Netlify',
+        };
       } else {
         return {
           success: false,
-          message: `Netlify API error: ${response.statusText}`
-        }
+          message: `Netlify API error: ${response.statusText}`,
+        };
       }
     } catch (error: any) {
       return {
         success: false,
-        message: error.message || 'Failed to connect to Netlify'
-      }
+        message: error.message || 'Failed to connect to Netlify',
+      };
     }
   }
 
-  private async testAWSConnection(config: any): Promise<{
-    success: boolean
-    message: string
+  private async testAWSConnection(): Promise<{
+    success: boolean;
+    message: string;
   }> {
     // AWS requires SDK integration - placeholder for now
     return {
       success: true,
-      message: 'AWS connection validation not yet implemented'
-    }
+      message: 'AWS connection validation not yet implemented',
+    };
   }
 
-  private async testGCPConnection(config: any): Promise<{
-    success: boolean
-    message: string
+  private async testGCPConnection(): Promise<{
+    success: boolean;
+    message: string;
   }> {
     // GCP requires SDK integration - placeholder for now
     return {
       success: true,
-      message: 'GCP connection validation not yet implemented'
-    }
+      message: 'GCP connection validation not yet implemented',
+    };
   }
 
   /**
@@ -533,10 +546,10 @@ export class DeploymentService {
       usageCount: credential.usageCount,
       lastUsed: credential.lastUsed,
       createdAt: credential.createdAt,
-      updatedAt: credential.updatedAt
-    }
+      updatedAt: credential.updatedAt,
+    };
   }
 }
 
 // Export singleton instance
-export const deploymentService = new DeploymentService()
+export const deploymentService = new DeploymentService();

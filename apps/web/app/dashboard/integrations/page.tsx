@@ -1,15 +1,15 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { IconWrapper } from "@/components/common"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Input, FloatingInput } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { IconWrapper } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input, FloatingInput } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -17,21 +17,21 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
 import {
   ArrowLeft,
   Plus,
@@ -45,22 +45,26 @@ import {
   Edit,
   Trash2,
   Eye,
-  EyeOff,
   CheckCircle2,
   FileJson,
   Lock,
   Upload,
   ShieldCheck,
-  RefreshCw
-} from "lucide-react"
+  RefreshCw,
+} from 'lucide-react';
 
-type CredentialType = 'api_key' | 'json_service_account' | 'oauth_token' | 'connection_string' | 'key_value'
+type CredentialType =
+  | 'api_key'
+  | 'json_service_account'
+  | 'oauth_token'
+  | 'connection_string'
+  | 'key_value';
 
 export default function IntegrationsPage() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [showNewIntegrationDialog, setShowNewIntegrationDialog] = useState(false)
-  const [credentialType, setCredentialType] = useState<CredentialType>('api_key')
-  const [selectedCategory, setSelectedCategory] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNewIntegrationDialog, setShowNewIntegrationDialog] = useState(false);
+  const [credentialType, setCredentialType] = useState<CredentialType>('api_key');
+  const [selectedCategory, setSelectedCategory] = useState('all');
 
   // Mock integrations data
   const integrations = [
@@ -74,7 +78,7 @@ export default function IntegrationsPage() {
       createdAt: '2 days ago',
       lastUsed: '1 hour ago',
       usageCount: 12,
-      encryption: 'AES-256-GCM'
+      encryption: 'AES-256-GCM',
     },
     {
       id: '2',
@@ -86,7 +90,7 @@ export default function IntegrationsPage() {
       createdAt: '5 days ago',
       lastUsed: '3 hours ago',
       usageCount: 8,
-      encryption: 'AES-256-GCM'
+      encryption: 'AES-256-GCM',
     },
     {
       id: '3',
@@ -98,7 +102,7 @@ export default function IntegrationsPage() {
       createdAt: '1 week ago',
       lastUsed: '2 days ago',
       usageCount: 5,
-      encryption: 'AES-256-GCM'
+      encryption: 'AES-256-GCM',
     },
     {
       id: '4',
@@ -110,7 +114,7 @@ export default function IntegrationsPage() {
       createdAt: '3 days ago',
       lastUsed: '6 hours ago',
       usageCount: 15,
-      encryption: 'AES-256-GCM'
+      encryption: 'AES-256-GCM',
     },
     {
       id: '5',
@@ -123,51 +127,64 @@ export default function IntegrationsPage() {
       lastUsed: 'Never',
       usageCount: 0,
       error: 'Invalid API key - please update credentials',
-      encryption: 'AES-256-GCM'
-    }
-  ]
+      encryption: 'AES-256-GCM',
+    },
+  ];
 
   const categories = [
     { id: 'all', label: 'All Integrations', count: integrations.length },
-    { id: 'database', label: 'Databases', count: integrations.filter(i => i.type === 'database').length },
-    { id: 'storage', label: 'Storage', count: integrations.filter(i => i.type === 'storage').length },
-    { id: 'payment', label: 'Payment', count: integrations.filter(i => i.type === 'payment').length },
-    { id: 'email', label: 'Email', count: integrations.filter(i => i.type === 'email').length },
-  ]
+    {
+      id: 'database',
+      label: 'Databases',
+      count: integrations.filter((i) => i.type === 'database').length,
+    },
+    {
+      id: 'storage',
+      label: 'Storage',
+      count: integrations.filter((i) => i.type === 'storage').length,
+    },
+    {
+      id: 'payment',
+      label: 'Payment',
+      count: integrations.filter((i) => i.type === 'payment').length,
+    },
+    { id: 'email', label: 'Email', count: integrations.filter((i) => i.type === 'email').length },
+  ];
 
-  const filteredIntegrations = integrations.filter(integration => {
-    const matchesSearch = integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      integration.service.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesCategory = selectedCategory === 'all' || integration.type === selectedCategory
+  const filteredIntegrations = integrations.filter((integration) => {
+    const matchesSearch =
+      integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      integration.service.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || integration.type === selectedCategory;
 
-    return matchesSearch && matchesCategory
-  })
+    return matchesSearch && matchesCategory;
+  });
 
   const getIntegrationIcon = (type: string) => {
     switch (type) {
       case 'database':
-        return <Database className="h-5 w-5" />
+        return <Database className="h-5 w-5" />;
       case 'payment':
-        return <CreditCard className="h-5 w-5" />
+        return <CreditCard className="h-5 w-5" />;
       case 'storage':
-        return <Cloud className="h-5 w-5" />
+        return <Cloud className="h-5 w-5" />;
       case 'email':
-        return <Mail className="h-5 w-5" />
+        return <Mail className="h-5 w-5" />;
       default:
-        return <Key className="h-5 w-5" />
+        return <Key className="h-5 w-5" />;
     }
-  }
+  };
 
   const getCredentialTypeIcon = (type: CredentialType) => {
     switch (type) {
       case 'json_service_account':
-        return <FileJson className="h-4 w-4" />
+        return <FileJson className="h-4 w-4" />;
       case 'oauth_token':
-        return <ShieldCheck className="h-4 w-4" />
+        return <ShieldCheck className="h-4 w-4" />;
       default:
-        return <Key className="h-4 w-4" />
+        return <Key className="h-4 w-4" />;
     }
-  }
+  };
 
   const headerActions = (
     <div className="flex items-center space-x-3">
@@ -182,7 +199,7 @@ export default function IntegrationsPage() {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -194,7 +211,6 @@ export default function IntegrationsPage() {
 
       <Section spacing="lg" container={false}>
         <div className="max-w-7xl mx-auto px-6 space-y-6">
-
           {/* Security Info Card */}
           <Card className="border-ocean-200 bg-gradient-to-r from-ocean-50/50 to-blue-50/50">
             <CardContent className="p-6">
@@ -223,7 +239,7 @@ export default function IntegrationsPage() {
           <div className="flex items-center justify-between gap-4">
             <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
               <TabsList>
-                {categories.map(cat => (
+                {categories.map((cat) => (
                   <TabsTrigger key={cat.id} value={cat.id} className="relative">
                     {cat.label}
                     {cat.count > 0 && (
@@ -260,8 +276,7 @@ export default function IntegrationsPage() {
                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
                   {searchQuery
                     ? 'Try adjusting your search or add a new integration'
-                    : 'Add your first integration to enable automatic credential management. AI will use these when analyzing and deploying projects.'
-                  }
+                    : 'Add your first integration to enable automatic credential management. AI will use these when analyzing and deploying projects.'}
                 </p>
                 <Button size="lg" onClick={() => setShowNewIntegrationDialog(true)}>
                   <Plus className="h-5 w-5 mr-2" />
@@ -272,7 +287,10 @@ export default function IntegrationsPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {filteredIntegrations.map((integration) => (
-                <Card key={integration.id} className="hover:shadow-elegant transition-all hover:border-ocean-300">
+                <Card
+                  key={integration.id}
+                  className="hover:shadow-elegant transition-all hover:border-ocean-300"
+                >
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       {/* Header */}
@@ -283,9 +301,14 @@ export default function IntegrationsPage() {
                           </IconWrapper>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-gray-900 truncate">{integration.name}</h4>
+                              <h4 className="font-semibold text-gray-900 truncate">
+                                {integration.name}
+                              </h4>
                               {integration.status === 'connected' ? (
-                                <Badge variant="secondary" className="bg-green-100 text-green-700 flex-shrink-0">
+                                <Badge
+                                  variant="secondary"
+                                  className="bg-green-100 text-green-700 flex-shrink-0"
+                                >
                                   Connected
                                 </Badge>
                               ) : (
@@ -333,7 +356,9 @@ export default function IntegrationsPage() {
                       <div className="flex items-center gap-4 text-xs">
                         <div className="flex items-center gap-1.5 text-gray-600">
                           {getCredentialTypeIcon(integration.credentialType)}
-                          <span className="capitalize">{integration.credentialType.replace('_', ' ')}</span>
+                          <span className="capitalize">
+                            {integration.credentialType.replace('_', ' ')}
+                          </span>
                         </div>
                         <span className="text-gray-400">•</span>
                         <div className="flex items-center gap-1.5 text-gray-600">
@@ -346,15 +371,21 @@ export default function IntegrationsPage() {
                       <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Used</p>
-                          <p className="text-sm font-semibold text-gray-900">{integration.usageCount}x</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {integration.usageCount}x
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Created</p>
-                          <p className="text-sm font-semibold text-gray-900">{integration.createdAt}</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {integration.createdAt}
+                          </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Last Used</p>
-                          <p className="text-sm font-semibold text-gray-900">{integration.lastUsed}</p>
+                          <p className="text-sm font-semibold text-gray-900">
+                            {integration.lastUsed}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -380,10 +411,7 @@ export default function IntegrationsPage() {
             {/* Basic Info */}
             <div className="space-y-4">
               <div className="space-y-2">
-                <FloatingInput
-                  label="Integration Name"
-                  leftIcon={<Key className="h-4 w-4" />}
-                />
+                <FloatingInput label="Integration Name" leftIcon={<Key className="h-4 w-4" />} />
               </div>
 
               <div className="space-y-2">
@@ -409,7 +437,10 @@ export default function IntegrationsPage() {
             {/* Credential Type */}
             <div className="space-y-2">
               <Label>Credential Type</Label>
-              <Select value={credentialType} onValueChange={(v) => setCredentialType(v as CredentialType)}>
+              <Select
+                value={credentialType}
+                onValueChange={(v) => setCredentialType(v as CredentialType)}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -464,7 +495,8 @@ export default function IntegrationsPage() {
                   <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-ocean-400 transition-colors cursor-pointer">
                     <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
                     <p className="text-sm text-gray-600 mb-1">
-                      <span className="font-medium text-ocean-600">Click to upload</span> or paste JSON
+                      <span className="font-medium text-ocean-600">Click to upload</span> or paste
+                      JSON
                     </p>
                     <p className="text-xs text-gray-500">Firebase, GCP service accounts</p>
                   </div>
@@ -485,11 +517,19 @@ export default function IntegrationsPage() {
                   <div className="space-y-3 p-4 border border-gray-200 rounded-lg">
                     <div className="grid grid-cols-2 gap-3">
                       <FloatingInput label="Key Name" leftIcon={<Key className="h-4 w-4" />} />
-                      <FloatingInput label="Key Value" type="password" leftIcon={<Lock className="h-4 w-4" />} />
+                      <FloatingInput
+                        label="Key Value"
+                        type="password"
+                        leftIcon={<Lock className="h-4 w-4" />}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <FloatingInput label="Key Name" leftIcon={<Key className="h-4 w-4" />} />
-                      <FloatingInput label="Key Value" type="password" leftIcon={<Lock className="h-4 w-4" />} />
+                      <FloatingInput
+                        label="Key Value"
+                        type="password"
+                        leftIcon={<Lock className="h-4 w-4" />}
+                      />
                     </div>
                     <Button variant="outline" size="sm" className="w-full">
                       <Plus className="h-4 w-4 mr-2" />
@@ -528,7 +568,8 @@ export default function IntegrationsPage() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">Automatic Encryption</h4>
                   <p className="text-sm text-gray-700">
-                    This credential will be encrypted using your master encryption key (AES-256-GCM). You can manage your encryption key in Settings.
+                    This credential will be encrypted using your master encryption key
+                    (AES-256-GCM). You can manage your encryption key in Settings.
                   </p>
                 </div>
               </div>
@@ -547,5 +588,5 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
     </PageLayout>
-  )
+  );
 }

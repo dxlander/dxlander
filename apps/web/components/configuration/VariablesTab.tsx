@@ -1,105 +1,103 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { FloatingInput } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Key,
-  Copy,
-  CheckCircle2,
-  Pencil,
-  Save,
-  X,
-  Plus,
-  Trash2
-} from 'lucide-react'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { FloatingInput } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Key, Copy, CheckCircle2, Pencil, Save, X, Plus, Trash2 } from 'lucide-react';
 
 interface EnvironmentVariable {
-  key: string
-  description: string
-  example?: string
-  integration?: string
+  key: string;
+  description: string;
+  example?: string;
+  integration?: string;
 }
 
 interface EnvironmentVariables {
-  required?: EnvironmentVariable[]
-  optional?: EnvironmentVariable[]
+  required?: EnvironmentVariable[];
+  optional?: EnvironmentVariable[];
 }
 
 interface VariablesTabProps {
-  environmentVariables?: EnvironmentVariables
-  onSave: (variables: EnvironmentVariables) => Promise<void>
+  environmentVariables?: EnvironmentVariables;
+  onSave: (variables: EnvironmentVariables) => Promise<void>;
 }
 
 export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [editedVariables, setEditedVariables] = useState<EnvironmentVariables | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedVariables, setEditedVariables] = useState<EnvironmentVariables | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const requiredEnvCount = environmentVariables?.required?.length || 0
-  const optionalEnvCount = environmentVariables?.optional?.length || 0
-  const totalEnvCount = requiredEnvCount + optionalEnvCount
+  const requiredEnvCount = environmentVariables?.required?.length || 0;
+  const optionalEnvCount = environmentVariables?.optional?.length || 0;
+  const totalEnvCount = requiredEnvCount + optionalEnvCount;
 
   const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key)
-    setCopiedKey(key)
-    setTimeout(() => setCopiedKey(null), 2000)
-  }
+    navigator.clipboard.writeText(key);
+    setCopiedKey(key);
+    setTimeout(() => setCopiedKey(null), 2000);
+  };
 
   const handleEdit = () => {
-    setEditedVariables(JSON.parse(JSON.stringify(environmentVariables || { required: [], optional: [] })))
-    setIsEditing(true)
-  }
+    setEditedVariables(
+      JSON.parse(JSON.stringify(environmentVariables || { required: [], optional: [] }))
+    );
+    setIsEditing(true);
+  };
 
   const handleSave = async () => {
-    if (!editedVariables) return
-    setIsSaving(true)
+    if (!editedVariables) return;
+    setIsSaving(true);
     try {
-      await onSave(editedVariables)
-      setIsEditing(false)
-      setEditedVariables(null)
+      await onSave(editedVariables);
+      setIsEditing(false);
+      setEditedVariables(null);
     } catch (error) {
-      console.error('Failed to save variables:', error)
+      console.error('Failed to save variables:', error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleCancel = () => {
-    setIsEditing(false)
-    setEditedVariables(null)
-  }
+    setIsEditing(false);
+    setEditedVariables(null);
+  };
 
-  const handleUpdateVariable = (type: 'required' | 'optional', index: number, field: string, value: string) => {
-    if (!editedVariables) return
-    const updated = { ...editedVariables }
-    if (!updated[type]) updated[type] = []
-    updated[type]![index] = { ...updated[type]![index], [field]: value }
-    setEditedVariables(updated)
-  }
+  const handleUpdateVariable = (
+    type: 'required' | 'optional',
+    index: number,
+    field: string,
+    value: string
+  ) => {
+    if (!editedVariables) return;
+    const updated = { ...editedVariables };
+    if (!updated[type]) updated[type] = [];
+    updated[type]![index] = { ...updated[type]![index], [field]: value };
+    setEditedVariables(updated);
+  };
 
   const handleDeleteVariable = (type: 'required' | 'optional', index: number) => {
-    if (!editedVariables) return
-    const updated = { ...editedVariables }
-    if (!updated[type]) return
-    updated[type] = updated[type]!.filter((_, i) => i !== index)
-    setEditedVariables(updated)
-  }
+    if (!editedVariables) return;
+    const updated = { ...editedVariables };
+    if (!updated[type]) return;
+    updated[type] = updated[type]!.filter((_, i) => i !== index);
+    setEditedVariables(updated);
+  };
 
   const handleAddVariable = (type: 'required' | 'optional') => {
-    if (!editedVariables) return
-    const updated = { ...editedVariables }
-    if (!updated[type]) updated[type] = []
-    updated[type] = [...updated[type]!, { key: '', description: '', example: '' }]
-    setEditedVariables(updated)
-  }
+    if (!editedVariables) return;
+    const updated = { ...editedVariables };
+    if (!updated[type]) updated[type] = [];
+    updated[type] = [...updated[type]!, { key: '', description: '', example: '' }];
+    setEditedVariables(updated);
+  };
 
-  const currentVariables = isEditing ? editedVariables : environmentVariables
+  const currentVariables = isEditing ? editedVariables : environmentVariables;
 
   return (
     <Card>
@@ -124,7 +122,12 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
-                <Button size="sm" onClick={handleSave} disabled={isSaving} className="bg-gradient-to-r from-ocean-600 to-ocean-500">
+                <Button
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save'}
                 </Button>
@@ -132,9 +135,7 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
             )}
           </div>
         </div>
-        <CardDescription>
-          Configure these environment variables before deployment
-        </CardDescription>
+        <CardDescription>Configure these environment variables before deployment</CardDescription>
       </CardHeader>
       <CardContent>
         {currentVariables ? (
@@ -199,11 +200,19 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
 
                 {isEditing && (
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" onClick={() => handleAddVariable('required')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddVariable('required')}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Required Variable
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => handleAddVariable('optional')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddVariable('optional')}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Optional Variable
                     </Button>
@@ -246,14 +255,20 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
                       variable={envVar}
                       type="optional"
                       isEditing={isEditing}
-                      onUpdate={(field, value) => handleUpdateVariable('optional', idx, field, value)}
+                      onUpdate={(field, value) =>
+                        handleUpdateVariable('optional', idx, field, value)
+                      }
                       onDelete={() => handleDeleteVariable('optional', idx)}
                       copiedKey={copiedKey}
                       onCopy={handleCopyKey}
                     />
                   ))}
                   {isEditing && (
-                    <Button variant="outline" size="sm" onClick={() => handleAddVariable('optional')}>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleAddVariable('optional')}
+                    >
                       <Plus className="h-4 w-4 mr-2" />
                       Add Optional Variable
                     </Button>
@@ -270,26 +285,36 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // Sub-component for rendering individual variable cards
 interface VariableCardProps {
-  variable: EnvironmentVariable
-  type: 'required' | 'optional'
-  isEditing: boolean
-  onUpdate: (field: string, value: string) => void
-  onDelete: () => void
-  copiedKey: string | null
-  onCopy: (key: string) => void
+  variable: EnvironmentVariable;
+  type: 'required' | 'optional';
+  isEditing: boolean;
+  onUpdate: (field: string, value: string) => void;
+  onDelete: () => void;
+  copiedKey: string | null;
+  onCopy: (key: string) => void;
 }
 
-function VariableCard({ variable, type, isEditing, onUpdate, onDelete, copiedKey, onCopy }: VariableCardProps) {
-  const isRequired = type === 'required'
+function VariableCard({
+  variable,
+  type,
+  isEditing,
+  onUpdate,
+  onDelete,
+  copiedKey,
+  onCopy,
+}: VariableCardProps) {
+  const isRequired = type === 'required';
 
   if (isEditing) {
     return (
-      <div className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}>
+      <div
+        className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}
+      >
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 space-y-4">
@@ -313,18 +338,25 @@ function VariableCard({ variable, type, isEditing, onUpdate, onDelete, copiedKey
                 className="font-mono"
               />
             </div>
-            <Button variant="ghost" size="sm" onClick={onDelete} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onDelete}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
               <Trash2 className="h-4 w-4" />
             </Button>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   // View mode
   return (
-    <div className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}>
+    <div
+      className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <Key className={`h-4 w-4 ${isRequired ? 'text-red-600' : 'text-gray-600'}`} />
@@ -344,11 +376,7 @@ function VariableCard({ variable, type, isEditing, onUpdate, onDelete, copiedKey
         <div className="flex items-center gap-2 p-3 bg-white rounded border text-sm">
           <span className="text-gray-500 font-medium">Example:</span>
           <code className="flex-1 font-mono text-gray-800">{variable.example}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => onCopy(variable.example!)}
-          >
+          <Button variant="ghost" size="sm" onClick={() => onCopy(variable.example!)}>
             {copiedKey === variable.example ? (
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             ) : (
@@ -358,5 +386,5 @@ function VariableCard({ variable, type, isEditing, onUpdate, onDelete, copiedKey
         </div>
       )}
     </div>
-  )
+  );
 }

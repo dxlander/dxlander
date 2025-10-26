@@ -1,12 +1,12 @@
-'use client'
+'use client';
 
-import { use, useState, useEffect } from 'react'
-import Link from 'next/link'
-import { PageLayout, Header, Section } from '@/components/layouts'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { use, useState, useEffect } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   ArrowLeft,
   FileCode,
@@ -17,78 +17,87 @@ import {
   Package,
   Key,
   ExternalLink,
-  Eye
-} from 'lucide-react'
-import { trpc } from '@/lib/trpc'
+  Eye,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 import {
   VariablesTab,
   FilesTab,
   OverviewTab,
   DependenciesTab,
   IntegrationsTab,
-  DeploymentTab
-} from '@/components/configuration'
+  DeploymentTab,
+} from '@/components/configuration';
 
 // Import types for proper typing
 type EnvironmentVariables = {
   required?: Array<{
-    key: string
-    description: string
-    example?: string
-    integration?: string
-  }>
+    key: string;
+    description: string;
+    example?: string;
+    integration?: string;
+  }>;
   optional?: Array<{
-    key: string
-    description: string
-    example?: string
-    integration?: string
-  }>
-}
+    key: string;
+    description: string;
+    example?: string;
+    integration?: string;
+  }>;
+};
 
 interface PageProps {
-  params: Promise<{ id: string; configId: string }>
+  params: Promise<{ id: string; configId: string }>;
 }
 
 export default function ConfigurationDetailPage({ params }: PageProps) {
-  const resolvedParams = use(params)
-  const [activeTab, setActiveTab] = useState('overview')
+  const resolvedParams = use(params);
+  const [activeTab, setActiveTab] = useState('overview');
 
-  const { data: project, isLoading: projectLoading, error: projectError } = trpc.projects.get.useQuery({
-    id: resolvedParams.id
-  })
+  const {
+    data: project,
+    isLoading: projectLoading,
+    error: projectError,
+  } = trpc.projects.get.useQuery({
+    id: resolvedParams.id,
+  });
 
-  const { data: configSet, isLoading: configLoading, error: configError, refetch } = trpc.configs.get.useQuery({
-    id: resolvedParams.configId
-  })
+  const {
+    data: configSet,
+    isLoading: configLoading,
+    error: configError,
+    refetch,
+  } = trpc.configs.get.useQuery({
+    id: resolvedParams.configId,
+  });
 
   // Mutations for updating config data
-  const updateMetadataMutation = trpc.configs.updateMetadata.useMutation()
-  const updateFileMutation = trpc.configs.updateFile.useMutation()
+  const updateMetadataMutation = trpc.configs.updateMetadata.useMutation();
+  const updateFileMutation = trpc.configs.updateFile.useMutation();
 
   // Poll for updates while generating
   useEffect(() => {
     if (configSet?.status === 'generating') {
       const interval = setInterval(() => {
-        refetch()
-      }, 2000) // Poll every 2 seconds
+        refetch();
+      }, 2000); // Poll every 2 seconds
 
-      return () => clearInterval(interval)
+      return () => clearInterval(interval);
     }
-  }, [configSet?.status, refetch])
+  }, [configSet?.status, refetch]);
 
-  const isLoading = projectLoading || configLoading
+  const isLoading = projectLoading || configLoading;
 
   // Utility functions
   const formatDate = (date: Date | string) => {
-    const d = new Date(date)
+    const d = new Date(date);
     return d.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+      minute: '2-digit',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -102,7 +111,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
           </div>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   if (projectError || configError || !project || !configSet) {
@@ -130,41 +139,40 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
           </Card>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   // Handlers for component callbacks
   const handleSaveVariables = async (variables: EnvironmentVariables) => {
-    if (!summary) return
-    const updatedMetadata = { ...summary, environmentVariables: variables }
+    if (!summary) return;
+    const updatedMetadata = { ...summary, environmentVariables: variables };
     await updateMetadataMutation.mutateAsync({
       configId: resolvedParams.configId,
-      metadata: updatedMetadata
-    })
-    await refetch()
-  }
+      metadata: updatedMetadata,
+    });
+    await refetch();
+  };
 
   const handleSaveFile = async (fileName: string, content: string) => {
     await updateFileMutation.mutateAsync({
       configId: resolvedParams.configId,
       fileName,
-      content
-    })
-    await refetch()
-  }
+      content,
+    });
+    await refetch();
+  };
 
   // Parse summary from config metadata
-  let summary: Record<string, unknown> | null = null
+  let summary: Record<string, unknown> | null = null;
   try {
     if (configSet?.metadata && typeof configSet.metadata === 'string') {
-      summary = JSON.parse(configSet.metadata)
+      summary = JSON.parse(configSet.metadata);
     } else if (configSet?.metadata && typeof configSet.metadata === 'object') {
-      summary = configSet.metadata as Record<string, unknown>
+      summary = configSet.metadata as Record<string, unknown>;
     }
   } catch (e) {
-    console.error('Failed to parse config metadata:', e)
+    console.error('Failed to parse config metadata:', e);
   }
-
 
   const headerActions = (
     <div className="flex items-center gap-3">
@@ -183,20 +191,21 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
         Deploy
       </Button>
     </div>
-  )
+  );
 
   // Count environment variables
-  const environmentVariables = summary?.environmentVariables as EnvironmentVariables | undefined
-  const requiredEnvCount = environmentVariables?.required?.length || 0
-  const optionalEnvCount = environmentVariables?.optional?.length || 0
-  const totalEnvCount = requiredEnvCount + optionalEnvCount
+  const environmentVariables = summary?.environmentVariables as EnvironmentVariables | undefined;
+  const requiredEnvCount = environmentVariables?.required?.length || 0;
+  const optionalEnvCount = environmentVariables?.optional?.length || 0;
+  const totalEnvCount = requiredEnvCount + optionalEnvCount;
 
   // Count integrations
-  const integrations = summary?.integrations as { detected?: unknown[] } | undefined
-  const integrationsCount = integrations?.detected?.length || 0
+  const integrations = summary?.integrations as { detected?: unknown[] } | undefined;
+  const integrationsCount = integrations?.detected?.length || 0;
 
   // Count config files (excluding summary)
-  const configFilesCount = configSet.files?.filter((file: any) => file.fileName !== '_summary.json').length || 0
+  const configFilesCount =
+    configSet.files?.filter((file: any) => file.fileName !== '_summary.json').length || 0;
 
   return (
     <PageLayout background="default">
@@ -209,7 +218,6 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
 
       <Section spacing="lg" container={false}>
         <div className="max-w-7xl mx-auto px-6">
-
           {/* Generating State Banner */}
           {configSet.status === 'generating' && (
             <Card className="border-ocean-200 bg-ocean-50 mb-6">
@@ -217,9 +225,12 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-ocean-600" />
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Generating Configuration...</h3>
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      Generating Configuration...
+                    </h3>
                     <p className="text-sm text-gray-600">
-                      AI is analyzing your project and creating deployment files. This usually takes 30-60 seconds.
+                      AI is analyzing your project and creating deployment files. This usually takes
+                      30-60 seconds.
                     </p>
                   </div>
                 </div>
@@ -238,12 +249,14 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                 <Package className="h-4 w-4" />
                 Dependencies
                 {(() => {
-                  const deps = summary?.dependencies as { totalCount?: number } | undefined
-                  return deps && (
-                    <Badge variant="secondary" className="ml-1 bg-purple-100 text-purple-700">
-                      {deps.totalCount || 0}
-                    </Badge>
-                  )
+                  const deps = summary?.dependencies as { totalCount?: number } | undefined;
+                  return (
+                    deps && (
+                      <Badge variant="secondary" className="ml-1 bg-purple-100 text-purple-700">
+                        {deps.totalCount || 0}
+                      </Badge>
+                    )
+                  );
                 })()}
               </TabsTrigger>
               <TabsTrigger value="files" className="flex items-center gap-2">
@@ -295,13 +308,9 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
               <DependenciesTab summary={summary} />
             </TabsContent>
 
-
             {/* Configuration Files Tab */}
             <TabsContent value="files" className="space-y-6">
-              <FilesTab
-                files={configSet?.files || []}
-                onSaveFile={handleSaveFile}
-              />
+              <FilesTab files={configSet?.files || []} onSaveFile={handleSaveFile} />
             </TabsContent>
 
             {/* Environment Variables Tab */}
@@ -317,16 +326,13 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
               <IntegrationsTab summary={summary} integrationsCount={integrationsCount} />
             </TabsContent>
 
-
             {/* Deployment Instructions Tab */}
             <TabsContent value="deployment" className="space-y-6">
               <DeploymentTab summary={summary} />
             </TabsContent>
-
           </Tabs>
-
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

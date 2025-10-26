@@ -1,48 +1,48 @@
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { schema } from './schema'
-import * as path from 'path'
-import * as fs from 'fs'
-import { homedir } from 'os'
+import Database from 'better-sqlite3';
+import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
+import { schema } from './schema';
+import * as path from 'path';
+import * as fs from 'fs';
+import { homedir } from 'os';
 
 // Determine data directory
 // Always use ~/.dxlander/data for consistency
 // Can be overridden with DXLANDER_HOME environment variable
 function getDataDir(): string {
   if (process.env.DXLANDER_HOME) {
-    return path.join(process.env.DXLANDER_HOME, 'data')
+    return path.join(process.env.DXLANDER_HOME, 'data');
   }
 
   // Always use ~/.dxlander/data (same in development and production)
-  return path.join(homedir(), '.dxlander', 'data')
+  return path.join(homedir(), '.dxlander', 'data');
 }
 
-const dataDir = getDataDir()
+const dataDir = getDataDir();
 if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true })
+  fs.mkdirSync(dataDir, { recursive: true });
 }
 
 // Database path
-const dbPath = path.join(dataDir, 'dxlander.db')
+const dbPath = path.join(dataDir, 'dxlander.db');
 
 // Create SQLite connection
-const sqlite = new Database(dbPath)
+const sqlite = new Database(dbPath);
 
 // Enable WAL mode for better performance
-sqlite.pragma('journal_mode = WAL')
+sqlite.pragma('journal_mode = WAL');
 
 // Create Drizzle instance
-export const db = drizzle(sqlite, { schema })
+export const db = drizzle(sqlite, { schema });
 
 // Migration function
 export async function runMigrations() {
   try {
-    await migrate(db, { migrationsFolder: './drizzle' })
-    console.log('Database migrations completed successfully')
+    await migrate(db, { migrationsFolder: './drizzle' });
+    console.log('Database migrations completed successfully');
   } catch (error) {
-    console.error('Migration failed:', error)
-    throw error
+    console.error('Migration failed:', error);
+    throw error;
   }
 }
 
@@ -50,12 +50,12 @@ export async function runMigrations() {
 export async function initializeDatabase() {
   try {
     // Create tables if they don't exist
-    await createTables()
+    await createTables();
 
     // Check if setup is complete
     const setupSetting = await db.query.settings.findFirst({
-      where: (settings, { eq }) => eq(settings.key, 'setup_complete')
-    })
+      where: (settings, { eq }) => eq(settings.key, 'setup_complete'),
+    });
 
     if (!setupSetting) {
       // Insert default settings
@@ -64,24 +64,24 @@ export async function initializeDatabase() {
           id: 'setup_complete',
           key: 'setup_complete',
           value: 'false',
-          description: 'Whether initial setup has been completed'
+          description: 'Whether initial setup has been completed',
         },
         {
           id: 'app_version',
           key: 'app_version',
           value: '0.1.0',
-          description: 'Current application version'
-        }
-      ])
+          description: 'Current application version',
+        },
+      ]);
     }
   } catch (error) {
-    console.error('Database initialization failed:', error)
-    throw error
+    console.error('Database initialization failed:', error);
+    throw error;
   }
 }
 
 // Track if tables have been initialized
-let tablesInitialized = false
+let tablesInitialized = false;
 
 // Create tables if they don't exist
 async function createTables() {
@@ -99,7 +99,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create projects table
     sqlite.exec(`
@@ -124,7 +124,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create analysis_runs table
     sqlite.exec(`
@@ -146,7 +146,7 @@ async function createTables() {
         duration INTEGER,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create analysis_activity_logs table
     sqlite.exec(`
@@ -162,7 +162,7 @@ async function createTables() {
         duration INTEGER,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create config_sets table
     sqlite.exec(`
@@ -188,7 +188,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create config_files table
     sqlite.exec(`
@@ -208,7 +208,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create config_optimizations table
     sqlite.exec(`
@@ -222,7 +222,7 @@ async function createTables() {
         estimated_savings TEXT,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create config_activity_logs table
     sqlite.exec(`
@@ -235,7 +235,7 @@ async function createTables() {
         details TEXT,
         timestamp INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create build_runs table
     sqlite.exec(`
@@ -254,7 +254,7 @@ async function createTables() {
         duration INTEGER,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create deployments table
     sqlite.exec(`
@@ -275,7 +275,7 @@ async function createTables() {
         completed_at INTEGER,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create settings table
     sqlite.exec(`
@@ -287,7 +287,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create encryption_keys table
     sqlite.exec(`
@@ -308,7 +308,7 @@ async function createTables() {
         updated_at INTEGER NOT NULL,
         expires_at INTEGER
       );
-    `)
+    `);
 
     // Create ai_providers table
     sqlite.exec(`
@@ -330,7 +330,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create integrations table
     sqlite.exec(`
@@ -352,7 +352,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create deployment_credentials table
     sqlite.exec(`
@@ -374,7 +374,7 @@ async function createTables() {
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Create audit_logs table
     sqlite.exec(`
@@ -391,38 +391,41 @@ async function createTables() {
         error_message TEXT,
         created_at INTEGER NOT NULL
       );
-    `)
+    `);
 
     // Only log once
     if (!tablesInitialized) {
-      console.log('✅ Database initialized')
-      tablesInitialized = true
+      console.log('✅ Database initialized');
+      tablesInitialized = true;
     }
   } catch (error) {
-    console.error('❌ Failed to create tables:', error)
-    throw error
+    console.error('❌ Failed to create tables:', error);
+    throw error;
   }
 }
 
 // Complete setup with admin user
-export async function completeSetup(adminEmail: string, adminPassword: string): Promise<{ userId: string, email: string }> {
+export async function completeSetup(
+  adminEmail: string,
+  adminPassword: string
+): Promise<{ userId: string; email: string }> {
   try {
-    const bcrypt = await import('bcryptjs')
-    const { randomUUID } = await import('crypto')
+    const bcrypt = await import('bcryptjs');
+    const { randomUUID } = await import('crypto');
 
     // Hash password
-    const passwordHash = await bcrypt.default.hash(adminPassword, 12)
+    const passwordHash = await bcrypt.default.hash(adminPassword, 12);
 
     // Create admin user
-    const userId = randomUUID()
+    const userId = randomUUID();
     await db.insert(schema.users).values({
       id: userId,
       email: adminEmail,
       passwordHash,
       role: 'admin',
       createdAt: new Date(),
-      updatedAt: new Date()
-    })
+      updatedAt: new Date(),
+    });
 
     // NOTE: Encryption key creation is handled by the API layer
     // See: apps/api/src/services/encryption-key.service.ts
@@ -430,14 +433,14 @@ export async function completeSetup(adminEmail: string, adminPassword: string): 
     // the API to use the proper EncryptionService
 
     // Mark setup as complete
-    await markSetupComplete()
+    await markSetupComplete();
 
-    console.log('✅ Setup completed - Admin user created:', adminEmail)
-    console.log('   ⚠️  Remember to create encryption key via EncryptionKeyService')
-    return { userId, email: adminEmail }
+    console.log('✅ Setup completed - Admin user created:', adminEmail);
+    console.log('   ⚠️  Remember to create encryption key via EncryptionKeyService');
+    return { userId, email: adminEmail };
   } catch (error) {
-    console.error('Setup completion failed:', error)
-    throw error
+    console.error('Setup completion failed:', error);
+    throw error;
   }
 }
 
@@ -445,36 +448,39 @@ export async function completeSetup(adminEmail: string, adminPassword: string): 
 export async function isSetupComplete(): Promise<boolean> {
   try {
     const setting = await db.query.settings.findFirst({
-      where: (settings, { eq }) => eq(settings.key, 'setup_complete')
-    })
+      where: (settings, { eq }) => eq(settings.key, 'setup_complete'),
+    });
 
-    return setting?.value === 'true'
+    return setting?.value === 'true';
   } catch (error) {
-    console.error('Failed to check setup status:', error)
-    return false
+    console.error('Failed to check setup status:', error);
+    return false;
   }
 }
 
 // Mark setup as complete
 export async function markSetupComplete(): Promise<void> {
   try {
-    await db.insert(schema.settings).values({
-      id: 'setup_complete_timestamp',
-      key: 'setup_complete',
-      value: 'true'
-    }).onConflictDoUpdate({
-      target: schema.settings.key,
-      set: {
+    await db
+      .insert(schema.settings)
+      .values({
+        id: 'setup_complete_timestamp',
+        key: 'setup_complete',
         value: 'true',
-        updatedAt: new Date()
-      }
-    })
+      })
+      .onConflictDoUpdate({
+        target: schema.settings.key,
+        set: {
+          value: 'true',
+          updatedAt: new Date(),
+        },
+      });
 
-    console.log('Setup marked as complete')
+    console.log('Setup marked as complete');
   } catch (error) {
-    console.error('Failed to mark setup as complete:', error)
-    throw error
+    console.error('Failed to mark setup as complete:', error);
+    throw error;
   }
 }
 
-export default db
+export default db;

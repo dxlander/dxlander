@@ -1,23 +1,21 @@
-import { z } from 'zod'
-
 export interface GitHubRepoInfo {
-  owner: string
-  repo: string
-  branch: string
-  isPrivate: boolean
-  defaultBranch?: string
-  description?: string
-  language?: string
-  size?: number
-  topics?: string[]
+  owner: string;
+  repo: string;
+  branch: string;
+  isPrivate: boolean;
+  defaultBranch?: string;
+  description?: string;
+  language?: string;
+  size?: number;
+  topics?: string[];
 }
 
 export interface GitHubFileTree {
-  path: string
-  type: 'file' | 'dir'
-  size?: number
-  url?: string
-  content?: string
+  path: string;
+  type: 'file' | 'dir';
+  size?: number;
+  url?: string;
+  content?: string;
 }
 
 /**
@@ -29,45 +27,45 @@ export interface GitHubFileTree {
  */
 export function parseGitHubUrl(input: string): { owner: string; repo: string } | null {
   // Remove .git suffix if present
-  const cleaned = input.trim().replace(/\.git$/, '')
+  const cleaned = input.trim().replace(/\.git$/, '');
 
   // Pattern 1: Full URL (https://github.com/owner/repo)
-  const urlMatch = cleaned.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([^\/]+)\/([^\/]+)/i)
+  const urlMatch = cleaned.match(/(?:https?:\/\/)?(?:www\.)?github\.com\/([^/]+)\/([^/]+)/i);
   if (urlMatch) {
-    return { owner: urlMatch[1], repo: urlMatch[2] }
+    return { owner: urlMatch[1], repo: urlMatch[2] };
   }
 
   // Pattern 2: owner/repo format
-  const shortMatch = cleaned.match(/^([^\/\s]+)\/([^\/\s]+)$/)
+  const shortMatch = cleaned.match(/^([^/\s]+)\/([^/\s]+)$/);
   if (shortMatch) {
-    return { owner: shortMatch[1], repo: shortMatch[2] }
+    return { owner: shortMatch[1], repo: shortMatch[2] };
   }
 
-  return null
+  return null;
 }
 
 /**
  * GitHub Service - Interacts with GitHub API
  */
 export class GitHubService {
-  private baseUrl = 'https://api.github.com'
-  private token?: string
+  private baseUrl = 'https://api.github.com';
+  private token?: string;
 
   constructor(token?: string) {
-    this.token = token
+    this.token = token;
   }
 
   private get headers(): HeadersInit {
     const headers: HeadersInit = {
-      'Accept': 'application/vnd.github+json',
-      'X-GitHub-Api-Version': '2022-11-28'
-    }
+      Accept: 'application/vnd.github+json',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
 
     if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`
+      headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    return headers
+    return headers;
   }
 
   /**
@@ -75,20 +73,20 @@ export class GitHubService {
    */
   async getRepoInfo(owner: string, repo: string): Promise<GitHubRepoInfo> {
     const response = await fetch(`${this.baseUrl}/repos/${owner}/${repo}`, {
-      headers: this.headers
-    })
+      headers: this.headers,
+    });
 
     if (!response.ok) {
       if (response.status === 404) {
-        throw new Error(`Repository ${owner}/${repo} not found or you don't have access`)
+        throw new Error(`Repository ${owner}/${repo} not found or you don't have access`);
       }
       if (response.status === 403) {
-        throw new Error('GitHub API rate limit exceeded or authentication required')
+        throw new Error('GitHub API rate limit exceeded or authentication required');
       }
-      throw new Error(`Failed to fetch repository: ${response.statusText}`)
+      throw new Error(`Failed to fetch repository: ${response.statusText}`);
     }
 
-    const data = await response.json()
+    const data = await response.json();
 
     return {
       owner: data.owner.login,
@@ -99,8 +97,8 @@ export class GitHubService {
       description: data.description,
       language: data.language,
       size: data.size,
-      topics: data.topics || []
-    }
+      topics: data.topics || [],
+    };
   }
 
   /**
@@ -110,22 +108,22 @@ export class GitHubService {
     const response = await fetch(
       `${this.baseUrl}/repos/${owner}/${repo}/git/trees/${branch}?recursive=1`,
       {
-        headers: this.headers
+        headers: this.headers,
       }
-    )
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch repository tree: ${response.statusText}`)
+      throw new Error(`Failed to fetch repository tree: ${response.statusText}`);
     }
 
-    const data = await response.json()
+    const data = await response.json();
 
     return data.tree.map((item: any) => ({
       path: item.path,
       type: item.type === 'blob' ? 'file' : 'dir',
       size: item.size,
-      url: item.url
-    }))
+      url: item.url,
+    }));
   }
 
   /**
@@ -135,22 +133,22 @@ export class GitHubService {
     const response = await fetch(
       `${this.baseUrl}/repos/${owner}/${repo}/contents/${path}?ref=${branch}`,
       {
-        headers: this.headers
+        headers: this.headers,
       }
-    )
+    );
 
     if (!response.ok) {
-      throw new Error(`Failed to fetch file ${path}: ${response.statusText}`)
+      throw new Error(`Failed to fetch file ${path}: ${response.statusText}`);
     }
 
-    const data = await response.json()
+    const data = await response.json();
 
     // Decode base64 content
     if (data.content) {
-      return Buffer.from(data.content, 'base64').toString('utf-8')
+      return Buffer.from(data.content, 'base64').toString('utf-8');
     }
 
-    throw new Error(`No content found for file: ${path}`)
+    throw new Error(`No content found for file: ${path}`);
   }
 
   /**
@@ -185,31 +183,32 @@ export class GitHubService {
       'vite.config.js',
       'vite.config.ts',
       'nuxt.config.js',
-      'nuxt.config.ts'
-    ]
+      'nuxt.config.ts',
+    ];
 
-    const fileTree = await this.getFileTree(owner, repo, branch)
-    const files = new Map<string, string>()
+    const fileTree = await this.getFileTree(owner, repo, branch);
+    const files = new Map<string, string>();
 
     // Find files that match our important files list
-    const foundFiles = fileTree.filter(item =>
-      item.type === 'file' &&
-      importantFilePaths.some(path => item.path.toLowerCase() === path.toLowerCase())
-    )
+    const foundFiles = fileTree.filter(
+      (item) =>
+        item.type === 'file' &&
+        importantFilePaths.some((path) => item.path.toLowerCase() === path.toLowerCase())
+    );
 
     // Fetch content for each important file
     await Promise.all(
       foundFiles.map(async (file) => {
         try {
-          const content = await this.getFileContent(owner, repo, file.path, branch)
-          files.set(file.path, content)
+          const content = await this.getFileContent(owner, repo, file.path, branch);
+          files.set(file.path, content);
         } catch (error) {
-          console.warn(`Failed to fetch ${file.path}:`, error)
+          console.warn(`Failed to fetch ${file.path}:`, error);
         }
       })
-    )
+    );
 
-    return files
+    return files;
   }
 
   /**
@@ -223,44 +222,62 @@ export class GitHubService {
     maxFiles: number = 100,
     maxFileSize: number = 500000 // 500KB per file
   ): Promise<Map<string, string>> {
-    const fileTree = await this.getFileTree(owner, repo, branch)
-    const files = new Map<string, string>()
+    const fileTree = await this.getFileTree(owner, repo, branch);
+    const files = new Map<string, string>();
 
     // Filter for files only (not directories)
-    const fileItems = fileTree.filter(item => item.type === 'file')
+    const fileItems = fileTree.filter((item) => item.type === 'file');
 
     // Take first maxFiles files
-    const filesToFetch = fileItems.slice(0, maxFiles)
+    const filesToFetch = fileItems.slice(0, maxFiles);
 
-    console.log(`Fetching ${filesToFetch.length} files from ${owner}/${repo}...`)
+    console.log(`Fetching ${filesToFetch.length} files from ${owner}/${repo}...`);
 
     // Fetch content for each file (with error handling)
     const fetchPromises = filesToFetch.map(async (file) => {
       try {
         // Skip binary files and very large files
         if (file.size && file.size > maxFileSize) {
-          console.log(`Skipping large file: ${file.path} (${file.size} bytes)`)
-          return
+          console.log(`Skipping large file: ${file.path} (${file.size} bytes)`);
+          return;
         }
 
         // Skip common binary file extensions
-        const binaryExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.ico', '.woff', '.woff2', '.ttf', '.eot', '.otf', '.mp4', '.mp3', '.pdf', '.zip', '.tar', '.gz']
-        if (binaryExtensions.some(ext => file.path.toLowerCase().endsWith(ext))) {
-          console.log(`Skipping binary file: ${file.path}`)
-          return
+        const binaryExtensions = [
+          '.png',
+          '.jpg',
+          '.jpeg',
+          '.gif',
+          '.svg',
+          '.ico',
+          '.woff',
+          '.woff2',
+          '.ttf',
+          '.eot',
+          '.otf',
+          '.mp4',
+          '.mp3',
+          '.pdf',
+          '.zip',
+          '.tar',
+          '.gz',
+        ];
+        if (binaryExtensions.some((ext) => file.path.toLowerCase().endsWith(ext))) {
+          console.log(`Skipping binary file: ${file.path}`);
+          return;
         }
 
-        const content = await this.getFileContent(owner, repo, file.path, branch)
-        files.set(file.path, content)
+        const content = await this.getFileContent(owner, repo, file.path, branch);
+        files.set(file.path, content);
       } catch (error: any) {
         // Log error but continue with other files
-        console.warn(`Failed to fetch ${file.path}:`, error.message)
+        console.warn(`Failed to fetch ${file.path}:`, error.message);
       }
-    })
+    });
 
-    await Promise.all(fetchPromises)
+    await Promise.all(fetchPromises);
 
-    return files
+    return files;
   }
 
   /**
@@ -271,38 +288,38 @@ export class GitHubService {
     branch?: string,
     token?: string
   ): Promise<{
-    repoInfo: GitHubRepoInfo
-    files: Map<string, string>
-    fileTree: GitHubFileTree[]
+    repoInfo: GitHubRepoInfo;
+    files: Map<string, string>;
+    fileTree: GitHubFileTree[];
   }> {
     // Parse input
-    const parsed = parseGitHubUrl(input)
+    const parsed = parseGitHubUrl(input);
     if (!parsed) {
-      throw new Error('Invalid GitHub URL or owner/repo format')
+      throw new Error('Invalid GitHub URL or owner/repo format');
     }
 
     // Use provided token or instance token
-    const service = token ? new GitHubService(token) : this
+    const service = token ? new GitHubService(token) : this;
 
     // Get repo info
-    const repoInfo = await service.getRepoInfo(parsed.owner, parsed.repo)
+    const repoInfo = await service.getRepoInfo(parsed.owner, parsed.repo);
 
     // Use specified branch or default branch
-    const targetBranch = branch || repoInfo.defaultBranch || 'main'
+    const targetBranch = branch || repoInfo.defaultBranch || 'main';
 
     // Get file tree
-    const fileTree = await service.getFileTree(parsed.owner, parsed.repo, targetBranch)
+    const fileTree = await service.getFileTree(parsed.owner, parsed.repo, targetBranch);
 
     // Get ALL files from repository (for AI analysis)
-    const files = await service.getAllFiles(parsed.owner, parsed.repo, targetBranch)
+    const files = await service.getAllFiles(parsed.owner, parsed.repo, targetBranch);
 
     return {
       repoInfo: { ...repoInfo, branch: targetBranch },
       files,
-      fileTree
-    }
+      fileTree,
+    };
   }
 }
 
 // Export singleton instance
-export const githubService = new GitHubService()
+export const githubService = new GitHubService();

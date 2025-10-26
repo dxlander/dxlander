@@ -1,10 +1,11 @@
-import type { Metadata } from "next";
-import "./globals.css";
-import { Providers } from "@/lib/providers";
+import type { Metadata } from 'next';
+import './globals.css';
+import { Providers } from '@/lib/providers';
 
 export const metadata: Metadata = {
-  title: "DXLander - AI-Powered Deployment Automation",
-  description: "Transform how you deploy projects with AI-powered configuration generation and deployment automation.",
+  title: 'DXLander - AI-Powered Deployment Automation',
+  description:
+    'Transform how you deploy projects with AI-powered configuration generation and deployment automation.',
 };
 
 export default function RootLayout({
@@ -15,9 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
-        <Providers>
-          {children}
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

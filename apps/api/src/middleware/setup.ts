@@ -1,6 +1,6 @@
-import { Context, Next } from 'hono'
-import { HTTPException } from 'hono/http-exception'
-import { initializeDatabase, isSetupComplete } from '@dxlander/database'
+import { Context, Next } from 'hono';
+import { HTTPException } from 'hono/http-exception';
+import { initializeDatabase, isSetupComplete } from '@dxlander/database';
 
 /**
  * Setup Detection Middleware
@@ -8,9 +8,9 @@ import { initializeDatabase, isSetupComplete } from '@dxlander/database'
  */
 
 interface SetupStatus {
-  setupComplete: boolean
-  hasAdminUser: boolean
-  databaseConnected: boolean
+  setupComplete: boolean;
+  hasAdminUser: boolean;
+  databaseConnected: boolean;
 }
 
 // Routes that don't require setup completion
@@ -22,69 +22,69 @@ const SETUP_EXEMPT_ROUTES = [
   '/setup/test-database',
   '/setup/test-ai',
   '/setup/reset',
-  '/trpc/setup.',  // All tRPC setup endpoints
-  '/auth/'  // All auth endpoints (login requires setup to be complete, but shouldn't block on setup middleware)
-]
+  '/trpc/setup.', // All tRPC setup endpoints
+  '/auth/', // All auth endpoints (login requires setup to be complete, but shouldn't block on setup middleware)
+];
 
 async function checkSetupStatus(): Promise<SetupStatus> {
   try {
     // Initialize database first
-    await initializeDatabase()
+    await initializeDatabase();
 
     // Check if setup is complete
-    const setupComplete = await isSetupComplete()
+    const setupComplete = await isSetupComplete();
 
     return {
       setupComplete,
       hasAdminUser: setupComplete,
-      databaseConnected: true
-    }
+      databaseConnected: true,
+    };
   } catch (error) {
-    console.error('Setup status check failed:', error)
+    console.error('Setup status check failed:', error);
     return {
       setupComplete: false,
       hasAdminUser: false,
-      databaseConnected: false
-    }
+      databaseConnected: false,
+    };
   }
 }
 
 function isSetupExemptRoute(path: string): boolean {
-  return SETUP_EXEMPT_ROUTES.some(route => path.includes(route))
+  return SETUP_EXEMPT_ROUTES.some((route) => path.includes(route));
 }
 
 export const setupMiddleware = async (c: Context, next: Next) => {
-  const path = c.req.path
+  const path = c.req.path;
 
   // Skip setup check for exempt routes
   if (isSetupExemptRoute(path)) {
-    return next()
+    return next();
   }
 
   try {
-    const setupStatus = await checkSetupStatus()
+    const setupStatus = await checkSetupStatus();
 
     // Add setup status to context for use in handlers
-    c.set('setupStatus', setupStatus)
+    c.set('setupStatus', setupStatus);
 
     // If setup is not complete and accessing non-exempt routes
     if (!setupStatus.setupComplete) {
       throw new HTTPException(503, {
         message: 'DXLander setup is incomplete. Please complete setup first.',
-        cause: 'SETUP_INCOMPLETE'
-      })
+        cause: 'SETUP_INCOMPLETE',
+      });
     }
 
-    return next()
+    return next();
   } catch (error) {
     if (error instanceof HTTPException) {
-      throw error
+      throw error;
     }
 
-    console.error('Setup middleware error:', error)
+    console.error('Setup middleware error:', error);
     throw new HTTPException(500, {
       message: 'Setup status check failed',
-      cause: 'SETUP_CHECK_ERROR'
-    })
+      cause: 'SETUP_CHECK_ERROR',
+    });
   }
-}
+};

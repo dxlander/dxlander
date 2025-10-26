@@ -74,12 +74,15 @@
     "test:e2e": "vitest tests/e2e",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
+    "format:check": "prettier --check \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
     "typecheck": "pnpm run typecheck:packages && pnpm run typecheck:apps",
     "typecheck:packages": "pnpm --filter @dxlander/shared run typecheck",
     "typecheck:apps": "pnpm --filter @dxlander/api run typecheck && pnpm --filter @dxlander/web run typecheck",
     "db:setup": "pnpm --filter @dxlander/database run setup",
     "db:migrate": "pnpm --filter @dxlander/database run migrate",
     "db:seed": "pnpm --filter @dxlander/database run seed",
+    "prepare": "husky",
     "prepublishOnly": "echo 'Building production release...' && pnpm run build",
     "prepack": "echo 'Packaging DXLander production build...'",
     "publish:npm": "cd dist-production && npm publish --access public --tag alpha",
@@ -98,6 +101,8 @@
     "concurrently": "^8.2.2",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.0",
     "vitest": "^1.3.0"
@@ -107,6 +112,15 @@
     "pnpm": ">=8.0.0"
   },
   "packageManager": "pnpm@8.15.0",
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
+  },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.14"
   }

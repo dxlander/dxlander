@@ -1,10 +1,10 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Server,
   Package,
@@ -15,14 +15,14 @@ import {
   CheckCircle2,
   TrendingUp,
   Zap,
-  Key
-} from 'lucide-react'
-import { AnalysisResults as AnalysisResultsType } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
+  Key,
+} from 'lucide-react';
+import { AnalysisResults as AnalysisResultsType } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
 interface AnalysisResultsProps {
-  results: AnalysisResultsType
-  className?: string
+  results: AnalysisResultsType;
+  className?: string;
 }
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
@@ -30,13 +30,13 @@ const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, v
     <span className="text-sm text-gray-600">{label}</span>
     <span className="text-sm font-medium text-gray-900 text-right">{value}</span>
   </div>
-)
+);
 
 const SectionCard: React.FC<{
-  title: string
-  icon: React.ReactNode
-  children: React.ReactNode
-  badge?: React.ReactNode
+  title: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+  badge?: React.ReactNode;
 }> = ({ title, icon, children, badge }) => (
   <Card variant="default">
     <CardHeader>
@@ -50,14 +50,14 @@ const SectionCard: React.FC<{
     </CardHeader>
     <CardContent>{children}</CardContent>
   </Card>
-)
+);
 
 export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, className }) => {
   const totalVulnerabilities =
     results.security.vulnerabilities.critical +
     results.security.vulnerabilities.high +
     results.security.vulnerabilities.moderate +
-    results.security.vulnerabilities.low
+    results.security.vulnerabilities.low;
 
   return (
     <div className={cn('space-y-6', className)}>
@@ -121,8 +121,8 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                   totalVulnerabilities === 0
                     ? 'bg-green-50 text-green-600'
                     : totalVulnerabilities < 3
-                    ? 'bg-yellow-50 text-yellow-600'
-                    : 'bg-red-50 text-red-600'
+                      ? 'bg-yellow-50 text-yellow-600'
+                      : 'bg-red-50 text-red-600'
                 )}
               >
                 <Lock className="h-6 w-6" />
@@ -156,11 +156,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
             <SectionCard
               title="Framework Details"
               icon={<Server className="h-5 w-5" />}
-              badge={
-                <Badge variant="success">
-                  {results.framework.confidence}% confidence
-                </Badge>
-              }
+              badge={<Badge variant="success">{results.framework.confidence}% confidence</Badge>}
             >
               <div className="space-y-2">
                 <InfoRow label="Name" value={results.framework.name} />
@@ -188,10 +184,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Language Breakdown"
-              icon={<Code className="h-5 w-5" />}
-            >
+            <SectionCard title="Language Breakdown" icon={<Code className="h-5 w-5" />}>
               <div className="space-y-3">
                 {Object.entries(results.language.breakdown).map(([lang, percentage]) => (
                   <div key={lang}>
@@ -205,10 +198,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Runtime & Package Manager"
-              icon={<Zap className="h-5 w-5" />}
-            >
+            <SectionCard title="Runtime & Package Manager" icon={<Zap className="h-5 w-5" />}>
               <div className="space-y-2">
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Runtime</p>
@@ -224,13 +214,24 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               </div>
             </SectionCard>
 
-            <SectionCard
-              title="Build Configuration"
-              icon={<Settings className="h-5 w-5" />}
-            >
+            <SectionCard title="Build Configuration" icon={<Settings className="h-5 w-5" />}>
               <div className="space-y-2">
-                <InfoRow label="Build Command" value={<code className="text-xs bg-gray-100 px-2 py-1 rounded">{results.buildConfig.buildCommand}</code>} />
-                <InfoRow label="Start Command" value={<code className="text-xs bg-gray-100 px-2 py-1 rounded">{results.buildConfig.startCommand}</code>} />
+                <InfoRow
+                  label="Build Command"
+                  value={
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {results.buildConfig.buildCommand}
+                    </code>
+                  }
+                />
+                <InfoRow
+                  label="Start Command"
+                  value={
+                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                      {results.buildConfig.startCommand}
+                    </code>
+                  }
+                />
                 <InfoRow label="Port" value={results.buildConfig.port} />
                 <InfoRow label="Output Directory" value={results.buildConfig.outputDirectory} />
               </div>
@@ -256,17 +257,15 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                       <p className="text-xs text-gray-500">{dep.version}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {dep.size && (
-                        <span className="text-xs text-gray-500">{dep.size}</span>
-                      )}
+                      {dep.size && <span className="text-xs text-gray-500">{dep.size}</span>}
                       {dep.risk && (
                         <Badge
                           variant={
                             dep.risk === 'low'
                               ? 'success'
                               : dep.risk === 'medium'
-                              ? 'warning'
-                              : 'destructive'
+                                ? 'warning'
+                                : 'destructive'
                           }
                           className="text-xs"
                         >
@@ -282,7 +281,11 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
             <SectionCard
               title="Development Dependencies"
               icon={<Package className="h-5 w-5" />}
-              badge={<Badge variant="secondary">{results.dependencies.development.length} packages</Badge>}
+              badge={
+                <Badge variant="secondary">
+                  {results.dependencies.development.length} packages
+                </Badge>
+              }
             >
               <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                 {results.dependencies.development.map((dep, idx) => (
@@ -294,9 +297,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                       <p className="text-sm font-medium text-gray-900">{dep.name}</p>
                       <p className="text-xs text-gray-500">{dep.version}</p>
                     </div>
-                    {dep.size && (
-                      <span className="text-xs text-gray-500">{dep.size}</span>
-                    )}
+                    {dep.size && <span className="text-xs text-gray-500">{dep.size}</span>}
                   </div>
                 ))}
               </div>
@@ -436,10 +437,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               >
                 <div className="space-y-3">
                   {results.recommendations.excellent.map((rec, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 rounded-xl bg-green-50 border border-green-200"
-                    >
+                    <div key={idx} className="p-3 rounded-xl bg-green-50 border border-green-200">
                       <div className="flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
                         <div>
@@ -501,5 +499,5 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
         </TabsContent>
       </Tabs>
     </div>
-  )
-}
+  );
+};

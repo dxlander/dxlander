@@ -5,17 +5,22 @@ Welcome to the DXLander contributor documentation. This directory contains all t
 ## Quick Navigation
 
 ### For New Contributors
+
 1. **[Getting Started](./GETTING_STARTED.md)** - Set up your development environment
-2. **[Features Overview](./FEATURES_OVERVIEW.md)** - Understand what's built and what's planned  
-3. **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute effectively
+2. **[Development Workflow](./DEVELOPMENT_WORKFLOW.md)** - Code quality, CI/CD, and PR process
+3. **[Features Overview](./FEATURES_OVERVIEW.md)** - Understand what's built and what's planned
+4. **[Contributing Guide](../CONTRIBUTING.md)** - How to contribute effectively
 
 ### For Understanding the Codebase
+
 1. **[Project Architecture](./PROJECT_ARCHITECTURE.md)** - Technical structure and design decisions
 2. **[Features Overview](./FEATURES_OVERVIEW.md)** - Complete feature breakdown with status
 
 ### For Development
+
 1. **[Getting Started](./GETTING_STARTED.md)** - Development setup and workflow
-2. **[Project Architecture](./PROJECT_ARCHITECTURE.md)** - Understanding the codebase structure
+2. **[Development Workflow](./DEVELOPMENT_WORKFLOW.md)** - Code quality standards, CI/CD, and best practices
+3. **[Project Architecture](./PROJECT_ARCHITECTURE.md)** - Understanding the codebase structure
 
 ## Documentation Structure
 
@@ -23,6 +28,7 @@ Welcome to the DXLander contributor documentation. This directory contains all t
 documentation/
 ├── README.md                    # This file - documentation index
 ├── GETTING_STARTED.md          # Development setup and quick start
+├── DEVELOPMENT_WORKFLOW.md     # Code quality, CI/CD, and PR process
 ├── PROJECT_ARCHITECTURE.md     # Technical architecture and design
 ├── FEATURES_OVERVIEW.md        # Current features and roadmap
 └── ... (more docs as needed)
@@ -30,21 +36,33 @@ documentation/
 
 ## What You'll Find Here
 
+### DEVELOPMENT_WORKFLOW.md
+
+- Complete development workflow guide
+- Code quality standards (ESLint, Prettier, TypeScript)
+- Pre-commit hooks with Husky and lint-staged
+- CI/CD pipeline overview
+- Pull request process and requirements
+- Best practices and troubleshooting
+
 ### GETTING_STARTED.md
+
 - Prerequisites and setup instructions
-- Development workflow and commands  
+- Development workflow and commands
 - Project structure overview
 - Common development tasks
 - Troubleshooting guide
 
 ### PROJECT_ARCHITECTURE.md
+
 - Complete technical architecture
 - Package organization and dependencies
 - Data flow and communication patterns
 - Database design and security
 - Technology stack details
 
-### FEATURES_OVERVIEW.md  
+### FEATURES_OVERVIEW.md
+
 - Current implementation status (85% MVP complete)
 - Completed features with details
 - In-development features
@@ -54,9 +72,11 @@ documentation/
 ## Development Resources
 
 ### Internal Documentation (.claude/)
+
 The `.claude/` folder contains detailed internal development documentation:
+
 - Implementation status reports
-- Technical specifications  
+- Technical specifications
 - Quality assessments
 - Integration guides
 
@@ -92,38 +112,44 @@ pnpm typecheck    # Verify types
 **MVP Progress:** 85% Complete
 
 ### What's Working
+
 ✅ Project import (GitHub, ZIP)  
 ✅ User authentication and setup  
 ✅ Security and encryption  
 ✅ AI provider management  
-✅ Modern web interface  
+✅ Modern web interface
 
-### In Development  
+### In Development
+
 🚧 AI project analysis (90% backend, UI pending)  
-🚧 Configuration generation  
+🚧 Configuration generation
 
 ### Planned
+
 ⏳ Deployment integration  
 ⏳ Team collaboration features  
-⏳ Enterprise security  
+⏳ Enterprise security
 
 ## Contributing Areas
 
 ### Good for Beginners
+
 - Documentation improvements
-- UI/UX enhancements  
+- UI/UX enhancements
 - Bug fixes and testing
 - Code examples and tutorials
 
-### Advanced Contributors  
+### Advanced Contributors
+
 - AI analysis and prompting
 - Deployment integrations
 - Performance optimization
 - Security enhancements
 
 ### Help Needed
+
 - Frontend React/Next.js development
-- Backend API development  
+- Backend API development
 - DevOps and deployment
 - Technical writing
 - Testing and QA
@@ -131,7 +157,7 @@ pnpm typecheck    # Verify types
 ## Need Help?
 
 1. **Start with:** [GETTING_STARTED.md](./GETTING_STARTED.md)
-2. **Understand the project:** [FEATURES_OVERVIEW.md](./FEATURES_OVERVIEW.md)  
+2. **Understand the project:** [FEATURES_OVERVIEW.md](./FEATURES_OVERVIEW.md)
 3. **Learn the architecture:** [PROJECT_ARCHITECTURE.md](./PROJECT_ARCHITECTURE.md)
 4. **Ready to contribute:** [../CONTRIBUTING.md](../CONTRIBUTING.md)
 

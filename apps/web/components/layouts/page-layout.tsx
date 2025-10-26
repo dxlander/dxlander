@@ -1,25 +1,25 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
+import * as React from 'react';
+import { cn } from '@/lib/utils';
 
 export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode
-  background?: "default" | "ocean" | "gradient"
-  container?: boolean
+  children: React.ReactNode;
+  background?: 'default' | 'ocean' | 'gradient';
+  container?: boolean;
 }
 
 const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
-  ({ className, children, background = "default", container = true, ...props }, ref) => {
+  ({ className, children, background = 'default', container = true, ...props }, ref) => {
     const backgroundClasses = {
-      default: "bg-white",
-      ocean: "bg-gradient-to-br from-white via-ocean-50/20 to-ocean-100/40",
-      gradient: "bg-gradient-to-br from-white via-ocean-50/30 to-ocean-200/20"
-    }
+      default: 'bg-white',
+      ocean: 'bg-gradient-to-br from-white via-ocean-50/20 to-ocean-100/40',
+      gradient: 'bg-gradient-to-br from-white via-ocean-50/30 to-ocean-200/20',
+    };
 
     return (
       <div
         ref={ref}
         className={cn(
-          "min-h-screen relative overflow-hidden",
+          'min-h-screen relative overflow-hidden',
           backgroundClasses[background],
           className
         )}
@@ -32,18 +32,12 @@ const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
 
         {/* Content */}
         <div className="relative z-10">
-          {container ? (
-            <div className="container mx-auto px-6">
-              {children}
-            </div>
-          ) : (
-            children
-          )}
+          {container ? <div className="container mx-auto px-6">{children}</div> : children}
         </div>
       </div>
-    )
+    );
   }
-)
-PageLayout.displayName = "PageLayout"
+);
+PageLayout.displayName = 'PageLayout';
 
-export { PageLayout }
+export { PageLayout };

@@ -34,6 +34,7 @@ pnpm dev
 ```
 
 This command starts both servers:
+
 - API server: http://localhost:3001
 - Web application: http://localhost:3000
 
@@ -68,7 +69,7 @@ Run services independently:
 # Backend API only
 pnpm dev:api
 
-# Frontend web only  
+# Frontend web only
 pnpm dev:web
 ```
 
@@ -106,7 +107,27 @@ pnpm lint:fix
 
 # Type checking
 pnpm typecheck
+
+# Formatting
+pnpm format          # Auto-format all files
+pnpm format:check    # Check formatting without modifying
 ```
+
+### Pre-commit Hooks
+
+The project uses **Husky** and **lint-staged** to automatically run checks before commits:
+
+```bash
+# Install hooks (runs automatically after pnpm install)
+pnpm prepare
+
+# What runs on commit:
+# - ESLint on staged .ts/.tsx/.js/.jsx files
+# - Prettier formatting on all staged files
+# - TypeScript type checking
+```
+
+If checks fail, your commit will be blocked. Fix the issues and try again.
 
 ## Project Structure
 
@@ -127,13 +148,16 @@ dxlander/
 
 ## Key Commands
 
-| Command | Description |
-|---------|-------------|
-| `pnpm dev` | Start both API and web in development |
-| `pnpm build` | Build all packages and applications |
-| `pnpm test` | Run test suites |
-| `pnpm lint` | Check code style and formatting |
-| `pnpm typecheck` | Verify TypeScript types |
+| Command             | Description                           |
+| ------------------- | ------------------------------------- |
+| `pnpm dev`          | Start both API and web in development |
+| `pnpm build`        | Build all packages and applications   |
+| `pnpm test`         | Run test suites                       |
+| `pnpm lint`         | Check code style and formatting       |
+| `pnpm lint:fix`     | Auto-fix linting issues               |
+| `pnpm format`       | Format all files with Prettier        |
+| `pnpm format:check` | Check formatting without modifying    |
+| `pnpm typecheck`    | Verify TypeScript types               |
 
 ## Environment Configuration
 
@@ -228,8 +252,8 @@ DXLander uses a custom **Ocean-themed** design system built on:
 ### Using Components
 
 ```tsx
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 <Card>
   <CardHeader>
@@ -238,7 +262,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
   <CardContent>
     <Button variant="default">Generate Config</Button>
   </CardContent>
-</Card>
+</Card>;
 ```
 
 ## Debugging

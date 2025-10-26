@@ -1,11 +1,11 @@
-'use client'
+'use client';
 
-import { use } from 'react'
-import Link from 'next/link'
-import { PageLayout, Header, Section } from '@/components/layouts'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { use } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Plus,
@@ -18,26 +18,30 @@ import {
   Trash2,
   Loader2,
   AlertCircle,
-  CheckCircle2
-} from 'lucide-react'
-import { trpc } from '@/lib/trpc'
+  CheckCircle2,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 export default function BuildConfigurationsPage({ params }: PageProps) {
-  const resolvedParams = use(params)
+  const resolvedParams = use(params);
 
-  const { data: project, isLoading: projectLoading, error: projectError } = trpc.projects.get.useQuery({
-    id: resolvedParams.id
-  })
+  const {
+    data: project,
+    isLoading: projectLoading,
+    error: projectError,
+  } = trpc.projects.get.useQuery({
+    id: resolvedParams.id,
+  });
 
   const { data: configSets = [], isLoading: configsLoading } = trpc.configs.list.useQuery({
-    projectId: resolvedParams.id
-  })
+    projectId: resolvedParams.id,
+  });
 
-  const isLoading = projectLoading || configsLoading
+  const isLoading = projectLoading || configsLoading;
 
   if (isLoading) {
     return (
@@ -51,7 +55,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           </div>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   if (projectError || !project) {
@@ -75,22 +79,22 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           </Card>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   const formatDate = (date: Date | string) => {
-    const d = new Date(date)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${diffDays}d ago`
-  }
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
 
   const headerActions = (
     <div className="flex items-center gap-3">
@@ -107,7 +111,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -166,9 +170,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                           </div>
 
                           {/* Files - Note: Files are now stored in a separate table, will be shown in detail view */}
-                          <p className="text-sm text-gray-500">
-                            Click to view configuration files
-                          </p>
+                          <p className="text-sm text-gray-500">Click to view configuration files</p>
                         </div>
                       </div>
 
@@ -196,7 +198,11 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                         <Button variant="ghost" size="sm">
                           <Copy className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-red-600 hover:text-red-700"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
@@ -209,5 +215,5 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

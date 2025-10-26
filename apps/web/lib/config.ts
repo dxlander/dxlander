@@ -25,26 +25,26 @@ export const config = {
     name: 'DXLander',
     version: '0.1.0',
   },
-} as const
+} as const;
 
 /**
  * Validate required environment variables
  * Throws an error if any required variables are missing
  */
 export function validateConfig() {
-  const required = ['NEXT_PUBLIC_API_URL']
-  const missing = required.filter(key => !process.env[key])
+  const required = ['NEXT_PUBLIC_API_URL'];
+  const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`)
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
   }
 }
 
 // Validate on import (fails fast in development)
 if (process.env.NODE_ENV === 'development') {
   try {
-    validateConfig()
+    validateConfig();
   } catch (error) {
-    console.warn('⚠️  Environment variable warning:', error)
+    console.warn('⚠️  Environment variable warning:', error);
   }
 }

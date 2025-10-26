@@ -1,21 +1,21 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import Link from "next/link"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { IconWrapper } from "@/components/common"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useState } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { IconWrapper } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from '@/components/ui/dropdown-menu';
 import {
   Plus,
   Search,
@@ -30,7 +30,6 @@ import {
   FileText,
   Trash2,
   ExternalLink,
-  Play,
   Eye,
   Code,
   Rocket,
@@ -39,28 +38,21 @@ import {
   Archive,
   Link2,
   Loader2,
-  FileCode
-} from "lucide-react"
-import { trpc } from "@/lib/trpc"
+  FileCode,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 export default function Dashboard() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [activeTab, setActiveTab] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
 
   // Fetch real projects from API
-  const { data, isLoading, refetch } = trpc.projects.list.useQuery({
+  const { data, isLoading } = trpc.projects.list.useQuery({
     page: 1,
-    limit: 50
-  })
+    limit: 50,
+  });
 
-  // Delete mutation
-  const deleteMutation = trpc.projects.delete.useMutation({
-    onSuccess: () => {
-      refetch()
-    }
-  })
-
-  const projects = data?.projects || []
+  const projects = data?.projects || [];
 
   const getStatusConfig = (status: string) => {
     const configs = {
@@ -68,91 +60,92 @@ export default function Dashboard() {
         icon: <FolderOpen className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Imported',
-        color: 'text-blue-600 bg-blue-100'
+        color: 'text-blue-600 bg-blue-100',
       },
       discovering: {
         icon: <Clock className="h-4 w-4 animate-pulse" />,
         variant: 'secondary' as const,
         label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100'
+        color: 'text-ocean-600 bg-ocean-100',
       },
       // Support both 'analyzing' and 'discovering' for backward compatibility
       analyzing: {
         icon: <Clock className="h-4 w-4 animate-pulse" />,
         variant: 'secondary' as const,
         label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100'
+        color: 'text-ocean-600 bg-ocean-100',
       },
       discovered: {
         icon: <CheckCircle2 className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Discovered',
-        color: 'text-green-600 bg-green-100'
+        color: 'text-green-600 bg-green-100',
       },
       // Support both 'analyzed' and 'discovered' for backward compatibility
       analyzed: {
         icon: <CheckCircle2 className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Discovered',
-        color: 'text-green-600 bg-green-100'
+        color: 'text-green-600 bg-green-100',
       },
       configured: {
         icon: <FileText className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Configured',
-        color: 'text-purple-600 bg-purple-100'
+        color: 'text-purple-600 bg-purple-100',
       },
       deployed: {
         icon: <Rocket className="h-4 w-4" />,
         variant: 'default' as const,
         label: 'Deployed',
-        color: 'text-indigo-600 bg-indigo-100'
+        color: 'text-indigo-600 bg-indigo-100',
       },
       failed: {
         icon: <AlertCircle className="h-4 w-4" />,
         variant: 'destructive' as const,
         label: 'Failed',
-        color: 'text-red-600 bg-red-100'
-      }
-    }
-    return configs[status as keyof typeof configs] || configs.imported
-  }
+        color: 'text-red-600 bg-red-100',
+      },
+    };
+    return configs[status as keyof typeof configs] || configs.imported;
+  };
 
   // Helper function to format time
   const formatDate = (date: Date | string) => {
-    const d = new Date(date)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`
-    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`
-  }
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
+    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
+    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+  };
 
   const filteredProjects = projects.filter((project: any) => {
-    const matchesSearch = project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.framework && project.framework.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (project.language && project.language.toLowerCase().includes(searchQuery.toLowerCase()))
+      (project.language && project.language.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    if (activeTab === 'all') return matchesSearch
-    if (activeTab === 'imported') return matchesSearch && project.status === 'imported'
+    if (activeTab === 'all') return matchesSearch;
+    if (activeTab === 'imported') return matchesSearch && project.status === 'imported';
     // Configured means has at least one build configuration
-    if (activeTab === 'configured') return matchesSearch && project.status === 'configured'
+    if (activeTab === 'configured') return matchesSearch && project.status === 'configured';
     // Deployed means has at least one active deployment
-    if (activeTab === 'deployed') return matchesSearch && project.status === 'deployed'
-    return matchesSearch
-  })
+    if (activeTab === 'deployed') return matchesSearch && project.status === 'deployed';
+    return matchesSearch;
+  });
 
   const stats = {
     all: projects.length,
     imported: projects.filter((p: any) => p.status === 'imported').length,
     configured: projects.filter((p: any) => p.status === 'configured').length,
-    deployed: projects.filter((p: any) => p.status === 'deployed').length
-  }
+    deployed: projects.filter((p: any) => p.status === 'deployed').length,
+  };
 
   const headerActions = (
     <div className="flex items-center space-x-3">
@@ -169,7 +162,7 @@ export default function Dashboard() {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -181,7 +174,6 @@ export default function Dashboard() {
 
       <Section spacing="lg" container={false}>
         <div className="max-w-7xl mx-auto px-6 space-y-6">
-
           {/* Actions Bar */}
           <div className="flex items-center justify-between">
             <Link href="/dashboard/import">
@@ -259,8 +251,7 @@ export default function Dashboard() {
                     <p className="text-gray-600 mb-8 max-w-md mx-auto">
                       {searchQuery
                         ? 'Try adjusting your search or import a new project'
-                        : 'Import your first project. AI will analyze it and generate deployment configurations automatically.'
-                      }
+                        : 'Import your first project. AI will analyze it and generate deployment configurations automatically.'}
                     </p>
                     <Link href="/dashboard/import">
                       <Button size="lg">
@@ -273,7 +264,7 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 gap-4">
                   {filteredProjects.map((project) => {
-                    const statusConfig = getStatusConfig(project.status)
+                    const statusConfig = getStatusConfig(project.status);
 
                     return (
                       <Link key={project.id} href={`/project/${project.id}`}>
@@ -289,7 +280,9 @@ export default function Dashboard() {
                                 <div className="flex-1 min-w-0 space-y-3">
                                   {/* Title & Status */}
                                   <div className="flex items-center gap-3 flex-wrap">
-                                    <h4 className="font-semibold text-gray-900 text-lg">{project.name}</h4>
+                                    <h4 className="font-semibold text-gray-900 text-lg">
+                                      {project.name}
+                                    </h4>
                                     <Badge
                                       variant={statusConfig.variant}
                                       className={`${statusConfig.color} flex items-center gap-1.5`}
@@ -307,10 +300,17 @@ export default function Dashboard() {
                                     </span>
                                     {project.sourceType && (
                                       <span className="flex items-center gap-1.5">
-                                        {project.sourceType === 'github' && <GitBranch className="h-3.5 w-3.5" />}
-                                        {project.sourceType === 'zip' && <Archive className="h-3.5 w-3.5" />}
-                                        {project.sourceType === 'git' && <Link2 className="h-3.5 w-3.5" />}
-                                        {project.sourceType.charAt(0).toUpperCase() + project.sourceType.slice(1)}
+                                        {project.sourceType === 'github' && (
+                                          <GitBranch className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType === 'zip' && (
+                                          <Archive className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType === 'git' && (
+                                          <Link2 className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType.charAt(0).toUpperCase() +
+                                          project.sourceType.slice(1)}
                                       </span>
                                     )}
                                     <span className="text-gray-400">•</span>
@@ -352,16 +352,23 @@ export default function Dashboard() {
                                   )}
 
                                   {/* Generated Configs */}
-                                  {(project as any).generatedConfigs && Object.keys((project as any).generatedConfigs).length > 0 && (
-                                    <div className="flex items-center gap-2 flex-wrap">
-                                      <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                      {Object.keys((project as any).generatedConfigs).map((file: string, idx: number) => (
-                                        <Badge key={idx} variant="secondary" className="text-xs bg-gray-100 text-gray-700">
-                                          {file}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                  )}
+                                  {(project as any).generatedConfigs &&
+                                    Object.keys((project as any).generatedConfigs).length > 0 && (
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <FileText className="h-3.5 w-3.5 text-gray-400" />
+                                        {Object.keys((project as any).generatedConfigs).map(
+                                          (file: string, idx: number) => (
+                                            <Badge
+                                              key={idx}
+                                              variant="secondary"
+                                              className="text-xs bg-gray-100 text-gray-700"
+                                            >
+                                              {file}
+                                            </Badge>
+                                          )
+                                        )}
+                                      </div>
+                                    )}
 
                                   {/* Deploy URL */}
                                   {project.deployUrl && (
@@ -382,7 +389,10 @@ export default function Dashboard() {
                               </div>
 
                               {/* Actions */}
-                              <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                              <div
+                                className="flex items-center gap-2 flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {project.status === 'imported' && (
                                   <Button size="sm" variant="outline">
                                     <Eye className="h-4 w-4 mr-1.5" />
@@ -449,7 +459,7 @@ export default function Dashboard() {
                           </CardContent>
                         </Card>
                       </Link>
-                    )
+                    );
                   })}
                 </div>
               )}
@@ -458,5 +468,5 @@ export default function Dashboard() {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

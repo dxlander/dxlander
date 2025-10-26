@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server';
 
 /**
  * API Route to check setup status
@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
  * For now, we'll implement basic logic here
  */
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // In production, this would check:
     // 1. Database existence and connection
@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
     // For MVP, we'll simulate the check
     // Always return setup incomplete for now so users see the setup wizard
-    const isSetupComplete = false
+    const isSetupComplete = false;
 
     // TODO: Implement actual setup detection
     // const hasDatabase = await checkDatabaseExists()
@@ -27,19 +27,21 @@ export async function GET(request: NextRequest) {
       hasAdminUser: false,
       databaseConnected: true,
       instanceId: null,
-      message: isSetupComplete ? 'Setup is complete' : 'Setup required'
-    })
-
+      message: isSetupComplete ? 'Setup is complete' : 'Setup required',
+    });
   } catch (error) {
-    console.error('Setup status check failed:', error)
+    console.error('Setup status check failed:', error);
 
     // If there's an error checking setup, assume setup is needed
-    return NextResponse.json({
-      setupComplete: false,
-      hasAdminUser: false,
-      databaseConnected: false,
-      instanceId: null,
-      message: 'Setup required due to configuration error'
-    }, { status: 200 }) // Return 200 so frontend handles gracefully
+    return NextResponse.json(
+      {
+        setupComplete: false,
+        hasAdminUser: false,
+        databaseConnected: false,
+        instanceId: null,
+        message: 'Setup required due to configuration error',
+      },
+      { status: 200 }
+    ); // Return 200 so frontend handles gracefully
   }
 }
