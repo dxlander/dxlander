@@ -1,41 +1,50 @@
-'use client'
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Badge } from '@/components/ui/badge'
-import { Package, AlertTriangle, Shield, Code, PackageOpen } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { Package, AlertTriangle, Shield, Code, PackageOpen } from 'lucide-react';
 
 // Type definitions for dependencies
 interface Dependency {
-  name?: string
-  version?: string
-  purpose?: string
+  name?: string;
+  version?: string;
+  purpose?: string;
 }
 
 interface SecuritySummary {
-  vulnerabilityWarnings?: string[]
+  vulnerabilityWarnings?: string[];
 }
 
 interface DependenciesSummary {
   dependencies?: {
-    production?: Array<Dependency | string>
-    development?: Array<Dependency | string>
-    outdatedWarnings?: string[]
-    totalCount?: number
-  }
-  security?: SecuritySummary
+    production?: Array<Dependency | string>;
+    development?: Array<Dependency | string>;
+    outdatedWarnings?: string[];
+    totalCount?: number;
+  };
+  security?: SecuritySummary;
 }
 
 interface DependenciesTabProps {
-  summary: DependenciesSummary | null
+  summary: DependenciesSummary | null;
 }
 
 export function DependenciesTab({ summary }: DependenciesTabProps) {
-  const productionDeps = summary?.dependencies?.production || []
-  const devDeps = summary?.dependencies?.development || []
-  const hasOutdatedWarnings = summary?.dependencies?.outdatedWarnings && summary.dependencies.outdatedWarnings.length > 0
-  const hasSecurityWarnings = summary?.security?.vulnerabilityWarnings && summary.security.vulnerabilityWarnings.length > 0
+  const productionDeps = summary?.dependencies?.production || [];
+  const devDeps = summary?.dependencies?.development || [];
+  const hasOutdatedWarnings =
+    summary?.dependencies?.outdatedWarnings && summary.dependencies.outdatedWarnings.length > 0;
+  const hasSecurityWarnings =
+    summary?.security?.vulnerabilityWarnings && summary.security.vulnerabilityWarnings.length > 0;
 
   return (
     <div className="space-y-6">
@@ -47,7 +56,9 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
           <AlertDescription>
             <ul className="mt-2 space-y-1">
               {summary.dependencies?.outdatedWarnings?.map((warning, idx) => (
-                <li key={idx} className="text-sm">• {warning}</li>
+                <li key={idx} className="text-sm">
+                  • {warning}
+                </li>
               ))}
             </ul>
           </AlertDescription>
@@ -61,7 +72,9 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
           <AlertDescription>
             <ul className="mt-2 space-y-1">
               {summary.security?.vulnerabilityWarnings?.map((warning, idx) => (
-                <li key={idx} className="text-sm">• {warning}</li>
+                <li key={idx} className="text-sm">
+                  • {warning}
+                </li>
               ))}
             </ul>
           </AlertDescription>
@@ -79,9 +92,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
               </div>
               <Badge variant="outline">{productionDeps.length} packages</Badge>
             </div>
-            <CardDescription>
-              Runtime dependencies required for your application
-            </CardDescription>
+            <CardDescription>Runtime dependencies required for your application</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -94,14 +105,16 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
               </TableHeader>
               <TableBody>
                 {productionDeps.map((dep, idx) => {
-                  const depObj = typeof dep === 'string' ? { name: dep } : dep
+                  const depObj = typeof dep === 'string' ? { name: dep } : dep;
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-sm">{depObj.name || '-'}</TableCell>
                       <TableCell className="text-sm">{depObj.version || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{depObj.purpose || '-'}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {depObj.purpose || '-'}
+                      </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
               </TableBody>
             </Table>
@@ -120,9 +133,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
               </div>
               <Badge variant="outline">{devDeps.length} packages</Badge>
             </div>
-            <CardDescription>
-              Development tools and build dependencies
-            </CardDescription>
+            <CardDescription>Development tools and build dependencies</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -135,14 +146,16 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
               </TableHeader>
               <TableBody>
                 {devDeps.map((dep, idx) => {
-                  const depObj = typeof dep === 'string' ? { name: dep } : dep
+                  const depObj = typeof dep === 'string' ? { name: dep } : dep;
                   return (
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-sm">{depObj.name || '-'}</TableCell>
                       <TableCell className="text-sm">{depObj.version || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">{depObj.purpose || '-'}</TableCell>
+                      <TableCell className="text-sm text-gray-600">
+                        {depObj.purpose || '-'}
+                      </TableCell>
                     </TableRow>
-                  )
+                  );
                 })}
               </TableBody>
             </Table>
@@ -208,5 +221,5 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
         </Card>
       )}
     </div>
-  )
+  );
 }

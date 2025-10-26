@@ -92,11 +92,7 @@
  * - Version-controllable
  */
 
-import type {
-  ProjectContext,
-  ProjectAnalysisResult,
-  DeploymentConfigRequest
-} from '../types'
+import type { ProjectContext, ProjectAnalysisResult, DeploymentConfigRequest } from '../types';
 
 /**
  * System prompts for different AI capabilities
@@ -138,14 +134,14 @@ Your analysis must be thorough, accurate, and actionable.`,
 - Security hardening
 - Performance optimization
 
-Generate production-ready, well-documented configurations.`
-} as const
+Generate production-ready, well-documented configurations.`,
+} as const;
 
 /**
  * Build project analysis prompt
  */
 export function buildProjectAnalysisPrompt(context: ProjectContext): string {
-  const hasReadme = context.readme !== undefined
+  const hasReadme = context.readme !== undefined;
 
   return `
 You are an expert DevOps engineer and polyglot programmer. Analyze this project and determine its structure, language, framework, dependencies, and deployment requirements.
@@ -178,7 +174,7 @@ Work smart, not hard. You have up to 50 turns - use them wisely:
 
 6. **Let evidence guide you**: Each file you read should inform your next action. If a file confirms Node.js, focus on Node.js-specific patterns rather than checking for every possible language.
 
-${hasReadme ? '**README AVAILABLE:**\n```\n' + context.readme + '\n```\n\n' : ''}
+${hasReadme ? `**README AVAILABLE:**\n\`\`\`\n${context.readme}\n\`\`\`\n\n` : ''}
 
 ---
 
@@ -528,22 +524,22 @@ For each detected integration, provide COMPLETE information:
 - Be STRICT about integration detection - when in doubt, it's probably a built-in capability
 
 **BEGIN EXPLORATION NOW.**
-`.trim()
+`.trim();
 }
 
 /**
  * Build deployment config generation prompt
  */
 export function buildDeploymentConfigPrompt(request: DeploymentConfigRequest): string {
-  const { analysisResult, configType, optimizeFor = 'balanced' } = request
+  const { analysisResult, configType, optimizeFor = 'balanced' } = request;
 
   const optimizationInstructions = {
     speed: 'Prioritize fast build times and quick startup. Use caching aggressively.',
     size: 'Minimize final image/bundle size. Use multi-stage builds and slim base images.',
     security: 'Follow security best practices. Use non-root users, scan for vulnerabilities.',
     cost: 'Optimize for resource efficiency and lower cloud costs.',
-    balanced: 'Balance between speed, size, and security.'
-  }[optimizeFor]
+    balanced: 'Balance between speed, size, and security.',
+  }[optimizeFor];
 
   return `
 You are an expert DevOps engineer. Generate a production-ready ${configType} configuration for this project.
@@ -568,7 +564,9 @@ Analyze the project structure and create the appropriate configuration files in 
 
 **CONFIGURATION TYPE GUIDELINES:**
 
-${configType === 'docker' ? `
+${
+  configType === 'docker'
+    ? `
 **Docker Configuration:**
 Analyze the project to intelligently determine what to create:
 
@@ -590,9 +588,13 @@ Look for indicators of multi-service:
 - Backend + Frontend separation
 
 DO NOT CREATE: Nginx configs, Makefiles, dev variants, or separate documentation files
-` : ''}
+`
+    : ''
+}
 
-${configType === 'kubernetes' ? `
+${
+  configType === 'kubernetes'
+    ? `
 **Kubernetes Configuration:**
 Create production-ready Kubernetes manifests:
 
@@ -610,9 +612,13 @@ Create production-ready Kubernetes manifests:
 - Name them: {service}-deployment.yaml, {service}-service.yaml
 
 DO NOT CREATE: Namespace files, secrets (use env vars), dev variants, or Helm charts
-` : ''}
+`
+    : ''
+}
 
-${configType === 'bash' ? `
+${
+  configType === 'bash'
+    ? `
 **Bash Script Configuration:**
 Create a single production deployment script (deploy.sh) that:
 
@@ -632,7 +638,9 @@ Create a single production deployment script (deploy.sh) that:
 - Make script executable
 
 DO NOT CREATE: Multiple scripts, development variants, or complex orchestration
-` : ''}
+`
+    : ''
+}
 
 **WORKFLOW:**
 1. Analyze the project structure from the analysis results
@@ -827,7 +835,9 @@ If you find localStorage, sessionStorage, cookies, IndexedDB, or browser APIs, p
 
 **Configuration Requirements:**
 
-${configType === 'docker' || configType === 'docker-compose' ? `
+${
+  configType === 'docker' || configType === 'docker-compose'
+    ? `
 **Docker Best Practices:**
 - Use multi-stage builds to minimize image size
 - Use specific base image versions (not 'latest')
@@ -837,9 +847,13 @@ ${configType === 'docker' || configType === 'docker-compose' ? `
 - Copy package files first for better layer caching
 - Include .dockerignore file
 - Set appropriate environment variables
-` : ''}
+`
+    : ''
+}
 
-${configType === 'kubernetes' ? `
+${
+  configType === 'kubernetes'
+    ? `
 **Kubernetes Best Practices:**
 - Include Deployment, Service, and Ingress manifests
 - Set resource limits and requests
@@ -847,23 +861,33 @@ ${configType === 'kubernetes' ? `
 - Use ConfigMaps for configuration
 - Use Secrets for sensitive data
 - Include HorizontalPodAutoscaler if needed
-` : ''}
+`
+    : ''
+}
 
-${configType === 'vercel' ? `
+${
+  configType === 'vercel'
+    ? `
 **Vercel Configuration:**
 - Create vercel.json with proper build settings
 - Configure environment variables
 - Set up redirects and rewrites if needed
 - Optimize for serverless
-` : ''}
+`
+    : ''
+}
 
-${configType === 'railway' ? `
+${
+  configType === 'railway'
+    ? `
 **Railway Configuration:**
 - Create railway.json or nixpacks.toml
 - Configure build and start commands
 - Set up health checks
 - Define environment variables
-` : ''}
+`
+    : ''
+}
 
 **Framework-Specific Requirements:**
 - Detected frameworks: ${analysisResult.frameworks.map((f: any) => f.name).join(', ')}
@@ -873,24 +897,33 @@ ${configType === 'railway' ? `
 - Runtime: ${analysisResult.buildConfig.runtime || 'Node.js 20'}
 
 **Environment Variables:**
-${analysisResult.environmentVariables.length > 0
-  ? analysisResult.environmentVariables.map((env: any) =>
-      `- ${env.name} (${env.required ? 'required' : 'optional'}): ${env.description || ''}`
-    ).join('\n')
-  : '- No environment variables detected'
+${
+  analysisResult.environmentVariables.length > 0
+    ? analysisResult.environmentVariables
+        .map(
+          (env: any) =>
+            `- ${env.name} (${env.required ? 'required' : 'optional'}): ${env.description || ''}`
+        )
+        .join('\n')
+    : '- No environment variables detected'
 }
 
 **Third-Party Integrations Detected:**
-${analysisResult.integrations.length > 0
-  ? analysisResult.integrations.map((int: any) =>
-      `- ${int.name || int.service} (${int.type}): ${int.requiredKeys?.join(', ') || int.envVars?.join(', ') || 'credentials required'}`
-    ).join('\n')
-  : '- No external integrations detected (self-contained application)'
+${
+  analysisResult.integrations.length > 0
+    ? analysisResult.integrations
+        .map(
+          (int: any) =>
+            `- ${int.name || int.service} (${int.type}): ${int.requiredKeys?.join(', ') || int.envVars?.join(', ') || 'credentials required'}`
+        )
+        .join('\n')
+    : '- No external integrations detected (self-contained application)'
 }
 
-${analysisResult.builtInCapabilities && analysisResult.builtInCapabilities.length > 0
-  ? `\n**Built-in Capabilities (No External Services):**\n${analysisResult.builtInCapabilities.map((cap: any) => `- ${cap.name}: ${cap.description}`).join('\n')}`
-  : ''
+${
+  analysisResult.builtInCapabilities && analysisResult.builtInCapabilities.length > 0
+    ? `\n**Built-in Capabilities (No External Services):**\n${analysisResult.builtInCapabilities.map((cap: any) => `- ${cap.name}: ${cap.description}`).join('\n')}`
+    : ''
 }
 
 **CRITICAL RULES:**
@@ -902,7 +935,7 @@ ${analysisResult.builtInCapabilities && analysisResult.builtInCapabilities.lengt
 - After creating _summary.json, you're done
 
 Generate the configuration now. Write all files including _summary.json.
-`.trim()
+`.trim();
 }
 
 /**
@@ -927,8 +960,8 @@ export const PromptTemplates = {
   /**
    * Build complete deployment config prompt
    */
-  buildConfigPrompt: buildDeploymentConfigPrompt
-} as const
+  buildConfigPrompt: buildDeploymentConfigPrompt,
+} as const;
 
 /**
  * Validate analysis result structure
@@ -974,7 +1007,7 @@ export function validateAnalysisResult(result: any): result is ProjectAnalysisRe
     Array.isArray(result.security.exposedSecrets) &&
     // Recommendations
     Array.isArray(result.recommendations)
-  )
+  );
 }
 
 /**
@@ -983,22 +1016,26 @@ export function validateAnalysisResult(result: any): result is ProjectAnalysisRe
 export function extractJsonFromResponse(response: string): any {
   // Handle empty or undefined responses
   if (!response || response.trim().length === 0) {
-    throw new Error('Received empty response from AI. The model may not have completed its response.')
+    throw new Error(
+      'Received empty response from AI. The model may not have completed its response.'
+    );
   }
 
   // Try to extract JSON from markdown code blocks
-  const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
-  const jsonStr = jsonMatch ? jsonMatch[1] : response
+  const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  const jsonStr = jsonMatch ? jsonMatch[1] : response;
 
   try {
-    const trimmed = jsonStr.trim()
+    const trimmed = jsonStr.trim();
 
     if (trimmed.length === 0) {
-      throw new Error('JSON content is empty after trimming')
+      throw new Error('JSON content is empty after trimming');
     }
 
-    return JSON.parse(trimmed)
+    return JSON.parse(trimmed);
   } catch (error) {
-    throw new Error(`Failed to parse JSON response: ${error}\n\nRaw response (length: ${response.length}):\n${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`)
+    throw new Error(
+      `Failed to parse JSON response: ${error}\n\nRaw response (length: ${response.length}):\n${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`
+    );
   }
 }

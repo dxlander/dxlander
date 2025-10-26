@@ -1,70 +1,62 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  FileCode,
-  Copy,
-  CheckCircle2,
-  Info,
-  Pencil,
-  Save,
-  X
-} from 'lucide-react'
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { FileCode, Copy, CheckCircle2, Info, Pencil, Save, X } from 'lucide-react';
 
 interface ConfigFile {
-  id: string
-  fileName: string
-  content: string
-  description?: string
+  id: string;
+  fileName: string;
+  content: string;
+  description?: string;
 }
 
 interface FilesTabProps {
-  files: ConfigFile[]
-  onSaveFile: (fileName: string, content: string) => Promise<void>
+  files: ConfigFile[];
+  onSaveFile: (fileName: string, content: string) => Promise<void>;
 }
 
 export function FilesTab({ files, onSaveFile }: FilesTabProps) {
-  const [editingFile, setEditingFile] = useState<string | null>(null)
-  const [editedContent, setEditedContent] = useState<string>('')
-  const [isSaving, setIsSaving] = useState(false)
-  const [copiedFile, setCopiedFile] = useState<string | null>(null)
+  const [editingFile, setEditingFile] = useState<string | null>(null);
+  const [editedContent, setEditedContent] = useState<string>('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [copiedFile, setCopiedFile] = useState<string | null>(null);
 
-  const configFiles = files.filter(f => f.fileName !== '_summary.json')
-  const configFilesCount = configFiles.length
+  const configFiles = files.filter((f) => f.fileName !== '_summary.json');
+  const configFilesCount = configFiles.length;
 
   const handleCopyFile = (fileName: string, content: string) => {
-    navigator.clipboard.writeText(content)
-    setCopiedFile(fileName)
-    setTimeout(() => setCopiedFile(null), 2000)
-  }
+    navigator.clipboard.writeText(content);
+    setCopiedFile(fileName);
+    setTimeout(() => setCopiedFile(null), 2000);
+  };
 
   const handleEditFile = (fileName: string, content: string) => {
-    setEditingFile(fileName)
-    setEditedContent(content)
-  }
+    setEditingFile(fileName);
+    setEditedContent(content);
+  };
 
   const handleSaveFile = async (fileName: string) => {
-    setIsSaving(true)
+    setIsSaving(true);
     try {
-      await onSaveFile(fileName, editedContent)
-      setEditingFile(null)
-      setEditedContent('')
+      await onSaveFile(fileName, editedContent);
+      setEditingFile(null);
+      setEditedContent('');
     } catch (error) {
-      console.error('Failed to save file:', error)
+      console.error('Failed to save file:', error);
     } finally {
-      setIsSaving(false)
+      setIsSaving(false);
     }
-  }
+  };
 
   const handleCancelEdit = () => {
-    setEditingFile(null)
-    setEditedContent('')
-  }
+    setEditingFile(null);
+    setEditedContent('');
+  };
 
   return (
     <Card>
@@ -78,9 +70,7 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
             {configFilesCount} file{configFilesCount !== 1 ? 's' : ''}
           </Badge>
         </div>
-        <CardDescription>
-          Production-ready configuration files for your deployment
-        </CardDescription>
+        <CardDescription>Production-ready configuration files for your deployment</CardDescription>
       </CardHeader>
       <CardContent>
         {configFiles.length > 0 ? (
@@ -94,8 +84,8 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
             </TabsList>
 
             {configFiles.map((file) => {
-              const isEditing = editingFile === file.fileName
-              const displayContent = isEditing ? editedContent : file.content
+              const isEditing = editingFile === file.fileName;
+              const displayContent = isEditing ? editedContent : file.content;
 
               return (
                 <TabsContent key={file.id} value={file.fileName} className="mt-6">
@@ -171,7 +161,9 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                         />
                       ) : (
                         <pre className="bg-gray-900 text-gray-100 p-6 rounded-lg overflow-x-auto max-h-[600px] border border-gray-700">
-                          <code className="text-sm font-mono leading-relaxed">{displayContent}</code>
+                          <code className="text-sm font-mono leading-relaxed">
+                            {displayContent}
+                          </code>
                         </pre>
                       )}
                     </div>
@@ -181,18 +173,16 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                     </p>
                   </div>
                 </TabsContent>
-              )
+              );
             })}
           </Tabs>
         ) : (
           <div className="text-center py-16">
             <FileCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg font-medium">
-              No configuration files available
-            </p>
+            <p className="text-gray-600 text-lg font-medium">No configuration files available</p>
           </div>
         )}
       </CardContent>
     </Card>
-  )
+  );
 }

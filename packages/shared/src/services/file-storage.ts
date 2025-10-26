@@ -1,6 +1,6 @@
-import * as fs from 'fs'
-import * as path from 'path'
-import * as os from 'os'
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 /**
  * Get DXLander home directory
@@ -9,9 +9,9 @@ import * as os from 'os'
  */
 export function getDXLanderHome(): string {
   if (process.env.DXLANDER_HOME) {
-    return process.env.DXLANDER_HOME
+    return process.env.DXLANDER_HOME;
   }
-  return path.join(os.homedir(), '.dxlander')
+  return path.join(os.homedir(), '.dxlander');
 }
 
 /**
@@ -19,7 +19,7 @@ export function getDXLanderHome(): string {
  * Default: ~/.dxlander/projects/
  */
 export function getProjectsDir(): string {
-  return path.join(getDXLanderHome(), 'projects')
+  return path.join(getDXLanderHome(), 'projects');
 }
 
 /**
@@ -27,7 +27,7 @@ export function getProjectsDir(): string {
  * Structure: ~/.dxlander/projects/{projectId}/
  */
 export function getProjectDir(projectId: string): string {
-  return path.join(getProjectsDir(), projectId)
+  return path.join(getProjectsDir(), projectId);
 }
 
 /**
@@ -35,7 +35,7 @@ export function getProjectDir(projectId: string): string {
  * Structure: ~/.dxlander/projects/{projectId}/files/
  */
 export function getProjectFilesDir(projectId: string): string {
-  return path.join(getProjectDir(projectId), 'files')
+  return path.join(getProjectDir(projectId), 'files');
 }
 
 /**
@@ -43,7 +43,7 @@ export function getProjectFilesDir(projectId: string): string {
  * Structure: ~/.dxlander/projects/{projectId}/configs/
  */
 export function getProjectConfigsDir(projectId: string): string {
-  return path.join(getProjectDir(projectId), 'configs')
+  return path.join(getProjectDir(projectId), 'configs');
 }
 
 /**
@@ -51,7 +51,7 @@ export function getProjectConfigsDir(projectId: string): string {
  * Structure: ~/.dxlander/projects/{projectId}/configs/{configId}/
  */
 export function getConfigDir(projectId: string, configId: string): string {
-  return path.join(getProjectConfigsDir(projectId), configId)
+  return path.join(getProjectConfigsDir(projectId), configId);
 }
 
 /**
@@ -59,7 +59,7 @@ export function getConfigDir(projectId: string, configId: string): string {
  */
 export function ensureDir(dirPath: string): void {
   if (!fs.existsSync(dirPath)) {
-    fs.mkdirSync(dirPath, { recursive: true })
+    fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
@@ -67,9 +67,9 @@ export function ensureDir(dirPath: string): void {
  * Write file to disk
  */
 export function writeFile(filePath: string, content: string): void {
-  const dir = path.dirname(filePath)
-  ensureDir(dir)
-  fs.writeFileSync(filePath, content, 'utf-8')
+  const dir = path.dirname(filePath);
+  ensureDir(dir);
+  fs.writeFileSync(filePath, content, 'utf-8');
 }
 
 /**
@@ -77,7 +77,7 @@ export function writeFile(filePath: string, content: string): void {
  */
 export function deleteDir(dirPath: string): void {
   if (fs.existsSync(dirPath)) {
-    fs.rmSync(dirPath, { recursive: true, force: true })
+    fs.rmSync(dirPath, { recursive: true, force: true });
   }
 }
 
@@ -85,52 +85,52 @@ export function deleteDir(dirPath: string): void {
  * Get directory size in bytes
  */
 export function getDirSize(dirPath: string): number {
-  let totalSize = 0
+  let totalSize = 0;
 
   function calculateSize(currentPath: string) {
-    const stats = fs.statSync(currentPath)
+    const stats = fs.statSync(currentPath);
 
     if (stats.isFile()) {
-      totalSize += stats.size
+      totalSize += stats.size;
     } else if (stats.isDirectory()) {
-      const files = fs.readdirSync(currentPath)
-      files.forEach(file => {
-        calculateSize(path.join(currentPath, file))
-      })
+      const files = fs.readdirSync(currentPath);
+      files.forEach((file) => {
+        calculateSize(path.join(currentPath, file));
+      });
     }
   }
 
   if (fs.existsSync(dirPath)) {
-    calculateSize(dirPath)
+    calculateSize(dirPath);
   }
 
-  return totalSize
+  return totalSize;
 }
 
 /**
  * Count files in directory
  */
 export function countFiles(dirPath: string): number {
-  let fileCount = 0
+  let fileCount = 0;
 
   function count(currentPath: string) {
-    const stats = fs.statSync(currentPath)
+    const stats = fs.statSync(currentPath);
 
     if (stats.isFile()) {
-      fileCount++
+      fileCount++;
     } else if (stats.isDirectory()) {
-      const files = fs.readdirSync(currentPath)
-      files.forEach(file => {
-        count(path.join(currentPath, file))
-      })
+      const files = fs.readdirSync(currentPath);
+      files.forEach((file) => {
+        count(path.join(currentPath, file));
+      });
     }
   }
 
   if (fs.existsSync(dirPath)) {
-    count(dirPath)
+    count(dirPath);
   }
 
-  return fileCount
+  return fileCount;
 }
 
 /**
@@ -138,42 +138,39 @@ export function countFiles(dirPath: string): number {
  * Returns: { filesCount, totalSize, localPath }
  */
 export interface SaveProjectResult {
-  filesCount: number
-  totalSize: number
-  localPath: string
+  filesCount: number;
+  totalSize: number;
+  localPath: string;
 }
 
-export function saveProjectFiles(
-  projectId: string,
-  files: Map<string, string>
-): SaveProjectResult {
-  const projectDir = getProjectDir(projectId)
+export function saveProjectFiles(projectId: string, files: Map<string, string>): SaveProjectResult {
+  const projectDir = getProjectDir(projectId);
 
   // Ensure project directory exists
-  ensureDir(projectDir)
+  ensureDir(projectDir);
 
   // Write all files
-  let filesWritten = 0
+  let filesWritten = 0;
   for (const [filePath, content] of files.entries()) {
-    const fullPath = path.join(projectDir, filePath)
-    writeFile(fullPath, content)
-    filesWritten++
+    const fullPath = path.join(projectDir, filePath);
+    writeFile(fullPath, content);
+    filesWritten++;
   }
 
   // Calculate total size
-  const totalSize = getDirSize(projectDir)
+  const totalSize = getDirSize(projectDir);
 
   return {
     filesCount: filesWritten,
     totalSize,
-    localPath: projectDir
-  }
+    localPath: projectDir,
+  };
 }
 
 /**
  * Delete project files
  */
 export function deleteProjectFiles(projectId: string): void {
-  const projectDir = getProjectDir(projectId)
-  deleteDir(projectDir)
+  const projectDir = getProjectDir(projectId);
+  deleteDir(projectDir);
 }

@@ -1,56 +1,54 @@
-'use client'
+'use client';
 
-import React from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Download, CheckCircle2, Clock, XCircle, Loader2, FileText } from 'lucide-react'
-import { ActivityLogEntry } from '@/lib/mock-data'
-import { cn } from '@/lib/utils'
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Download, CheckCircle2, Clock, XCircle, Loader2, FileText } from 'lucide-react';
+import { ActivityLogEntry } from '@/lib/mock-data';
+import { cn } from '@/lib/utils';
 
 interface AIActivityMonitorProps {
-  progress: number
-  currentActivity: string
-  activityLog: ActivityLogEntry[]
-  filesAnalyzed?: Array<{ name: string; status: 'pending' | 'analyzing' | 'complete' }>
-  status: 'analyzing' | 'complete' | 'error'
-  onExportLogs?: () => void
-  className?: string
+  progress: number;
+  currentActivity: string;
+  activityLog: ActivityLogEntry[];
+  filesAnalyzed?: Array<{ name: string; status: 'pending' | 'analyzing' | 'complete' }>;
+  status: 'analyzing' | 'complete' | 'error';
+  onExportLogs?: () => void;
+  className?: string;
 }
 
 const getStatusIcon = (status: ActivityLogEntry['status']) => {
   switch (status) {
     case 'complete':
-      return <CheckCircle2 className="h-4 w-4 text-ocean-600" />
+      return <CheckCircle2 className="h-4 w-4 text-ocean-600" />;
     case 'in_progress':
-      return <Loader2 className="h-4 w-4 text-ocean-600 animate-spin" />
+      return <Loader2 className="h-4 w-4 text-ocean-600 animate-spin" />;
     case 'error':
-      return <XCircle className="h-4 w-4 text-red-600" />
+      return <XCircle className="h-4 w-4 text-red-600" />;
     case 'pending':
-      return <Clock className="h-4 w-4 text-gray-400" />
+      return <Clock className="h-4 w-4 text-gray-400" />;
   }
-}
+};
 
 const getStatusBadgeVariant = (status: ActivityLogEntry['status']) => {
   switch (status) {
     case 'complete':
-      return 'default' as const
+      return 'default' as const;
     case 'in_progress':
-      return 'default' as const
+      return 'default' as const;
     case 'error':
-      return 'destructive' as const
+      return 'destructive' as const;
     case 'pending':
-      return 'secondary' as const
+      return 'secondary' as const;
   }
-}
+};
 
 const ActivityLogItem: React.FC<{ entry: ActivityLogEntry }> = ({ entry }) => {
   return (
     <div className="flex gap-3 p-3 rounded-xl border border-gray-100 hover:border-ocean-200/50 hover:bg-ocean-50/20 transition-all duration-200">
-      <div className="flex-shrink-0 mt-0.5">
-        {getStatusIcon(entry.status)}
-      </div>
+      <div className="flex-shrink-0 mt-0.5">{getStatusIcon(entry.status)}</div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 mb-1">
           <p className="text-sm font-medium text-gray-900">{entry.action}</p>
@@ -58,9 +56,7 @@ const ActivityLogItem: React.FC<{ entry: ActivityLogEntry }> = ({ entry }) => {
             {entry.status.replace('_', ' ')}
           </Badge>
         </div>
-        {entry.result && (
-          <p className="text-sm text-gray-600 mb-1">{entry.result}</p>
-        )}
+        {entry.result && <p className="text-sm text-gray-600 mb-1">{entry.result}</p>}
         {entry.details && entry.details.length > 0 && (
           <ul className="text-xs text-gray-500 space-y-0.5 ml-4 list-disc">
             {entry.details.map((detail, i) => (
@@ -85,8 +81,8 @@ const ActivityLogItem: React.FC<{ entry: ActivityLogEntry }> = ({ entry }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
   progress,
@@ -95,10 +91,10 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
   filesAnalyzed = [],
   status,
   onExportLogs,
-  className
+  className,
 }) => {
   return (
-    <Card variant="elevated" className={cn("", className)}>
+    <Card variant="elevated" className={cn('', className)}>
       <CardHeader>
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
@@ -112,12 +108,7 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
             </div>
           </div>
           {onExportLogs && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExportLogs}
-              className="flex-shrink-0"
-            >
+            <Button variant="outline" size="sm" onClick={onExportLogs} className="flex-shrink-0">
               <Download className="h-4 w-4 mr-2" />
               Export Logs
             </Button>
@@ -137,12 +128,8 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
                   variant={file.status === 'analyzing' ? 'default' : 'secondary'}
                   className="flex items-center gap-1.5"
                 >
-                  {file.status === 'analyzing' && (
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                  )}
-                  {file.status === 'complete' && (
-                    <CheckCircle2 className="h-3 w-3" />
-                  )}
+                  {file.status === 'analyzing' && <Loader2 className="h-3 w-3 animate-spin" />}
+                  {file.status === 'complete' && <CheckCircle2 className="h-3 w-3" />}
                   {file.name}
                 </Badge>
               ))}
@@ -160,9 +147,7 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
                 <p className="text-sm">No activity yet</p>
               </div>
             ) : (
-              activityLog.map((entry) => (
-                <ActivityLogItem key={entry.id} entry={entry} />
-              ))
+              activityLog.map((entry) => <ActivityLogItem key={entry.id} entry={entry} />)
             )}
           </div>
         </div>
@@ -173,9 +158,7 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
             <CheckCircle2 className="h-5 w-5 text-ocean-600 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-ocean-900">Analysis Complete</p>
-              <p className="text-xs text-ocean-700">
-                All files have been analyzed successfully
-              </p>
+              <p className="text-xs text-ocean-700">All files have been analyzed successfully</p>
             </div>
           </div>
         )}
@@ -185,13 +168,11 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
             <XCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
             <div>
               <p className="text-sm font-medium text-red-900">Analysis Failed</p>
-              <p className="text-xs text-red-700">
-                Please check the activity log for details
-              </p>
+              <p className="text-xs text-red-700">Please check the activity log for details</p>
             </div>
           </div>
         )}
       </CardContent>
     </Card>
-  )
-}
+  );
+};

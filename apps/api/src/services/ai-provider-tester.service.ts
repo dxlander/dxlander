@@ -5,33 +5,33 @@
  * Each provider has its own dedicated testing logic.
  */
 
-import { ClaudeAgentProvider } from '@dxlander/shared'
+import { ClaudeAgentProvider } from '@dxlander/shared';
 
 // Test result interface
 export interface ProviderTestResult {
-  success: boolean
-  message: string
-  model: string
-  details: Record<string, any>
+  success: boolean;
+  message: string;
+  model: string;
+  details: Record<string, any>;
 }
 
 // Test configuration interface
 export interface ProviderTestConfig {
-  provider: string
-  apiKey?: string
+  provider: string;
+  apiKey?: string;
   settings?: {
-    model?: string
-    baseUrl?: string
-    [key: string]: any
-  }
+    model?: string;
+    baseUrl?: string;
+    [key: string]: any;
+  };
 }
 
 /**
  * Base provider tester interface
  */
 interface IProviderTester {
-  test(config: ProviderTestConfig): Promise<ProviderTestResult>
-  validateConfig(config: ProviderTestConfig): void
+  test(config: ProviderTestConfig): Promise<ProviderTestResult>;
+  validateConfig(config: ProviderTestConfig): void;
 }
 
 /**
@@ -40,30 +40,30 @@ interface IProviderTester {
 class ClaudeAgentTester implements IProviderTester {
   validateConfig(config: ProviderTestConfig): void {
     if (!config.apiKey) {
-      throw new Error('API key is required for Claude Agent SDK')
+      throw new Error('API key is required for Claude Agent SDK');
     }
 
     if (!config.settings?.model) {
-      throw new Error('Model selection is required for Claude Agent SDK')
+      throw new Error('Model selection is required for Claude Agent SDK');
     }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
-    this.validateConfig(config)
+    this.validateConfig(config);
 
     try {
-      const provider = new ClaudeAgentProvider()
+      const provider = new ClaudeAgentProvider();
 
       await provider.initialize({
         apiKey: config.apiKey!,
         model: config.settings!.model!,
-        provider: 'claude-code'
-      })
+        provider: 'claude-code',
+      });
 
-      const isConnected = await provider.testConnection()
+      const isConnected = await provider.testConnection();
 
       if (!isConnected) {
-        throw new Error('API returned an error response')
+        throw new Error('API returned an error response');
       }
 
       return {
@@ -73,11 +73,11 @@ class ClaudeAgentTester implements IProviderTester {
         details: {
           provider: 'claude-code',
           modelTested: config.settings!.model!,
-          timestamp: new Date().toISOString()
-        }
-      }
+          timestamp: new Date().toISOString(),
+        },
+      };
     } catch (error: any) {
-      throw new Error(`Claude Agent SDK connection failed: ${error.message}`)
+      throw new Error(`Claude Agent SDK connection failed: ${error.message}`);
     }
   }
 }
@@ -88,16 +88,16 @@ class ClaudeAgentTester implements IProviderTester {
 class OpenAITester implements IProviderTester {
   validateConfig(config: ProviderTestConfig): void {
     if (!config.apiKey) {
-      throw new Error('API key is required for OpenAI')
+      throw new Error('API key is required for OpenAI');
     }
 
     if (!config.apiKey.startsWith('sk-')) {
-      throw new Error('Invalid OpenAI API key format (should start with sk-)')
+      throw new Error('Invalid OpenAI API key format (should start with sk-)');
     }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
-    this.validateConfig(config)
+    this.validateConfig(config);
 
     // TODO: Implement actual OpenAI API test when provider is ready
     return {
@@ -106,9 +106,9 @@ class OpenAITester implements IProviderTester {
       model: config.settings?.model || 'gpt-4-turbo',
       details: {
         provider: 'openai',
-        note: 'Format validated, full API test pending implementation'
-      }
-    }
+        note: 'Format validated, full API test pending implementation',
+      },
+    };
   }
 }
 
@@ -118,18 +118,18 @@ class OpenAITester implements IProviderTester {
 class OllamaTester implements IProviderTester {
   validateConfig(config: ProviderTestConfig): void {
     if (!config.settings?.baseUrl) {
-      throw new Error('Base URL is required for Ollama')
+      throw new Error('Base URL is required for Ollama');
     }
 
     try {
-      new URL(config.settings.baseUrl)
+      new URL(config.settings.baseUrl);
     } catch {
-      throw new Error('Invalid base URL format')
+      throw new Error('Invalid base URL format');
     }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
-    this.validateConfig(config)
+    this.validateConfig(config);
 
     // TODO: Add actual connection test to Ollama server
     return {
@@ -139,9 +139,9 @@ class OllamaTester implements IProviderTester {
       details: {
         provider: 'ollama',
         baseUrl: config.settings!.baseUrl,
-        note: 'URL validated, server connection test pending'
-      }
-    }
+        note: 'URL validated, server connection test pending',
+      },
+    };
   }
 }
 
@@ -151,18 +151,18 @@ class OllamaTester implements IProviderTester {
 class LMStudioTester implements IProviderTester {
   validateConfig(config: ProviderTestConfig): void {
     if (!config.settings?.baseUrl) {
-      throw new Error('Base URL is required for LM Studio')
+      throw new Error('Base URL is required for LM Studio');
     }
 
     try {
-      new URL(config.settings.baseUrl)
+      new URL(config.settings.baseUrl);
     } catch {
-      throw new Error('Invalid base URL format')
+      throw new Error('Invalid base URL format');
     }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
-    this.validateConfig(config)
+    this.validateConfig(config);
 
     // TODO: Add actual connection test to LM Studio server
     return {
@@ -172,9 +172,9 @@ class LMStudioTester implements IProviderTester {
       details: {
         provider: 'lmstudio',
         baseUrl: config.settings!.baseUrl,
-        note: 'URL validated, server connection test pending'
-      }
-    }
+        note: 'URL validated, server connection test pending',
+      },
+    };
   }
 }
 
@@ -185,47 +185,47 @@ class LMStudioTester implements IProviderTester {
  * Makes it easy to add new providers without modifying existing code.
  */
 class ProviderTesterRegistry {
-  private testers: Map<string, IProviderTester> = new Map()
+  private testers: Map<string, IProviderTester> = new Map();
 
   constructor() {
     // Register all available provider testers
-    this.register('claude-code', new ClaudeAgentTester())
-    this.register('openai', new OpenAITester())
-    this.register('ollama', new OllamaTester())
-    this.register('lmstudio', new LMStudioTester())
+    this.register('claude-code', new ClaudeAgentTester());
+    this.register('openai', new OpenAITester());
+    this.register('ollama', new OllamaTester());
+    this.register('lmstudio', new LMStudioTester());
   }
 
   /**
    * Register a provider tester
    */
   register(providerName: string, tester: IProviderTester): void {
-    this.testers.set(providerName, tester)
+    this.testers.set(providerName, tester);
   }
 
   /**
    * Get a provider tester
    */
   get(providerName: string): IProviderTester {
-    const tester = this.testers.get(providerName)
+    const tester = this.testers.get(providerName);
 
     if (!tester) {
-      throw new Error(`Unknown provider: ${providerName}`)
+      throw new Error(`Unknown provider: ${providerName}`);
     }
 
-    return tester
+    return tester;
   }
 
   /**
    * Test a provider connection
    */
   async testProvider(config: ProviderTestConfig): Promise<ProviderTestResult> {
-    const tester = this.get(config.provider)
-    return await tester.test(config)
+    const tester = this.get(config.provider);
+    return await tester.test(config);
   }
 }
 
 // Singleton instance
-export const providerTesterRegistry = new ProviderTesterRegistry()
+export const providerTesterRegistry = new ProviderTesterRegistry();
 
 /**
  * Main testing service
@@ -236,7 +236,7 @@ export class AIProviderTesterService {
    */
   static async testConnection(config: ProviderTestConfig): Promise<ProviderTestResult> {
     try {
-      return await providerTesterRegistry.testProvider(config)
+      return await providerTesterRegistry.testProvider(config);
     } catch (error: any) {
       return {
         success: false,
@@ -244,9 +244,9 @@ export class AIProviderTesterService {
         model: config.settings?.model || 'default',
         details: {
           error: error.message,
-          provider: config.provider
-        }
-      }
+          provider: config.provider,
+        },
+      };
     }
   }
 }

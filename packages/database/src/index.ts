@@ -1,4 +1,11 @@
-export { db, runMigrations, initializeDatabase, isSetupComplete, markSetupComplete, completeSetup } from './db'
+export {
+  db,
+  runMigrations,
+  initializeDatabase,
+  isSetupComplete,
+  markSetupComplete,
+  completeSetup,
+} from './db';
 export {
   schema,
   users,
@@ -15,11 +22,6 @@ export {
   aiProviders,
   integrations,
   deploymentCredentials,
-  auditLogs
-} from './schema'
-export type {
-  User,
-  Project,
-  Deployment,
-  Setting
-} from './types'
+  auditLogs,
+} from './schema';
+export type { User, Project, Deployment, Setting } from './types';

@@ -8,13 +8,14 @@
 
 # DXLander
 
-**AI-Powered Zero-Configuration Deployment Platform**
+**Your Intelligent Self-Hosted Deployment Suite**
 
-Transform project deployment from hours of configuration to minutes of automation.
+Skip the configuration hassle. Import any project, get deployment-ready instantly.
 
 > ⚠️ **HEAVY DEVELOPMENT** - This project is in active development. Expect breaking changes, incomplete features, and evolving APIs. Contributions welcome but use in production at your own risk.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![CI](https://github.com/dxlander/dxlander/actions/workflows/ci.yml/badge.svg)](https://github.com/dxlander/dxlander/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
 [![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
@@ -28,32 +29,33 @@ Transform project deployment from hours of configuration to minutes of automatio
 
 ## What is DXLander?
 
-DXLander is a **self-hosted, open-source deployment automation platform** that uses AI to intelligently analyze your projects and generate deployment-ready configurations automatically.
+DXLander is a **self-hosted platform** that lets you test and deploy any project without the configuration headache. Import a repo or upload a project, and DXLander automatically detects frameworks, analyzes dependencies, generates deployment configs (Docker, K8s, etc.), and can deploy to your preferred platform or service all out of the box.
 
-
-- **Zero-Configuration Deployment**: Upload a project, get deployment-ready configs instantly
-- **AI-Powered Discovery**: Automatically detects frameworks, dependencies, and integrations
-- **Universal Project Support**: Works with any programming language and framework
-- **Self-Hostable**: Full privacy and control
-- **Built-in Security**: Encrypted credential storage, JWT authentication, role-based access
+- **Exploring random GitHub projects** - Test and deploy any project in minutes
+- **Zero-configuration deployment** - From import to production automatically
+- **Self-managed control** - Your infrastructure, your data, your rules
+- **AI-powered intelligence** - Smart framework detection and optimal config generation
 
 ---
 
 ## Screenshots
 
 ### Project Import & Management
+
 <div align="center">
 <img src="documentation/assets/screenshots/project-import.png" alt="DXLander Project Import" width="800"/>
 <p><em>Multiple import methods: GitHub, ZIP upload, GitLab, Bitbucket with drag-and-drop support</em></p>
 </div>
 
 ### AI-Powered Project Discovery
+
 <div align="center">
 <img src="documentation/assets/screenshots/project-overview.png" alt="Project Analysis Overview" width="800"/>
 <p><em>Intelligent framework detection and discovered features</em></p>
 </div>
 
 ### Configuration Generation
+
 <div align="center">
 <img src="documentation/assets/screenshots/docker-configuration.png" alt="Docker Configuration Editor" width="800"/>
 <p><em>Generated production-ready Docker configurations with multi-stage builds, syntax highlighting, and deployment recommendations</em></p>
@@ -64,6 +66,7 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 ## Key Features
 
 ### Project Import & Management
+
 - **Multiple Import Methods**:
   - GitHub repositories (public & private with PAT)
   - ZIP file upload with drag & drop
@@ -72,6 +75,7 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 - **Real-time Dashboard**: Status-based filtering, search, and organization
 
 ### AI-Powered Project Discovery
+
 - **Framework Detection**: Next.js, React, Vue, Python, Go, and more
 - **Dependency Analysis**: Reads package.json, requirements.txt, Cargo.toml, etc.
 - **Environment Variable Detection**: Scans for required API keys and configurations
@@ -79,6 +83,7 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 - **Real-time Progress Tracking**: Watch AI analyze your project in real-time
 
 ### Build Configuration Management
+
 - **Multiple Configuration Types**:
   - Docker (single container deployments)
   - Docker Compose (multi-service applications)
@@ -90,6 +95,7 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 - **Version History**: Track all configuration versions over time
 
 ### Integration & Security
+
 - **Secure Credential Storage**: AES-256-GCM encrypted storage.
 - **JWT Authentication**: Secure API access with token-based auth
 - **Role-Based Access Control**: Admin and user roles
@@ -100,17 +106,20 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 ## Technology Stack
 
 ### Frontend
+
 - **Next.js 15** with App Router + **React 19**
 - **TailwindCSS v4**
 - **shadcn/ui** components (ocean-themed)
 - **tRPC** for end-to-end type safety
 
 ### Backend
-- **Hono** 
-- **Node.js 18+** 
-- **tRPC** 
+
+- **Hono**
+- **Node.js 18+**
+- **tRPC**
 
 ### Infrastructure
+
 - **Storage**: Local file system (`~/.dxlander/projects/`)
 - **Package Manager**: pnpm workspaces
 
@@ -119,10 +128,12 @@ DXLander is a **self-hosted, open-source deployment automation platform** that u
 ## Quick Start
 
 ### Prerequisites
+
 - **Node.js 18+**
 - **pnpm**
 
 ### Production Usage
+
 ```bash
 # Run directly without installation
 npx dxlander
@@ -163,6 +174,7 @@ On first launch, you'll see the **Setup Wizard**:
 ## Available Scripts
 
 ### Development
+
 ```bash
 pnpm dev              # Start both frontend and backend
 pnpm dev:web          # Start only frontend (Next.js)
@@ -170,6 +182,7 @@ pnpm dev:api          # Start only backend (Hono)
 ```
 
 ### Building
+
 ```bash
 pnpm build            # Build all packages and apps
 pnpm build:web        # Build frontend only
@@ -177,22 +190,20 @@ pnpm build:api        # Build backend only
 ```
 
 ### Testing & Quality
+
 ```bash
 pnpm lint             # Lint all code
 pnpm lint:fix         # Auto-fix linting issues
+pnpm format           # Format code with Prettier
+pnpm format:check     # Check formatting
 pnpm typecheck        # TypeScript type checking
 pnpm test             # Run tests
 ```
 
-### CLI
-```bash
-node bin/dxlander.js  # Test CLI locally
-```
-
 ---
 
-
 ### Quick Links
+
 - [Setup Guide](#quick-start)
 - [Architecture](#technology-stack)
 - [Contributing](CONTRIBUTING.md)
@@ -204,11 +215,25 @@ node bin/dxlander.js  # Test CLI locally
 DXLander is open-source and welcomes contributions!
 
 ### Development Workflow
+
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
+3. **Make** your changes following our code quality standards
+4. **Test** your changes (`pnpm test`)
+5. **Lint** and format (`pnpm lint:fix && pnpm format`)
+6. **Commit** your changes (pre-commit hooks will run automatically)
+7. **Push** to the branch (`git push origin feature/amazing-feature`)
+8. **Open** a Pull Request using our PR template
+
+All PRs must pass automated checks:
+
+- ✅ ESLint (no errors or warnings)
+- ✅ Prettier (code properly formatted)
+- ✅ TypeScript (no type errors)
+- ✅ Tests (all tests passing)
+- ✅ Build (successful build)
+
+See our [Development Workflow Guide](documentation/DEVELOPMENT_WORKFLOW.md) for details.
 
 ---
 
@@ -217,6 +242,7 @@ DXLander is open-source and welcomes contributions!
 MIT License - see [LICENSE](LICENSE) file for details.
 
 This means you can:
+
 - Use commercially
 - Modify
 - Distribute
@@ -228,6 +254,7 @@ This means you can:
 ## Supported Platforms & Integrations
 
 ### Import Sources (Current)
+
 - **GitHub** (public & private repositories)
 - **ZIP uploads** (drag & drop support)
 - Coming Soon: **GitLab**
@@ -235,6 +262,7 @@ This means you can:
 - Coming Soon: **Git URL** (generic Git repositories)
 
 ### Deployment Platforms (Planned)
+
 - **Vercel** - Serverless deployments
 - **Railway** - Full-stack applications
 - **Netlify** - Static sites & functions
@@ -269,12 +297,14 @@ pnpm lint
 ## Community & Support
 
 ### Get Help
+
 - **Documentation**: Check `/documentation` folder
-- **Discussions**: GitHub Discussions 
+- **Discussions**: GitHub Discussions
 - **Bug Reports**: GitHub Issues
 - **Feature Requests**: GitHub Issues
 
 ### Stay Updated
+
 - **Star** the repository
 - **Watch** for releases
 - **Follow** for updates

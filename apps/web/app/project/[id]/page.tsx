@@ -1,11 +1,11 @@
-"use client"
+'use client';
 
-import { use } from "react"
-import Link from "next/link"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { use } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   FolderOpen,
@@ -25,26 +25,30 @@ import {
   Calendar,
   HardDrive,
   Files,
-  FolderTree
-} from "lucide-react"
-import { trpc } from "@/lib/trpc"
+  FolderTree,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 export default function ProjectDetailPage({ params }: PageProps) {
-  const resolvedParams = use(params)
+  const resolvedParams = use(params);
 
   // ALL HOOKS MUST BE CALLED AT THE TOP - BEFORE ANY CONDITIONAL RETURNS
-  const { data: project, isLoading, error } = trpc.projects.get.useQuery({
-    id: resolvedParams.id
-  })
+  const {
+    data: project,
+    isLoading,
+    error,
+  } = trpc.projects.get.useQuery({
+    id: resolvedParams.id,
+  });
 
   // Fetch real configuration data - must be called unconditionally
   const { data: configSets = [] } = trpc.configs.list.useQuery({
-    projectId: resolvedParams.id
-  })
+    projectId: resolvedParams.id,
+  });
 
   // NOW we can do conditional returns
   if (isLoading) {
@@ -59,7 +63,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
           </div>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   if (error || !project) {
@@ -83,7 +87,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
           </Card>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   const getStatusConfig = (status: string) => {
@@ -92,53 +96,53 @@ export default function ProjectDetailPage({ params }: PageProps) {
         icon: <FolderOpen className="h-5 w-5" />,
         label: 'Imported',
         color: 'text-ocean-700 bg-ocean-50 border-ocean-200',
-        description: 'Project files imported - ready to generate build configurations'
+        description: 'Project files imported - ready to generate build configurations',
       },
       configured: {
         icon: <FileCode className="h-5 w-5" />,
         label: 'Configured',
         color: 'text-purple-700 bg-purple-50 border-purple-200',
-        description: 'Build configurations ready for deployment'
+        description: 'Build configurations ready for deployment',
       },
       deployed: {
         icon: <Rocket className="h-5 w-5" />,
         label: 'Deployed',
         color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
-        description: 'Live deployment active'
+        description: 'Live deployment active',
       },
       failed: {
         icon: <AlertCircle className="h-5 w-5" />,
         label: 'Failed',
         color: 'text-red-700 bg-red-100 border-red-200',
-        description: 'An error occurred during processing'
-      }
-    }
-    return configs[status as keyof typeof configs] || configs.imported
-  }
+        description: 'An error occurred during processing',
+      },
+    };
+    return configs[status as keyof typeof configs] || configs.imported;
+  };
 
-  const statusConfig = getStatusConfig(project.status)
+  const statusConfig = getStatusConfig(project.status);
 
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
-  }
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+  };
 
   const formatDate = (date: Date | string) => {
-    const d = new Date(date)
-    const now = new Date()
-    const diffMs = now.getTime() - d.getTime()
-    const diffMins = Math.floor(diffMs / 60000)
-    const diffHours = Math.floor(diffMs / 3600000)
-    const diffDays = Math.floor(diffMs / 86400000)
+    const d = new Date(date);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now'
-    if (diffMins < 60) return `${diffMins}m ago`
-    if (diffHours < 24) return `${diffHours}h ago`
-    return `${diffDays}d ago`
-  }
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    return `${diffDays}d ago`;
+  };
 
   return (
     <PageLayout background="default">
@@ -160,7 +164,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
           {/* Status & Quick Actions Bar */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <Badge className={`${statusConfig.color} flex items-center gap-1.5 px-3 py-1.5 border`}>
+              <Badge
+                className={`${statusConfig.color} flex items-center gap-1.5 px-3 py-1.5 border`}
+              >
                 {statusConfig.icon}
                 {statusConfig.label}
               </Badge>
@@ -226,7 +232,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
                           No build configurations yet
                         </h3>
                         <p className="text-xs text-gray-500 mb-6">
-                          Create your first build configuration to generate Docker, Kubernetes, or other deployment files for your project.
+                          Create your first build configuration to generate Docker, Kubernetes, or
+                          other deployment files for your project.
                         </p>
                         <Link href={`/project/${resolvedParams.id}/configs/new`}>
                           <Button className="bg-gradient-to-r from-ocean-600 to-ocean-500">
@@ -244,8 +251,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                           href={`/project/${resolvedParams.id}/configs/${config.id}`}
                         >
                           <div
-                            className={`px-6 py-4 hover:bg-ocean-50/30 transition-colors cursor-pointer ${index !== 0 ? 'border-t border-gray-100' : ''
-                              }`}
+                            className={`px-6 py-4 hover:bg-ocean-50/30 transition-colors cursor-pointer ${
+                              index !== 0 ? 'border-t border-gray-100' : ''
+                            }`}
                           >
                             <div className="flex items-center justify-between gap-4">
                               <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -296,7 +304,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900">Project imported</p>
-                        <p className="text-xs text-gray-500 mt-0.5">{formatDate(project.createdAt)}</p>
+                        <p className="text-xs text-gray-500 mt-0.5">
+                          {formatDate(project.createdAt)}
+                        </p>
                       </div>
                     </div>
                     {configSets.slice(0, 5).map((config) => (
@@ -308,7 +318,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                           <p className="text-xs font-medium text-gray-900">
                             {config.type} configuration created
                           </p>
-                          <p className="text-xs text-gray-500 mt-0.5">{formatDate(config.createdAt)}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatDate(config.createdAt)}
+                          </p>
                         </div>
                       </div>
                     ))}
@@ -319,7 +331,9 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-gray-900">Project updated</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{formatDate(project.updatedAt)}</p>
+                          <p className="text-xs text-gray-500 mt-0.5">
+                            {formatDate(project.updatedAt)}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -381,28 +395,36 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         <HardDrive className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-gray-500">Size</p>
-                          <p className="text-sm font-medium text-gray-900">{formatBytes(project.projectSize || 0)}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatBytes(project.projectSize || 0)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
                         <Files className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-gray-500">Files</p>
-                          <p className="text-sm font-medium text-gray-900">{project.filesCount || 0}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {project.filesCount || 0}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
                         <Calendar className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-gray-500">Imported</p>
-                          <p className="text-sm font-medium text-gray-900">{formatDate(project.createdAt)}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatDate(project.createdAt)}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
                         <RefreshCw className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
                         <div>
                           <p className="text-xs text-gray-500">Updated</p>
-                          <p className="text-sm font-medium text-gray-900">{formatDate(project.updatedAt)}</p>
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatDate(project.updatedAt)}
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -428,20 +450,12 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-ocean-600">
-                        {configSets.length}
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Configurations
-                      </div>
+                      <div className="text-3xl font-bold text-ocean-600">{configSets.length}</div>
+                      <div className="text-xs text-gray-600 mt-1">Configurations</div>
                     </div>
                     <div className="text-center border-l border-ocean-200">
-                      <div className="text-3xl font-bold text-gray-400">
-                        0
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Deployments
-                      </div>
+                      <div className="text-3xl font-bold text-gray-400">0</div>
+                      <div className="text-xs text-gray-600 mt-1">Deployments</div>
                     </div>
                   </div>
                 </CardContent>
@@ -451,5 +465,5 @@ export default function ProjectDetailPage({ params }: PageProps) {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

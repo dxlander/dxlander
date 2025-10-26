@@ -1,9 +1,9 @@
-'use client'
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import { Progress } from '@/components/ui/progress'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import {
   Info,
   Package,
@@ -16,64 +16,64 @@ import {
   CheckCircle2,
   FileCode,
   Key,
-  ExternalLink
-} from 'lucide-react'
+  ExternalLink,
+} from 'lucide-react';
 
 // Type definitions for project summary structure
 interface ProjectSummary {
-  overview: string
-  framework: string
-  runtime: string
-  buildTool: string
-  isMultiService: boolean
-  services?: string[]
+  overview: string;
+  framework: string;
+  runtime: string;
+  buildTool: string;
+  isMultiService: boolean;
+  services?: string[];
 }
 
 interface BuiltInCapability {
-  name: string
-  description?: string
+  name: string;
+  description?: string;
 }
 
 interface LanguageBreakdown {
-  [language: string]: number
+  [language: string]: number;
 }
 
 interface Language {
-  primary: string
-  breakdown: LanguageBreakdown
+  primary: string;
+  breakdown: LanguageBreakdown;
 }
 
 interface ProjectStructure {
-  sourceDirectory?: string
-  testDirectory?: string
-  hasTests: boolean
-  hasDocumentation: boolean
+  sourceDirectory?: string;
+  testDirectory?: string;
+  hasTests: boolean;
+  hasDocumentation: boolean;
 }
 
 interface ConfigSummary {
-  projectSummary?: ProjectSummary
-  builtInCapabilities?: BuiltInCapability[]
-  language?: Language
-  projectStructure?: ProjectStructure
-  recommendations?: string[]
+  projectSummary?: ProjectSummary;
+  builtInCapabilities?: BuiltInCapability[];
+  language?: Language;
+  projectStructure?: ProjectStructure;
+  recommendations?: string[];
   dependencies?: {
-    totalCount: number
-  }
+    totalCount: number;
+  };
   integrations?: {
     detected: Array<{
-      name: string
-      type: string
-      description: string
-    }>
-  }
+      name: string;
+      type: string;
+      description: string;
+    }>;
+  };
 }
 
 interface OverviewTabProps {
-  summary: ConfigSummary | null
-  configFilesCount: number
-  totalEnvCount: number
-  requiredEnvCount: number
-  integrationsCount: number
+  summary: ConfigSummary | null;
+  configFilesCount: number;
+  totalEnvCount: number;
+  requiredEnvCount: number;
+  integrationsCount: number;
 }
 
 export function OverviewTab({
@@ -81,7 +81,7 @@ export function OverviewTab({
   configFilesCount,
   totalEnvCount,
   requiredEnvCount,
-  integrationsCount
+  integrationsCount,
 }: OverviewTabProps) {
   return (
     <div className="space-y-6">
@@ -101,21 +101,27 @@ export function OverviewTab({
                 <p className="text-sm font-medium text-gray-500">Framework</p>
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">{summary.projectSummary.framework}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {summary.projectSummary.framework}
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-500">Runtime</p>
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">{summary.projectSummary.runtime}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {summary.projectSummary.runtime}
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium text-gray-500">Build Tool</p>
                 <div className="flex items-center gap-2">
                   <Settings className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">{summary.projectSummary.buildTool}</p>
+                  <p className="text-base font-semibold text-gray-900">
+                    {summary.projectSummary.buildTool}
+                  </p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -136,7 +142,11 @@ export function OverviewTab({
                   <p className="text-sm font-medium text-gray-700 mb-3">Services</p>
                   <div className="flex flex-wrap gap-2">
                     {summary.projectSummary.services.map((service: string, idx: number) => (
-                      <Badge key={idx} variant="outline" className="flex items-center gap-1.5 py-1.5 px-3">
+                      <Badge
+                        key={idx}
+                        variant="outline"
+                        className="flex items-center gap-1.5 py-1.5 px-3"
+                      >
                         <Server className="h-3.5 w-3.5" />
                         {service}
                       </Badge>
@@ -153,7 +163,11 @@ export function OverviewTab({
                   <p className="text-sm font-medium text-gray-700 mb-3">Built-in Features</p>
                   <div className="flex flex-wrap gap-2">
                     {summary.builtInCapabilities.map((capability: any, idx: number) => (
-                      <Badge key={idx} variant="secondary" className="flex items-center gap-1.5 py-1.5 px-3 bg-gray-100 text-gray-700">
+                      <Badge
+                        key={idx}
+                        variant="secondary"
+                        className="flex items-center gap-1.5 py-1.5 px-3 bg-gray-100 text-gray-700"
+                      >
                         <Package className="h-3.5 w-3.5" />
                         {capability.name}
                       </Badge>
@@ -173,15 +187,17 @@ export function OverviewTab({
                     Language Breakdown
                   </p>
                   <div className="space-y-3">
-                    {Object.entries(summary.language.breakdown).map(([lang, percent]: [string, any]) => (
-                      <div key={lang} className="space-y-1">
-                        <div className="flex justify-between text-sm">
-                          <span className="font-medium text-gray-700">{lang}</span>
-                          <span className="text-gray-600">{percent}%</span>
+                    {Object.entries(summary.language.breakdown).map(
+                      ([lang, percent]: [string, any]) => (
+                        <div key={lang} className="space-y-1">
+                          <div className="flex justify-between text-sm">
+                            <span className="font-medium text-gray-700">{lang}</span>
+                            <span className="text-gray-600">{percent}%</span>
+                          </div>
+                          <Progress value={percent} className="h-2" />
                         </div>
-                        <Progress value={percent} className="h-2" />
-                      </div>
-                    ))}
+                      )
+                    )}
                   </div>
                 </div>
               </>
@@ -216,17 +232,25 @@ export function OverviewTab({
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">Tests:</span>
                       {summary.projectStructure.hasTests ? (
-                        <Badge variant="success" className="text-xs">✓ Yes</Badge>
+                        <Badge variant="success" className="text-xs">
+                          ✓ Yes
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-xs">✗ No</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          ✗ No
+                        </Badge>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-gray-500">Docs:</span>
                       {summary.projectStructure.hasDocumentation ? (
-                        <Badge variant="success" className="text-xs">✓ Yes</Badge>
+                        <Badge variant="success" className="text-xs">
+                          ✓ Yes
+                        </Badge>
                       ) : (
-                        <Badge variant="secondary" className="text-xs">✗ No</Badge>
+                        <Badge variant="secondary" className="text-xs">
+                          ✗ No
+                        </Badge>
                       )}
                     </div>
                   </div>
@@ -305,5 +329,5 @@ export function OverviewTab({
         </Card>
       )}
     </div>
-  )
+  );
 }

@@ -1,21 +1,21 @@
-"use client"
+'use client';
 
-import { useState, useCallback } from "react"
-import Link from "next/link"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { IconWrapper } from "@/components/common"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { FloatingInput, Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { useState, useCallback } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { IconWrapper } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { FloatingInput, Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from '@/components/ui/select';
 import {
   ArrowLeft,
   Github,
@@ -32,45 +32,45 @@ import {
   Search,
   Star,
   ArrowRight,
-  AlertCircle
-} from "lucide-react"
-import { useRouter } from "next/navigation"
-import { trpc } from "@/lib/trpc"
-import { config } from "@/lib/config"
+  AlertCircle,
+} from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc';
+import { config } from '@/lib/config';
 
-type ImportMethod = 'github' | 'zip' | 'git' | 'gitlab' | 'bitbucket'
+type ImportMethod = 'github' | 'zip' | 'git' | 'gitlab' | 'bitbucket';
 
 export default function ImportPage() {
-  const router = useRouter()
-  const [selectedMethod, setSelectedMethod] = useState<ImportMethod>('github')
-  const [isImporting, setIsImporting] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const router = useRouter();
+  const [selectedMethod, setSelectedMethod] = useState<ImportMethod>('github');
+  const [isImporting, setIsImporting] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   // GitHub form state
-  const [githubUrl, setGithubUrl] = useState('')
-  const [githubBranch, setGithubBranch] = useState('')
-  const [githubToken, setGithubToken] = useState('')
-  const [githubRepoType, setGithubRepoType] = useState<'public' | 'private'>('public')
-  const [projectName, setProjectName] = useState('')
+  const [githubUrl, setGithubUrl] = useState('');
+  const [githubBranch, setGithubBranch] = useState('');
+  const [githubToken, setGithubToken] = useState('');
+  const [githubRepoType, setGithubRepoType] = useState<'public' | 'private'>('public');
+  const [projectName, setProjectName] = useState('');
 
   // ZIP upload state
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [isDragging, setIsDragging] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // tRPC mutation
   const importGitHub = trpc.projects.importFromGitHub.useMutation({
     onSuccess: (data) => {
-      console.log('Import successful:', data)
+      console.log('Import successful:', data);
       // Redirect to project detail page
-      router.push(`/project/${data.project.id}`)
+      router.push(`/project/${data.project.id}`);
     },
     onError: (error) => {
-      console.error('Import failed:', error)
-      setError(error.message)
-      setIsImporting(false)
-    }
-  })
+      console.error('Import failed:', error);
+      setError(error.message);
+      setIsImporting(false);
+    },
+  });
 
   const importMethods = [
     {
@@ -107,25 +107,26 @@ export default function ImportPage() {
       icon: <Globe className="h-5 w-5" />,
       description: 'Clone from any Git repository URL',
       popular: false,
-    }
-  ]
+    },
+  ];
 
-  const filteredMethods = importMethods.filter(method =>
-    method.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    method.description.toLowerCase().includes(searchQuery.toLowerCase())
-  )
+  const filteredMethods = importMethods.filter(
+    (method) =>
+      method.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      method.description.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleImport = async () => {
-    setError(null)
-    setIsImporting(true)
+    setError(null);
+    setIsImporting(true);
 
     try {
       if (selectedMethod === 'github') {
         // Validate GitHub URL
         if (!githubUrl.trim()) {
-          setError('Please enter a GitHub repository URL')
-          setIsImporting(false)
-          return
+          setError('Please enter a GitHub repository URL');
+          setIsImporting(false);
+          return;
         }
 
         // Call API
@@ -133,100 +134,100 @@ export default function ImportPage() {
           repoUrl: githubUrl.trim(),
           branch: githubBranch || undefined,
           token: githubToken || undefined,
-          projectName: projectName || undefined
-        })
+          projectName: projectName || undefined,
+        });
       } else if (selectedMethod === 'zip') {
         // Validate file is selected
         if (!selectedFile) {
-          setError('Please select a ZIP file to upload')
-          setIsImporting(false)
-          return
+          setError('Please select a ZIP file to upload');
+          setIsImporting(false);
+          return;
         }
 
         // Create form data
-        const formData = new FormData()
-        formData.append('file', selectedFile)
+        const formData = new FormData();
+        formData.append('file', selectedFile);
         if (projectName) {
-          formData.append('projectName', projectName)
+          formData.append('projectName', projectName);
         }
 
         // Get auth token
-        const token = localStorage.getItem('dxlander-token')
+        const token = localStorage.getItem('dxlander-token');
         if (!token) {
-          throw new Error('Authentication required. Please log in again.')
+          throw new Error('Authentication required. Please log in again.');
         }
 
         // Upload ZIP file
         const response = await fetch(`${config.apiUrl}/upload/zip`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`
+            Authorization: `Bearer ${token}`,
           },
-          body: formData
-        })
+          body: formData,
+        });
 
-        const data = await response.json()
+        const data = await response.json();
 
         if (!response.ok || !data.success) {
-          throw new Error(data.error || 'Failed to upload ZIP file')
+          throw new Error(data.error || 'Failed to upload ZIP file');
         }
 
-        console.log('ZIP upload successful:', data)
-        router.push(`/project/${data.project.id}`)
+        console.log('ZIP upload successful:', data);
+        router.push(`/project/${data.project.id}`);
       } else {
         // Other import methods not yet implemented
-        setError(`${selectedMethod} import not yet implemented`)
-        setIsImporting(false)
+        setError(`${selectedMethod} import not yet implemented`);
+        setIsImporting(false);
       }
     } catch (err: any) {
-      console.error('Import error:', err)
-      setError(err.message || 'Import failed')
-      setIsImporting(false)
+      console.error('Import error:', err);
+      setError(err.message || 'Import failed');
+      setIsImporting(false);
     }
-  }
+  };
 
   // Drag & drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }, [])
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }, [])
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
 
-    const files = e.dataTransfer.files
-    if (files.length === 0) return
+    const files = e.dataTransfer.files;
+    if (files.length === 0) return;
 
-    const file = files[0]
+    const file = files[0];
     if (file.name.endsWith('.zip')) {
-      setSelectedFile(file)
-      setError(null)
+      setSelectedFile(file);
+      setError(null);
     } else {
-      setError('Please drop a ZIP file')
+      setError('Please drop a ZIP file');
     }
-  }, [])
+  }, []);
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
-    const file = files[0]
+    const file = files[0];
     if (file.name.endsWith('.zip')) {
-      setSelectedFile(file)
-      setError(null)
+      setSelectedFile(file);
+      setError(null);
     } else {
-      setError('Please select a ZIP file')
+      setError('Please select a ZIP file');
     }
-  }, [])
+  }, []);
 
   const headerActions = (
     <Link href="/dashboard">
@@ -235,7 +236,7 @@ export default function ImportPage() {
         Back to Dashboard
       </Button>
     </Link>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -248,7 +249,6 @@ export default function ImportPage() {
       <Section spacing="lg" container={false}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-[380px_1fr] gap-6">
-
             {/* Left Sidebar - Import Methods */}
             <div className="space-y-4">
               <div className="space-y-3">
@@ -270,52 +270,66 @@ export default function ImportPage() {
               <div className="space-y-2">
                 {filteredMethods.map((method) => {
                   // Enable GitHub and ZIP, disable others
-                  const isDisabled = method.id !== 'zip' && method.id !== 'github'
+                  const isDisabled = method.id !== 'zip' && method.id !== 'github';
                   return (
                     <button
                       key={method.id}
                       onClick={() => !isDisabled && setSelectedMethod(method.id)}
                       disabled={isDisabled}
-                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${isDisabled
-                        ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
-                        : selectedMethod === method.id
-                          ? 'border-ocean-500 bg-ocean-50 shadow-md cursor-pointer'
-                          : 'border-gray-200 hover:border-ocean-300 hover:bg-gray-50 cursor-pointer'
-                        }`}
+                      className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                        isDisabled
+                          ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                          : selectedMethod === method.id
+                            ? 'border-ocean-500 bg-ocean-50 shadow-md cursor-pointer'
+                            : 'border-gray-200 hover:border-ocean-300 hover:bg-gray-50 cursor-pointer'
+                      }`}
                     >
                       <div className="flex items-start gap-3">
-                        <div className={`p-2 rounded-lg ${isDisabled
-                          ? 'bg-gray-100 text-gray-400'
-                          : selectedMethod === method.id
-                            ? 'bg-ocean-100 text-ocean-600'
-                            : 'bg-gray-100 text-gray-600'
-                          }`}>
+                        <div
+                          className={`p-2 rounded-lg ${
+                            isDisabled
+                              ? 'bg-gray-100 text-gray-400'
+                              : selectedMethod === method.id
+                                ? 'bg-ocean-100 text-ocean-600'
+                                : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
                           {method.icon}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-900'}`}>
+                            <h3
+                              className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-900'}`}
+                            >
                               {method.name}
                             </h3>
                             {method.popular && !isDisabled && (
-                              <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">
+                              <Badge
+                                variant="secondary"
+                                className="bg-amber-100 text-amber-700 border-amber-200 text-xs"
+                              >
                                 <Star className="h-3 w-3 mr-1 fill-amber-600" />
                                 Popular
                               </Badge>
                             )}
                             {isDisabled && (
-                              <Badge variant="secondary" className="bg-gray-100 text-gray-600 border-gray-200 text-xs">
+                              <Badge
+                                variant="secondary"
+                                className="bg-gray-100 text-gray-600 border-gray-200 text-xs"
+                              >
                                 Coming Soon
                               </Badge>
                             )}
                           </div>
-                          <p className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>
+                          <p
+                            className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}
+                          >
                             {method.description}
                           </p>
                         </div>
                       </div>
                     </button>
-                  )
+                  );
                 })}
               </div>
 
@@ -349,22 +363,28 @@ export default function ImportPage() {
               <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-ocean-50/30">
                 <div className="flex items-center gap-3">
                   <IconWrapper variant="primary" size="md">
-                    {importMethods.find(m => m.id === selectedMethod)?.icon}
+                    {importMethods.find((m) => m.id === selectedMethod)?.icon}
                   </IconWrapper>
                   <div className="flex-1">
-                    <CardTitle>Import from {importMethods.find(m => m.id === selectedMethod)?.name}</CardTitle>
+                    <CardTitle>
+                      Import from {importMethods.find((m) => m.id === selectedMethod)?.name}
+                    </CardTitle>
                     <CardDescription>
-                      {selectedMethod === 'github' && 'Connect your GitHub repository to generate build configurations'}
-                      {selectedMethod === 'gitlab' && 'Connect your GitLab repository to generate build configurations'}
-                      {selectedMethod === 'bitbucket' && 'Connect your Bitbucket repository to generate build configurations'}
-                      {selectedMethod === 'zip' && 'Upload your project files to generate build configurations'}
-                      {selectedMethod === 'git' && 'Clone from any Git repository to generate build configurations'}
+                      {selectedMethod === 'github' &&
+                        'Connect your GitHub repository to generate build configurations'}
+                      {selectedMethod === 'gitlab' &&
+                        'Connect your GitLab repository to generate build configurations'}
+                      {selectedMethod === 'bitbucket' &&
+                        'Connect your Bitbucket repository to generate build configurations'}
+                      {selectedMethod === 'zip' &&
+                        'Upload your project files to generate build configurations'}
+                      {selectedMethod === 'git' &&
+                        'Clone from any Git repository to generate build configurations'}
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
-
                 {/* Error Banner */}
                 {error && (
                   <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -397,10 +417,14 @@ export default function ImportPage() {
                           disabled={isImporting}
                         />
                         <div className="space-y-2">
-                          <Label className="text-sm font-semibold text-gray-700">Repository Type</Label>
+                          <Label className="text-sm font-semibold text-gray-700">
+                            Repository Type
+                          </Label>
                           <Select
                             value={githubRepoType}
-                            onValueChange={(value) => setGithubRepoType(value as 'public' | 'private')}
+                            onValueChange={(value) =>
+                              setGithubRepoType(value as 'public' | 'private')
+                            }
                             disabled={isImporting}
                           >
                             <SelectTrigger>
@@ -439,7 +463,13 @@ export default function ImportPage() {
                         <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5" />
                         <div className="flex-1 text-sm text-gray-700">
                           <p className="font-medium mb-1">Quick Setup</p>
-                          <p>Example: <code className="bg-white px-2 py-0.5 rounded text-ocean-600 font-mono text-xs">username/repo-name</code> or full URL</p>
+                          <p>
+                            Example:{' '}
+                            <code className="bg-white px-2 py-0.5 rounded text-ocean-600 font-mono text-xs">
+                              username/repo-name
+                            </code>{' '}
+                            or full URL
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -473,7 +503,9 @@ export default function ImportPage() {
                         <FolderGit2 className="h-5 w-5 text-purple-600 mt-0.5" />
                         <div className="flex-1 text-sm text-gray-700">
                           <p className="font-medium mb-1">GitLab Integration</p>
-                          <p>Supports GitLab CI/CD pipeline integration and automatic deployments</p>
+                          <p>
+                            Supports GitLab CI/CD pipeline integration and automatic deployments
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -496,10 +528,7 @@ export default function ImportPage() {
                       />
 
                       <div className="grid grid-cols-2 gap-4">
-                        <FloatingInput
-                          label="Username"
-                          leftIcon={<Github className="h-4 w-4" />}
-                        />
+                        <FloatingInput label="Username" leftIcon={<Github className="h-4 w-4" />} />
                         <FloatingInput
                           label="App Password"
                           type="password"
@@ -527,12 +556,13 @@ export default function ImportPage() {
                         onDragLeave={handleDragLeave}
                         onDrop={handleDrop}
                         onClick={() => document.getElementById('file-input')?.click()}
-                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${isDragging
-                          ? 'border-ocean-500 bg-ocean-100'
-                          : selectedFile
-                            ? 'border-green-400 bg-green-50'
-                            : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
-                          }`}
+                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${
+                          isDragging
+                            ? 'border-ocean-500 bg-ocean-100'
+                            : selectedFile
+                              ? 'border-green-400 bg-green-50'
+                              : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
+                        }`}
                       >
                         <input
                           id="file-input"
@@ -543,10 +573,13 @@ export default function ImportPage() {
                           disabled={isImporting}
                         />
                         <div className="flex flex-col items-center gap-4">
-                          <div className={`p-4 rounded-full transition-colors ${selectedFile
-                            ? 'bg-green-100'
-                            : 'bg-ocean-100 group-hover:bg-ocean-200'
-                            }`}>
+                          <div
+                            className={`p-4 rounded-full transition-colors ${
+                              selectedFile
+                                ? 'bg-green-100'
+                                : 'bg-ocean-100 group-hover:bg-ocean-200'
+                            }`}
+                          >
                             {selectedFile ? (
                               <CheckCircle2 className="h-10 w-10 text-green-600" />
                             ) : (
@@ -562,14 +595,13 @@ export default function ImportPage() {
                                 <p className="text-sm text-gray-600">
                                   {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                                 </p>
-                                <p className="text-xs text-ocean-600 mt-2">
-                                  Click to change file
-                                </p>
+                                <p className="text-xs text-ocean-600 mt-2">Click to change file</p>
                               </>
                             ) : (
                               <>
                                 <p className="text-lg font-semibold text-gray-900 mb-1">
-                                  <span className="text-ocean-600">Click to upload</span> or drag and drop
+                                  <span className="text-ocean-600">Click to upload</span> or drag
+                                  and drop
                                 </p>
                                 <p className="text-sm text-gray-600">ZIP archive up to 500MB</p>
                               </>
@@ -646,7 +678,10 @@ export default function ImportPage() {
                         <Globe className="h-5 w-5 text-gray-600 mt-0.5" />
                         <div className="flex-1 text-sm text-gray-700">
                           <p className="font-medium mb-1">Universal Git Support</p>
-                          <p>Works with any Git hosting provider: GitHub, GitLab, Bitbucket, or self-hosted</p>
+                          <p>
+                            Works with any Git hosting provider: GitHub, GitLab, Bitbucket, or
+                            self-hosted
+                          </p>
                         </div>
                       </div>
                     </div>
@@ -690,5 +725,5 @@ export default function ImportPage() {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

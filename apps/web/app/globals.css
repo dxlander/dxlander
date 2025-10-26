@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-background: #ffffff;
@@ -118,7 +118,9 @@
   body {
     @apply text-foreground;
     background: transparent !important;
-    font-feature-settings: "rlig" 1, "calt" 1;
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
     font-family: 'Satoshi', system-ui, sans-serif;
   }
 }

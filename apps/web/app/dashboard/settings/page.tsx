@@ -1,12 +1,12 @@
-"use client"
+'use client';
 
-import { useState, Suspense } from "react"
-import { useSearchParams } from "next/navigation"
-import Link from "next/link"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useState, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import {
   ArrowLeft,
   Database,
@@ -17,14 +17,14 @@ import {
   CheckCircle2,
   Server,
   ChevronRight,
-  ExternalLink
-} from "lucide-react"
+  ExternalLink,
+} from 'lucide-react';
 
 function SettingsContent() {
-  const searchParams = useSearchParams()
-  const tabParam = searchParams.get('tab')
+  const searchParams = useSearchParams();
+  searchParams.get('tab');
 
-  const [hasCustomKey, setHasCustomKey] = useState(true)
+  const [hasCustomKey] = useState(true);
 
   const headerActions = (
     <Link href="/dashboard">
@@ -33,7 +33,7 @@ function SettingsContent() {
         Back to Dashboard
       </Button>
     </Link>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -45,10 +45,8 @@ function SettingsContent() {
 
       <Section spacing="lg" container={false}>
         <div className="max-w-6xl mx-auto px-6 space-y-8">
-
           {/* Quick Settings Overview Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-
             {/* AI Providers */}
             <Link href="/dashboard/settings/ai-providers">
               <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 cursor-pointer h-full">
@@ -129,9 +127,7 @@ function SettingsContent() {
                     <ChevronRight className="h-5 w-5 text-gray-400" />
                   </div>
                   <h3 className="font-semibold text-gray-900 mb-2">Database</h3>
-                  <p className="text-sm text-gray-600 mb-3">
-                    SQLite • 2.4 MB • 12 projects
-                  </p>
+                  <p className="text-sm text-gray-600 mb-3">SQLite • 2.4 MB • 12 projects</p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-green-100 text-green-700">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -194,25 +190,25 @@ function SettingsContent() {
                 </CardContent>
               </Card>
             </Link>
-
           </div>
-
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }
 
 export default function SettingsPage() {
   return (
-    <Suspense fallback={
-      <PageLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-muted-foreground">Loading settings...</div>
-        </div>
-      </PageLayout>
-    }>
+    <Suspense
+      fallback={
+        <PageLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-muted-foreground">Loading settings...</div>
+          </div>
+        </PageLayout>
+      }
+    >
       <SettingsContent />
     </Suspense>
-  )
+  );
 }

@@ -1,31 +1,29 @@
-'use client'
+'use client';
 
-import { use } from 'react'
-import Link from 'next/link'
-import { PageLayout, Header, Section } from '@/components/layouts'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { AnalysisResults } from '@/components/analysis'
-import {
-  ArrowLeft,
-  Download,
-  Plus,
-  Loader2,
-  AlertCircle
-} from 'lucide-react'
-import { trpc } from '@/lib/trpc'
-import { mockAnalysisResults } from '@/lib/mock-data'
+import { use } from 'react';
+import Link from 'next/link';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { AnalysisResults } from '@/components/analysis';
+import { ArrowLeft, Download, Plus, Loader2, AlertCircle } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
+import { mockAnalysisResults } from '@/lib/mock-data';
 
 interface PageProps {
-  params: Promise<{ id: string }>
+  params: Promise<{ id: string }>;
 }
 
 export default function StackDiscoveryPage({ params }: PageProps) {
-  const resolvedParams = use(params)
+  const resolvedParams = use(params);
 
-  const { data: project, isLoading, error } = trpc.projects.get.useQuery({
-    id: resolvedParams.id
-  })
+  const {
+    data: project,
+    isLoading,
+    error,
+  } = trpc.projects.get.useQuery({
+    id: resolvedParams.id,
+  });
 
   if (isLoading) {
     return (
@@ -39,7 +37,7 @@ export default function StackDiscoveryPage({ params }: PageProps) {
           </div>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   if (error || !project) {
@@ -63,11 +61,11 @@ export default function StackDiscoveryPage({ params }: PageProps) {
           </Card>
         </Section>
       </PageLayout>
-    )
+    );
   }
 
   // For demo purposes, use mock data. In production, use project.discoveryResults
-  const discoveryResults = (project as any).discoveryResults || mockAnalysisResults
+  const discoveryResults = (project as any).discoveryResults || mockAnalysisResults;
 
   const headerActions = (
     <div className="flex items-center gap-3">
@@ -88,7 +86,7 @@ export default function StackDiscoveryPage({ params }: PageProps) {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -104,5 +102,5 @@ export default function StackDiscoveryPage({ params }: PageProps) {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

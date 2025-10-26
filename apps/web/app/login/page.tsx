@@ -1,28 +1,28 @@
-"use client"
+'use client';
 
-import { useState, Suspense } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
-import { PageLayout } from "@/components/layouts"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { FloatingInput } from "@/components/ui/input"
-import { AlertCircle, LogIn } from "lucide-react"
-import { config } from "@/lib/config"
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { PageLayout } from '@/components/layouts';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { FloatingInput } from '@/components/ui/input';
+import { AlertCircle, LogIn } from 'lucide-react';
+import { config } from '@/lib/config';
 
 function LoginForm() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirect = searchParams.get('redirect') || '/dashboard'
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') || '/dashboard';
 
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError('')
-    setIsLoading(true)
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
 
     try {
       // Call the login API using centralized config
@@ -32,27 +32,27 @@ function LoginForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email, password }),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Login failed')
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Login failed');
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       // Store token in both localStorage and cookie
-      localStorage.setItem('dxlander-token', data.token)
-      document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`
+      localStorage.setItem('dxlander-token', data.token);
+      document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
 
       // Redirect to intended destination
-      router.push(redirect)
+      router.push(redirect);
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.')
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <PageLayout>
@@ -60,9 +60,7 @@ function LoginForm() {
         <Card className="w-full max-w-md shadow-elegant-lg">
           <CardHeader className="text-center space-y-2">
             <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
-            <CardDescription>
-              Sign in to your DXLander account
-            </CardDescription>
+            <CardDescription>Sign in to your DXLander account</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleLogin} className="space-y-6">
@@ -97,12 +95,7 @@ function LoginForm() {
                 />
               </div>
 
-              <Button
-                type="submit"
-                className="w-full"
-                size="lg"
-                disabled={isLoading}
-              >
+              <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
                 {isLoading ? (
                   'Signing in...'
                 ) : (
@@ -121,19 +114,21 @@ function LoginForm() {
         </Card>
       </div>
     </PageLayout>
-  )
+  );
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <PageLayout>
-        <div className="min-h-screen flex items-center justify-center">
-          <div className="text-muted-foreground">Loading...</div>
-        </div>
-      </PageLayout>
-    }>
+    <Suspense
+      fallback={
+        <PageLayout>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-muted-foreground">Loading...</div>
+          </div>
+        </PageLayout>
+      }
+    >
       <LoginForm />
     </Suspense>
-  )
+  );
 }

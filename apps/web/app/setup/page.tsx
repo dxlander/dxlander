@@ -1,103 +1,95 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
-import { PageLayout, Header, Section } from "@/components/layouts"
-import { IconWrapper } from "@/components/common"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { FloatingInput } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
-import {
-  ArrowRight,
-  User,
-  Database,
-  Brain,
-  CheckCircle2,
-  AlertCircle,
-  Shield
-} from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
-import { trpc } from "@/lib/trpc"
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { PageLayout, Header, Section } from '@/components/layouts';
+import { IconWrapper } from '@/components/common';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { FloatingInput } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
+import { ArrowRight, User, Database, Brain, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { trpc } from '@/lib/trpc';
 
 export default function SimplifiedSetup() {
-  const router = useRouter()
-  const [step, setStep] = useState<'welcome' | 'admin' | 'complete'>('welcome')
-  const [isLoading, setIsLoading] = useState(false)
-  const [useDefaults, setUseDefaults] = useState(true)
+  const router = useRouter();
+  const [step, setStep] = useState<'welcome' | 'admin' | 'complete'>('welcome');
+  const [isLoading, setIsLoading] = useState(false);
+  const [useDefaults, setUseDefaults] = useState(true);
   const [config, setConfig] = useState({
     adminEmail: '',
     adminPassword: '',
     confirmPassword: '',
-    aiApiKey: ''
-  })
-  const [errors, setErrors] = useState<Record<string, string>>({})
+    aiApiKey: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // tRPC hooks
   const setupMutation = trpc.setup.completeSetup.useMutation({
     onSuccess: (data) => {
       // Store the JWT token in both localStorage and cookie
-      localStorage.setItem('dxlander-token', data.token)
+      localStorage.setItem('dxlander-token', data.token);
       // Set cookie with 7-day expiry
-      document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`
-      setStep('complete')
+      document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+      setStep('complete');
     },
     onError: (error) => {
-      console.error('Setup failed:', error)
-      setErrors({ general: error.message })
+      console.error('Setup failed:', error);
+      setErrors({ general: error.message });
     },
     onSettled: () => {
-      setIsLoading(false)
-    }
-  })
+      setIsLoading(false);
+    },
+  });
 
   const updateConfig = (key: string, value: string) => {
-    setConfig(prev => ({ ...prev, [key]: value }))
+    setConfig((prev) => ({ ...prev, [key]: value }));
     // Clear error when user starts typing
     if (errors[key]) {
-      setErrors(prev => ({ ...prev, [key]: '' }))
+      setErrors((prev) => ({ ...prev, [key]: '' }));
     }
-  }
+  };
 
   const validateAdminForm = () => {
-    const newErrors: Record<string, string> = {}
+    const newErrors: Record<string, string> = {};
 
     if (!config.adminEmail) {
-      newErrors.adminEmail = 'Email is required'
+      newErrors.adminEmail = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(config.adminEmail)) {
-      newErrors.adminEmail = 'Valid email is required'
+      newErrors.adminEmail = 'Valid email is required';
     }
 
     if (!config.adminPassword) {
-      newErrors.adminPassword = 'Password is required'
+      newErrors.adminPassword = 'Password is required';
     } else if (config.adminPassword.length < 8) {
-      newErrors.adminPassword = 'Password must be at least 8 characters'
+      newErrors.adminPassword = 'Password must be at least 8 characters';
     }
 
     if (config.adminPassword !== config.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match"
+      newErrors.confirmPassword = "Passwords don't match";
     }
 
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleNext = () => {
     if (step === 'welcome') {
-      setStep('admin')
+      setStep('admin');
     } else if (step === 'admin') {
       if (validateAdminForm()) {
-        completeSetup()
+        completeSetup();
       }
     }
-  }
+  };
 
   const completeSetup = async () => {
-    setIsLoading(true)
-    setErrors({}) // Clear previous errors
+    setIsLoading(true);
+    setErrors({}); // Clear previous errors
 
     try {
       await setupMutation.mutateAsync({
@@ -105,28 +97,28 @@ export default function SimplifiedSetup() {
         adminPassword: config.adminPassword,
         confirmPassword: config.confirmPassword,
         useDefaults: true,
-        aiApiKey: config.aiApiKey || undefined
-      })
+        aiApiKey: config.aiApiKey || undefined,
+      });
     } catch (error) {
       // Error handling is done in the mutation onError callback
     }
-  }
+  };
 
   const skipToDefaults = async () => {
-    setIsLoading(true)
-    setErrors({}) // Clear previous errors
+    setIsLoading(true);
+    setErrors({}); // Clear previous errors
 
     try {
       await setupMutation.mutateAsync({
         adminEmail: 'admin@dxlander.local',
         adminPassword: 'admin123456',
         confirmPassword: 'admin123456',
-        useDefaults: true
-      })
+        useDefaults: true,
+      });
     } catch (error) {
       // Error handling is done in the mutation onError callback
     }
-  }
+  };
 
   const headerActions = (
     <div className="flex items-center space-x-2">
@@ -137,7 +129,7 @@ export default function SimplifiedSetup() {
         </Button>
       </Link>
     </div>
-  )
+  );
 
   return (
     <PageLayout background="default">
@@ -150,7 +142,6 @@ export default function SimplifiedSetup() {
       <Section spacing="lg" container={false}>
         <div className="max-w-2xl mx-auto px-6">
           <Card variant="default" className="min-h-[500px] bg-white border-ocean-200/40 shadow-xl">
-
             {/* Welcome Step */}
             {step === 'welcome' && (
               <div className="p-8 text-center">
@@ -164,13 +155,11 @@ export default function SimplifiedSetup() {
                   />
                 </div>
 
-                <h1 className="text-3xl font-bold mb-4 text-gray-900">
-                  Welcome to DXLander
-                </h1>
+                <h1 className="text-3xl font-bold mb-4 text-gray-900">Welcome to DXLander</h1>
 
                 <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
-                  Your AI-powered deployment automation platform. Create workflows,
-                  analyze projects, and deploy with confidence.
+                  Your AI-powered deployment automation platform. Create workflows, analyze
+                  projects, and deploy with confidence.
                 </p>
 
                 <div className="grid grid-cols-3 gap-6 mb-8">
@@ -200,11 +189,7 @@ export default function SimplifiedSetup() {
                 </div>
 
                 <div className="space-y-4">
-                  <Button
-                    size="lg"
-                    onClick={handleNext}
-                    className="w-full group"
-                  >
+                  <Button size="lg" onClick={handleNext} className="w-full group">
                     Start Setup
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
                   </Button>
@@ -334,13 +319,11 @@ export default function SimplifiedSetup() {
                   <CheckCircle2 className="h-8 w-8" />
                 </IconWrapper>
 
-                <h2 className="text-3xl font-bold mb-4 text-gray-900">
-                  Setup Complete!
-                </h2>
+                <h2 className="text-3xl font-bold mb-4 text-gray-900">Setup Complete!</h2>
 
                 <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
-                  Your DXLander instance is ready. You can now create deployment workflows
-                  and start automating your deployments.
+                  Your DXLander instance is ready. You can now create deployment workflows and start
+                  automating your deployments.
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
@@ -385,11 +368,7 @@ export default function SimplifiedSetup() {
                   </Card>
                 </div>
 
-                <Button
-                  size="lg"
-                  className="group"
-                  onClick={() => router.push('/dashboard')}
-                >
+                <Button size="lg" className="group" onClick={() => router.push('/dashboard')}>
                   Open Dashboard
                   <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
                 </Button>
@@ -397,27 +376,18 @@ export default function SimplifiedSetup() {
             )}
 
             {/* Navigation Footer */}
-            {(step === 'admin') && (
+            {step === 'admin' && (
               <div className="flex items-center justify-between p-6 border-t border-ocean-200/30">
-                <Button
-                  variant="outline"
-                  onClick={() => setStep('welcome')}
-                >
+                <Button variant="outline" onClick={() => setStep('welcome')}>
                   Back
                 </Button>
 
                 <div className="flex items-center space-x-3">
                   {Object.keys(errors).length > 0 && (
-                    <span className="text-sm text-red-600">
-                      Please fix the errors above
-                    </span>
+                    <span className="text-sm text-red-600">Please fix the errors above</span>
                   )}
 
-                  <Button
-                    onClick={handleNext}
-                    disabled={isLoading}
-                    className="group"
-                  >
+                  <Button onClick={handleNext} disabled={isLoading} className="group">
                     {isLoading ? 'Creating Account...' : 'Complete Setup'}
                     <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
                   </Button>
@@ -428,5 +398,5 @@ export default function SimplifiedSetup() {
         </div>
       </Section>
     </PageLayout>
-  )
+  );
 }

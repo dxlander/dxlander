@@ -1,4 +1,4 @@
-"use client"
+'use client';
 
 /**
  * Homepage Component
@@ -22,5 +22,5 @@ export default function HomePage() {
         <p className="text-gray-600">Initializing your deployment automation platform...</p>
       </div>
     </div>
-  )
+  );
 }

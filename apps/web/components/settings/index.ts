@@ -1,1 +1,1 @@
-export { AIProvidersTab } from './ai-providers-tab'
+export { AIProvidersTab } from './ai-providers-tab';

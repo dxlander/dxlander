@@ -1,18 +1,18 @@
-"use client"
+'use client';
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { FloatingInput } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { FloatingInput } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -20,15 +20,15 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from '@/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { IconWrapper } from "@/components/common"
+} from '@/components/ui/dropdown-menu';
+import { IconWrapper } from '@/components/common';
 import {
   Plus,
   Zap,
@@ -45,10 +45,10 @@ import {
   EyeOff,
   Brain,
   Sparkles,
-  Loader2
-} from "lucide-react"
-import { trpc } from "@/lib/trpc"
-import { toast } from "sonner"
+  Loader2,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
+import { toast } from 'sonner';
 
 // Provider configuration
 const PROVIDER_INFO = {
@@ -57,12 +57,17 @@ const PROVIDER_INFO = {
     icon: Brain,
     requiresApiKey: true,
     requiresBaseUrl: false,
-    models: ['claude-sonnet-4-5-20250929', 'claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
+    models: [
+      'claude-sonnet-4-5-20250929',
+      'claude-3-5-sonnet-20241022',
+      'claude-3-opus-20240229',
+      'claude-3-haiku-20240307',
+    ],
     color: 'bg-purple-100 text-purple-700',
     borderColor: 'border-purple-200',
-    description: 'Anthropic Claude Agent SDK with file system tools'
+    description: 'Anthropic Claude Agent SDK with file system tools',
   },
-  'openai': {
+  openai: {
     name: 'OpenAI',
     icon: Sparkles,
     requiresApiKey: true,
@@ -70,9 +75,9 @@ const PROVIDER_INFO = {
     models: ['gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
     color: 'bg-green-100 text-green-700',
     borderColor: 'border-green-200',
-    description: 'OpenAI GPT models'
+    description: 'OpenAI GPT models',
   },
-  'ollama': {
+  ollama: {
     name: 'Ollama',
     icon: Server,
     requiresApiKey: false,
@@ -80,9 +85,9 @@ const PROVIDER_INFO = {
     models: ['llama3', 'codellama', 'mistral'],
     color: 'bg-gray-100 text-gray-700',
     borderColor: 'border-gray-200',
-    description: 'Self-hosted Ollama models'
+    description: 'Self-hosted Ollama models',
   },
-  'lmstudio': {
+  lmstudio: {
     name: 'LM Studio',
     icon: Server,
     requiresApiKey: false,
@@ -90,38 +95,38 @@ const PROVIDER_INFO = {
     models: [],
     color: 'bg-indigo-100 text-indigo-700',
     borderColor: 'border-indigo-200',
-    description: 'Local LM Studio server'
-  }
-} as const
+    description: 'Local LM Studio server',
+  },
+} as const;
 
-type ProviderType = keyof typeof PROVIDER_INFO
+type ProviderType = keyof typeof PROVIDER_INFO;
 
 interface AIProvider {
-  id: string
-  name: string
-  provider: string // Changed from ProviderType to match API response
-  settings: string | null
-  isDefault: boolean
-  isActive: boolean
-  lastTested: string | null // Changed from Date to string (from API)
-  lastTestStatus: string | null
-  lastError: string | null
-  usageCount: number | null
-  lastUsed: string | null // Changed from Date to string (from API)
-  createdAt: string // Changed from Date to string (from API)
-  updatedAt: string
-  userId: string
-  encryptedApiKey: string | null
+  id: string;
+  name: string;
+  provider: string; // Changed from ProviderType to match API response
+  settings: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+  lastTested: string | null; // Changed from Date to string (from API)
+  lastTestStatus: string | null;
+  lastError: string | null;
+  usageCount: number | null;
+  lastUsed: string | null; // Changed from Date to string (from API)
+  createdAt: string; // Changed from Date to string (from API)
+  updatedAt: string;
+  userId: string;
+  encryptedApiKey: string | null;
 }
 
 export function AIProvidersTab() {
-  const [showAddDialog, setShowAddDialog] = useState(false)
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
-  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null)
-  const [showApiKey, setShowApiKey] = useState(false)
-  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
-  const [testMessage, setTestMessage] = useState('')
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState<AIProvider | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+  const [testMessage, setTestMessage] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -130,111 +135,111 @@ export function AIProvidersTab() {
     apiKey: '',
     model: 'claude-sonnet-4-5-20250929',
     baseUrl: '',
-  })
+  });
 
   // tRPC queries and mutations
-  const { data: providers = [], isLoading, refetch } = trpc.aiProviders.list.useQuery()
+  const { data: providers = [], isLoading, refetch } = trpc.aiProviders.list.useQuery();
   const createMutation = trpc.aiProviders.create.useMutation({
     onSuccess: () => {
-      toast.success("AI provider created successfully")
-      refetch()
-      setShowAddDialog(false)
-      resetForm()
+      toast.success('AI provider created successfully');
+      refetch();
+      setShowAddDialog(false);
+      resetForm();
     },
     onError: (error) => {
-      toast.error(error.message)
-    }
-  })
+      toast.error(error.message);
+    },
+  });
   const updateMutation = trpc.aiProviders.update.useMutation({
     onSuccess: () => {
-      toast.success("AI provider updated successfully")
-      refetch()
-      setShowEditDialog(false)
+      toast.success('AI provider updated successfully');
+      refetch();
+      setShowEditDialog(false);
     },
     onError: (error) => {
-      toast.error(error.message)
-    }
-  })
+      toast.error(error.message);
+    },
+  });
   const deleteMutation = trpc.aiProviders.delete.useMutation({
     onSuccess: () => {
-      toast.success("AI provider deleted successfully")
-      refetch()
-      setShowDeleteDialog(false)
+      toast.success('AI provider deleted successfully');
+      refetch();
+      setShowDeleteDialog(false);
     },
     onError: (error) => {
-      toast.error(error.message)
-    }
-  })
+      toast.error(error.message);
+    },
+  });
   const testMutation = trpc.aiProviders.test.useMutation({
     onSuccess: (result) => {
-      toast.success(result.message)
-      refetch()
+      toast.success(result.message);
+      refetch();
     },
     onError: (error) => {
-      toast.error(`Connection test failed: ${error.message}`)
-      refetch()
-    }
-  })
+      toast.error(`Connection test failed: ${error.message}`);
+      refetch();
+    },
+  });
   const setDefaultMutation = trpc.aiProviders.setDefault.useMutation({
     onSuccess: () => {
-      toast.success("Default AI provider updated")
-      refetch()
+      toast.success('Default AI provider updated');
+      refetch();
     },
     onError: (error) => {
-      toast.error(error.message)
-    }
-  })
+      toast.error(error.message);
+    },
+  });
   const testConnectionMutation = trpc.aiProviders.testConnection.useMutation({
     onSuccess: (result) => {
       if (result.success) {
-        setTestStatus('success')
-        setTestMessage(result.message)
-        toast.success(result.message)
+        setTestStatus('success');
+        setTestMessage(result.message);
+        toast.success(result.message);
       } else {
-        setTestStatus('error')
-        setTestMessage(result.message)
-        toast.error(result.message)
+        setTestStatus('error');
+        setTestMessage(result.message);
+        toast.error(result.message);
       }
     },
     onError: (error) => {
-      setTestStatus('error')
-      setTestMessage(error.message)
-      toast.error(`Connection test failed: ${error.message}`)
-    }
-  })
+      setTestStatus('error');
+      setTestMessage(error.message);
+      toast.error(`Connection test failed: ${error.message}`);
+    },
+  });
 
   const handleEdit = (provider: AIProvider) => {
-    setSelectedProvider(provider)
-    const settings = provider.settings ? JSON.parse(provider.settings) : {}
+    setSelectedProvider(provider);
+    const settings = provider.settings ? JSON.parse(provider.settings) : {};
     setFormData({
       name: provider.name,
       provider: provider.provider as ProviderType,
       apiKey: '',
       model: settings.model || '',
       baseUrl: settings.baseUrl || '',
-    })
-    setShowEditDialog(true)
-  }
+    });
+    setShowEditDialog(true);
+  };
 
   const handleDelete = (provider: AIProvider) => {
-    setSelectedProvider(provider)
-    setShowDeleteDialog(true)
-  }
+    setSelectedProvider(provider);
+    setShowDeleteDialog(true);
+  };
 
   const handleTest = (providerId: string) => {
-    testMutation.mutate({ id: providerId })
-  }
+    testMutation.mutate({ id: providerId });
+  };
 
   const handleSetDefault = (providerId: string) => {
-    setDefaultMutation.mutate({ id: providerId })
-  }
+    setDefaultMutation.mutate({ id: providerId });
+  };
 
   const getProviderIcon = (providerType: string) => {
-    const info = PROVIDER_INFO[providerType as ProviderType]
-    if (!info) return <Zap className="h-5 w-5" /> // Fallback
-    const Icon = info.icon
-    return <Icon className="h-5 w-5" />
-  }
+    const info = PROVIDER_INFO[providerType as ProviderType];
+    if (!info) return <Zap className="h-5 w-5" />; // Fallback
+    const Icon = info.icon;
+    return <Icon className="h-5 w-5" />;
+  };
 
   const resetForm = () => {
     setFormData({
@@ -243,34 +248,34 @@ export function AIProvidersTab() {
       apiKey: '',
       model: 'claude-sonnet-4-5-20250929',
       baseUrl: '',
-    })
-    setShowApiKey(false)
-    setTestStatus('idle')
-    setTestMessage('')
-  }
+    });
+    setShowApiKey(false);
+    setTestStatus('idle');
+    setTestMessage('');
+  };
 
   const handleTestConnection = () => {
-    const providerInfo = PROVIDER_INFO[formData.provider]
+    const providerInfo = PROVIDER_INFO[formData.provider];
 
     // Validation before testing
     if (providerInfo.requiresApiKey && !formData.apiKey) {
-      toast.error("API key is required to test connection")
-      return
+      toast.error('API key is required to test connection');
+      return;
     }
 
     if (providerInfo.requiresBaseUrl && !formData.baseUrl) {
-      toast.error("Base URL is required to test connection")
-      return
+      toast.error('Base URL is required to test connection');
+      return;
     }
 
     if (!formData.model) {
-      toast.error("Model selection is required to test connection")
-      return
+      toast.error('Model selection is required to test connection');
+      return;
     }
 
     // Set testing state
-    setTestStatus('testing')
-    setTestMessage('Testing connection...')
+    setTestStatus('testing');
+    setTestMessage('Testing connection...');
 
     // Run the test
     testConnectionMutation.mutate({
@@ -279,37 +284,37 @@ export function AIProvidersTab() {
       settings: {
         model: formData.model,
         baseUrl: formData.baseUrl || undefined,
-      }
-    })
-  }
+      },
+    });
+  };
 
   const handleOpenAddDialog = () => {
-    resetForm()
-    setShowAddDialog(true)
-  }
+    resetForm();
+    setShowAddDialog(true);
+  };
 
   const handleCreate = () => {
-    const providerInfo = PROVIDER_INFO[formData.provider]
+    const providerInfo = PROVIDER_INFO[formData.provider];
 
     // Validation
     if (!formData.name) {
-      toast.error("Provider name is required")
-      return
+      toast.error('Provider name is required');
+      return;
     }
 
     if (providerInfo.requiresApiKey && !formData.apiKey) {
-      toast.error("API key is required for this provider")
-      return
+      toast.error('API key is required for this provider');
+      return;
     }
 
     if (providerInfo.requiresBaseUrl && !formData.baseUrl) {
-      toast.error("Base URL is required for this provider")
-      return
+      toast.error('Base URL is required for this provider');
+      return;
     }
 
     if (!formData.model) {
-      toast.error("Model selection is required")
-      return
+      toast.error('Model selection is required');
+      return;
     }
 
     createMutation.mutate({
@@ -321,11 +326,11 @@ export function AIProvidersTab() {
         baseUrl: formData.baseUrl || undefined,
       },
       isDefault: providers.length === 0, // First provider is default
-    })
-  }
+    });
+  };
 
   const handleUpdate = () => {
-    if (!selectedProvider) return
+    if (!selectedProvider) return;
 
     const updateData: any = {
       id: selectedProvider.id,
@@ -334,20 +339,20 @@ export function AIProvidersTab() {
         model: formData.model,
         baseUrl: formData.baseUrl || undefined,
       },
-    }
+    };
 
     // Only include API key if it was changed
     if (formData.apiKey) {
-      updateData.apiKey = formData.apiKey
+      updateData.apiKey = formData.apiKey;
     }
 
-    updateMutation.mutate(updateData)
-  }
+    updateMutation.mutate(updateData);
+  };
 
   const handleDeleteConfirm = () => {
-    if (!selectedProvider) return
-    deleteMutation.mutate({ id: selectedProvider.id })
-  }
+    if (!selectedProvider) return;
+    deleteMutation.mutate({ id: selectedProvider.id });
+  };
 
   return (
     <div className="space-y-6">
@@ -361,7 +366,8 @@ export function AIProvidersTab() {
             <div className="flex-1">
               <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Analysis</h3>
               <p className="text-sm text-gray-700 mb-3">
-                Configure AI providers to automatically analyze projects, detect frameworks, and generate deployment configurations.
+                Configure AI providers to automatically analyze projects, detect frameworks, and
+                generate deployment configurations.
               </p>
               <div className="flex items-center gap-4 text-sm text-gray-700">
                 <div className="flex items-center gap-2">
@@ -404,11 +410,10 @@ export function AIProvidersTab() {
             <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
               <Zap className="h-12 w-12" />
             </IconWrapper>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              No AI Providers Configured
-            </h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No AI Providers Configured</h3>
             <p className="text-gray-600 mb-8 max-w-md mx-auto">
-              Add your first AI provider to enable automatic project analysis and configuration generation.
+              Add your first AI provider to enable automatic project analysis and configuration
+              generation.
             </p>
             <Button size="lg" onClick={handleOpenAddDialog}>
               <Plus className="h-5 w-5 mr-2" />
@@ -419,8 +424,8 @@ export function AIProvidersTab() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {providers.map((provider) => {
-            const info = PROVIDER_INFO[provider.provider as ProviderType]
-            const settings = provider.settings ? JSON.parse(provider.settings) : {}
+            const info = PROVIDER_INFO[provider.provider as ProviderType];
+            const settings = provider.settings ? JSON.parse(provider.settings) : {};
 
             return (
               <Card
@@ -441,13 +446,19 @@ export function AIProvidersTab() {
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
                             <h4 className="font-semibold text-gray-900">{provider.name}</h4>
                             {provider.isDefault && (
-                              <Badge variant="secondary" className="bg-ocean-100 text-ocean-700 flex-shrink-0">
+                              <Badge
+                                variant="secondary"
+                                className="bg-ocean-100 text-ocean-700 flex-shrink-0"
+                              >
                                 <Star className="h-3 w-3 mr-1 fill-ocean-600" />
                                 Default
                               </Badge>
                             )}
                             {provider.lastTestStatus === 'success' ? (
-                              <Badge variant="secondary" className="bg-green-100 text-green-700 flex-shrink-0">
+                              <Badge
+                                variant="secondary"
+                                className="bg-green-100 text-green-700 flex-shrink-0"
+                              >
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Connected
                               </Badge>
@@ -516,7 +527,9 @@ export function AIProvidersTab() {
                       {settings.baseUrl && (
                         <div className="flex items-center justify-between">
                           <span className="text-gray-600">Base URL</span>
-                          <span className="text-gray-900 font-mono text-xs">{settings.baseUrl}</span>
+                          <span className="text-gray-900 font-mono text-xs">
+                            {settings.baseUrl}
+                          </span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
@@ -534,7 +547,9 @@ export function AIProvidersTab() {
                     <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Used</p>
-                        <p className="text-sm font-semibold text-gray-900">{provider.usageCount || 0}x</p>
+                        <p className="text-sm font-semibold text-gray-900">
+                          {provider.usageCount || 0}x
+                        </p>
                       </div>
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Status</p>
@@ -552,7 +567,7 @@ export function AIProvidersTab() {
                   </div>
                 </CardContent>
               </Card>
-            )
+            );
           })}
         </div>
       )}
@@ -573,7 +588,9 @@ export function AIProvidersTab() {
               <Label htmlFor="provider-type">Provider</Label>
               <Select
                 value={formData.provider}
-                onValueChange={(value) => setFormData({ ...formData, provider: value as ProviderType })}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, provider: value as ProviderType })
+                }
               >
                 <SelectTrigger id="provider-type">
                   <SelectValue />
@@ -700,13 +717,15 @@ export function AIProvidersTab() {
 
               {/* Test Status Feedback */}
               {testStatus !== 'idle' && testMessage && (
-                <div className={`p-3 rounded-lg border ${
-                  testStatus === 'success'
-                    ? 'bg-green-50 border-green-200'
-                    : testStatus === 'error'
-                    ? 'bg-red-50 border-red-200'
-                    : 'bg-blue-50 border-blue-200'
-                }`}>
+                <div
+                  className={`p-3 rounded-lg border ${
+                    testStatus === 'success'
+                      ? 'bg-green-50 border-green-200'
+                      : testStatus === 'error'
+                        ? 'bg-red-50 border-red-200'
+                        : 'bg-blue-50 border-blue-200'
+                  }`}
+                >
                   <div className="flex items-start gap-2">
                     {testStatus === 'success' ? (
                       <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
@@ -715,13 +734,15 @@ export function AIProvidersTab() {
                     ) : (
                       <Loader2 className="h-4 w-4 text-blue-600 mt-0.5 animate-spin" />
                     )}
-                    <p className={`text-sm ${
-                      testStatus === 'success'
-                        ? 'text-green-700'
-                        : testStatus === 'error'
-                        ? 'text-red-700'
-                        : 'text-blue-700'
-                    }`}>
+                    <p
+                      className={`text-sm ${
+                        testStatus === 'success'
+                          ? 'text-green-700'
+                          : testStatus === 'error'
+                            ? 'text-red-700'
+                            : 'text-blue-700'
+                      }`}
+                    >
                       {testMessage}
                     </p>
                   </div>
@@ -736,8 +757,8 @@ export function AIProvidersTab() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">Secure Storage</h4>
                   <p className="text-sm text-gray-700">
-                    All API keys are encrypted with your master encryption key (AES-256-GCM) before storage.
-                    No credentials are ever stored in plaintext.
+                    All API keys are encrypted with your master encryption key (AES-256-GCM) before
+                    storage. No credentials are ever stored in plaintext.
                   </p>
                 </div>
               </div>
@@ -752,10 +773,7 @@ export function AIProvidersTab() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              disabled={createMutation.isPending}
-            >
+            <Button onClick={handleCreate} disabled={createMutation.isPending}>
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -777,9 +795,7 @@ export function AIProvidersTab() {
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl">Edit AI Provider</DialogTitle>
-            <DialogDescription>
-              Update your AI provider configuration.
-            </DialogDescription>
+            <DialogDescription>Update your AI provider configuration.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
@@ -812,9 +828,7 @@ export function AIProvidersTab() {
                     </button>
                   }
                 />
-                <p className="text-xs text-gray-500">
-                  Leave empty to keep the existing API key
-                </p>
+                <p className="text-xs text-gray-500">Leave empty to keep the existing API key</p>
               </div>
             )}
 
@@ -859,10 +873,7 @@ export function AIProvidersTab() {
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleUpdate}
-              disabled={updateMutation.isPending}
-            >
+            <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
               {updateMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -884,9 +895,7 @@ export function AIProvidersTab() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Delete AI Provider</DialogTitle>
-            <DialogDescription>
-              Are you sure you want to delete this AI provider?
-            </DialogDescription>
+            <DialogDescription>Are you sure you want to delete this AI provider?</DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
@@ -896,8 +905,8 @@ export function AIProvidersTab() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">This action cannot be undone</h4>
                   <p className="text-sm text-gray-700">
-                    Deleting <strong>{selectedProvider?.name}</strong> will remove all associated configuration
-                    and credentials. Projects using this provider may fail analysis.
+                    Deleting <strong>{selectedProvider?.name}</strong> will remove all associated
+                    configuration and credentials. Projects using this provider may fail analysis.
                   </p>
                 </div>
               </div>
@@ -933,5 +942,5 @@ export function AIProvidersTab() {
         </DialogContent>
       </Dialog>
     </div>
-  )
+  );
 }

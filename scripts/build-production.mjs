@@ -67,9 +67,9 @@ function log(message, type = 'info') {
 }
 
 function printHeader(title) {
-  console.log('\n' + '='.repeat(60));
+  console.log(`\n${  '='.repeat(60)}`);
   console.log(`  ${title}`);
-  console.log('='.repeat(60) + '\n');
+  console.log(`${'='.repeat(60)  }\n`);
 }
 
 async function runCommand(command, description) {
