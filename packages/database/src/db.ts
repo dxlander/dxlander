@@ -181,6 +181,7 @@ async function createTables() {
         ai_model TEXT,
         description TEXT,
         tags TEXT,
+        notes TEXT,
         error_message TEXT,
         started_at INTEGER,
         completed_at INTEGER,
