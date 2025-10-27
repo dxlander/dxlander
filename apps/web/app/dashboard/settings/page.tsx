@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { PageLayout, Header, Section } from '@/components/layouts';
 import { Button } from '@/components/ui/button';
@@ -21,9 +20,6 @@ import {
 } from 'lucide-react';
 
 function SettingsContent() {
-  const searchParams = useSearchParams();
-  searchParams.get('tab');
-
   const [hasCustomKey] = useState(true);
 
   const headerActions = (

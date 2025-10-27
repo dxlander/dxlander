@@ -239,7 +239,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                           This provider will be used for project analysis
                         </p>
                       </div>
-                      <Link href="/dashboard/settings?tab=ai-providers">
+                      <Link href="/dashboard/settings/ai-providers">
                         <Button variant="ghost" size="sm">
                           <Settings className="h-4 w-4 mr-2" />
                           Change
@@ -264,7 +264,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                           first. This will enable automatic project analysis and intelligent
                           configuration generation.
                         </p>
-                        <Link href="/dashboard/settings?tab=ai-providers">
+                        <Link href="/dashboard/settings/ai-providers">
                           <Button
                             size="sm"
                             className="bg-gradient-to-r from-ocean-600 to-ocean-500"
