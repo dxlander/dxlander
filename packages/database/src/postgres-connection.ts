@@ -15,7 +15,7 @@ export function createPostgresConnection(config: PostgresConfig) {
     database: config.database,
     user: config.user,
     password: config.password,
-    ssl: config.ssl ? true : false,
+    ssl: config.ssl, // <-- Key change for flexible SSL config!
     max: 20, // Maximum pool size
     idleTimeoutMillis: 30000, // 30 seconds
     connectionTimeoutMillis: 5000, // 5 seconds
