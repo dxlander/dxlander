@@ -4,13 +4,26 @@ import type { PostgresConfig } from './types';
 import * as schema from './schema';
 
 export function createPostgresConnection(config: PostgresConfig) {
+  // Validate required parameters
+  if (!config.host || !config.database || !config.user) {
+    throw new Error('Missing required PostgreSQL configuration parameters');
+  }
+
   const pool = new Pool({
     host: config.host,
     port: config.port,
     database: config.database,
     user: config.user,
     password: config.password,
-    ssl: config.ssl ? { rejectUnauthorized: false } : false,
+    ssl: config.ssl ? true : false,
+    max: 20, // Maximum pool size
+    idleTimeoutMillis: 30000, // 30 seconds
+    connectionTimeoutMillis: 5000, // 5 seconds
+  });
+
+  // Handle pool errors
+  pool.on('error', (err) => {
+    console.error('Unexpected error on idle PostgreSQL client', err);
   });
 
   const db = drizzle(pool, { schema });
@@ -19,7 +32,12 @@ export function createPostgresConnection(config: PostgresConfig) {
     db,
     pool,
     async close() {
-      await pool.end();
+      try {
+        await pool.end();
+      } catch (error) {
+        console.error('Error closing PostgreSQL pool:', error);
+        throw error;
+      }
     },
   };
 }
