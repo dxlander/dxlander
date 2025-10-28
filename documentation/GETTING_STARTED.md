@@ -169,6 +169,24 @@ DXLander works out of the box with sensible defaults:
 - **Storage:** Files at `~/.dxlander/projects/`
 - **Encryption:** Auto-generated key at `~/.dxlander/encryption.key`
 
+### Custom Encryption Key
+
+For production deployments or enhanced security, you can provide a custom encryption key via the `DXLANDER_ENCRYPTION_KEY` environment variable:
+
+```bash
+export DXLANDER_ENCRYPTION_KEY="your-custom-encryption-key-here-must-be-at-least-32-characters"
+npx dxlander
+```
+
+This approach is recommended for:
+
+- Multi-instance deployments where all instances need to share the same encryption key
+- Container orchestration environments (Docker, Kubernetes) with secret management
+- CI/CD pipelines where consistent encryption is needed across environments
+- Disaster recovery scenarios where backups need to be restored with the correct encryption key
+
+**Security Note:** The encryption key must be at least 32 characters long to ensure adequate security.
+
 ## Understanding the Codebase
 
 ### API Server (`apps/api/`)
@@ -198,96 +216,6 @@ apps/web/app/
 ├── dashboard/page.tsx      # Main dashboard
 └── project/[id]/
     ├── page.tsx            # Project detail
-    └── configs/page.tsx    # Configuration management
-```
-
-### Shared Packages (`packages/`)
-
-Common code shared between frontend and backend:
-
-```typescript
-// Key shared services
-packages/shared/src/services/
-├── encryption.ts    # Credential encryption
-├── github.ts       # GitHub API integration
-├── project.ts      # Project utilities
-└── ai/             # AI prompt templates
-```
-
-## Common Development Tasks
-
-### Adding a New API Endpoint
-
-1. Create route in `apps/api/src/routes/`
-2. Add tRPC procedure definition
-3. Update frontend to use new endpoint
-
-### Adding a New Page
-
-1. Create page component in `apps/web/app/`
-2. Add to navigation if needed
-3. Implement UI using design system components
-
-### Adding a New Database Table
-
-1. Update schema in `packages/database/src/schema.ts`
-2. Generate migration with Drizzle
-3. Update types and services
-
-### Working with AI Features
-
-1. Update prompts in `packages/shared/src/services/ai/prompts/`
-2. Modify analysis logic in `packages/ai-agents/`
-3. Test with various project types
-
-## Design System
-
-DXLander uses a custom **Ocean-themed** design system built on:
-
-- **TailwindCSS v4** for styling
-- **shadcn/ui** components (customized)
-- **Satoshi** font family
-- **Ocean blue** (#3b82f6) primary color
-
-### Using Components
-
-```tsx
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-
-<Card>
-  <CardHeader>
-    <CardTitle>Project Analysis</CardTitle>
-  </CardHeader>
-  <CardContent>
-    <Button variant="default">Generate Config</Button>
-  </CardContent>
-</Card>;
-```
-
-## Debugging
-
-### API Issues
-
-- Check terminal for API server logs
-- API runs on http://localhost:3001
-- Database file: `~/.dxlander/data/dxlander.db`
-
-### Frontend Issues
-
-- Check browser console for errors
-- Web app runs on http://localhost:3000
-- Hot reloading enabled in development
-
-### Database Issues
-
-```bash
-# View database contents
-sqlite3 ~/.dxlander/data/dxlander.db
-
-# Reset database (development only)
-rm ~/.dxlander/data/dxlander.db
-# Restart app to recreate
 ```
 
 ### Encryption Issues
@@ -299,6 +227,10 @@ cat ~/.dxlander/encryption.key
 # Reset encryption (development only - loses all credentials)
 rm ~/.dxlander/encryption.key
 # Restart app to regenerate
+
+# Using custom encryption key (production)
+export DXLANDER_ENCRYPTION_KEY="your-secure-key-here-must-be-at-least-32-characters"
+npx dxlander
 ```
 
 ## Troubleshooting

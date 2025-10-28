@@ -53,6 +53,7 @@ This document provides a comprehensive overview of DXLander's current features a
 - **Environment variable support:** Production deployment with `DXLANDER_ENCRYPTION_KEY`
 - **File permissions:** 0600 permissions (owner read/write only)
 - **Automatic generation:** Creates encryption key on first launch
+- **Key validation:** Enforces minimum 32-character key length for security
 
 #### Authentication
 

@@ -193,7 +193,7 @@ Credential injection → Deployment execution → Status tracking
 ### Security
 
 - **Encryption:** AES-256-GCM for all sensitive data
-- **Key Management:** File-based storage
+- **Key Management:** File-based storage or environment variable
 - **Authentication:** JWT tokens with bcrypt password hashing
 
 ## Development Workflow
@@ -259,7 +259,7 @@ packages/shared → packages/database (types only)
 
 ### Environment Variables
 
-- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (production)
+- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (32+ chars, production)
 - `DATABASE_URL` - PostgreSQL connection (optional)
 - `NODE_ENV` - Environment mode
 - `PORT` - API server port (default: 3001)
@@ -269,8 +269,9 @@ packages/shared → packages/database (types only)
 ### Encryption
 
 - All API keys and credentials are encrypted before database storage
-- Master encryption key stored securely in filesystem
+- Master encryption key can be provided via environment variable or file
 - File permissions set to 0600 (owner read/write only)
+- Minimum 32-character key length enforced for security
 
 ### Authentication
 
