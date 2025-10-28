@@ -41,8 +41,12 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
     onSuccess: (data) => {
       toast.success(`Project "${data.deletedProject.name}" deleted successfully`);
       onOpenChange(false);
-      router.push('/dashboard');
+      // Just refresh the current page to update the project list
       router.refresh();
+      // Force a full page reload if refresh doesn't update the list
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     },
     onError: (error) => {
       toast.error(error.message || 'Failed to delete project');

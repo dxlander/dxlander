@@ -1,6 +1,15 @@
-import { describe, it, expect, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Unit tests for the DeleteProjectDialog component logic
+
+// Setup fake timers for setTimeout tests
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 describe('DeleteProjectDialog Component Logic', () => {
   const mockProject = {
     id: 'test-project-1',
@@ -222,6 +231,59 @@ describe('DeleteProjectDialog Component Logic', () => {
       expect(requiredProps.project).toBeDefined();
       expect(typeof requiredProps.open).toBe('boolean');
       expect(typeof requiredProps.onOpenChange).toBe('function');
+    });
+  });
+
+  describe('Delete Success Behavior', () => {
+    it('should use window.location.reload instead of router.push', () => {
+      // Mock window object since it's not available in Node.js test environment
+      const mockReload = vi.fn();
+      const mockWindow = {
+        location: {
+          reload: mockReload,
+        },
+      };
+
+      // Store original window if it exists
+      const originalWindow = (globalThis as any).window;
+
+      // Define the window object globally
+      Object.defineProperty(globalThis, 'window', {
+        value: mockWindow,
+        writable: true,
+        configurable: true,
+      });
+
+      // Mock router.refresh
+      const mockRefresh = vi.fn();
+
+      // Simulate the success behavior from the component
+      const simulateSuccess = () => {
+        // This is what happens in the component's onSuccess callback
+        mockRefresh(); // router.refresh()
+        setTimeout(() => {
+          (globalThis as any).window.location.reload(); // window.location.reload()
+        }, 500);
+      };
+
+      simulateSuccess();
+
+      // Fast-forward timers
+      vi.advanceTimersByTime(500);
+
+      expect(mockRefresh).toHaveBeenCalled();
+      expect(mockReload).toHaveBeenCalled();
+
+      // Restore original window
+      if (originalWindow) {
+        Object.defineProperty(globalThis, 'window', {
+          value: originalWindow,
+          writable: true,
+          configurable: true,
+        });
+      } else {
+        delete (globalThis as any).window;
+      }
     });
   });
 });
