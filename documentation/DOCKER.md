@@ -66,13 +66,13 @@ docker run -d \
 
 ### Environment Variables
 
-| Variable                  | Default          | Description                       |
-| ------------------------- | ---------------- | --------------------------------- |
-| `NODE_ENV`                | `production`     | Node environment                  |
-| `PORT`                    | `3000`           | Web UI port                       |
-| `API_PORT`                | `3001`           | API server port                   |
-| `DXLANDER_HOME`           | `/app/.dxlander` | Data directory                    |
-| `DXLANDER_ENCRYPTION_KEY` | Auto-generated   | Master encryption key (32+ chars) |
+| Variable                  | Default          | Description                              |
+| ------------------------- | ---------------- | ---------------------------------------- |
+| `NODE_ENV`                | `production`     | Node environment                         |
+| `PORT`                    | `3000`           | Web UI port                              |
+| `API_PORT`                | `3001`           | API server port                          |
+| `DXLANDER_HOME`           | `/app/.dxlander` | Data directory                           |
+| `DXLANDER_ENCRYPTION_KEY` | Auto-generated   | Master encryption key (44+ chars base64) |
 
 ### Volume Mounts
 
@@ -115,8 +115,8 @@ docker run -d \
 For production deployments, you can provide a custom encryption key via the `DXLANDER_ENCRYPTION_KEY` environment variable instead of relying on the auto-generated key file.
 
 ```bash
-# Generate a secure 32+ character key
-ENCRYPTION_KEY="your-custom-encryption-key-here-must-be-at-least-32-characters"
+# Generate a secure 44+ character base64 key (32 raw bytes encoded in base64 produce 44 characters)
+ENCRYPTION_KEY=$(openssl rand -base64 32)
 
 # Run with custom key (no key file will be generated)
 docker run -d \
@@ -136,7 +136,7 @@ docker run -d \
 
 **Security Requirements:**
 
-- The key must be at least 32 characters long for security
+- The key must be at least 44 characters long (32 raw bytes encoded in base64)
 - Keep the key secure and backed up
 - For maximum security, use Docker secrets or Kubernetes secrets to manage the key
 
@@ -339,7 +339,7 @@ This ensures:
 ## Security Notes
 
 - Container runs as non-root user `dxlander` (UID 1001)
-- Encryption key auto-generated on first run (32+ character minimum enforced)
+- Encryption key auto-generated on first run (44+ character base64 minimum enforced)
 - For production, set `DXLANDER_ENCRYPTION_KEY` explicitly
 - Use Docker secrets for sensitive environment variables
 - Keep volumes backed up regularly

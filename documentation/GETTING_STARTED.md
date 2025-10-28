@@ -35,12 +35,12 @@ pnpm dev
 
 This command starts both servers:
 
-- API server: http://localhost:3001
-- Web application: http://localhost:3000
+- API server: <http://localhost:3001>
+- Web application: <http://localhost:3000>
 
 ### Access the Application
 
-Navigate to http://localhost:3000 to access the setup wizard.
+Navigate to <http://localhost:3000> to access the setup wizard.
 
 ## Initial Setup
 
@@ -174,7 +174,8 @@ DXLander works out of the box with sensible defaults:
 For production deployments or enhanced security, you can provide a custom encryption key via the `DXLANDER_ENCRYPTION_KEY` environment variable:
 
 ```bash
-export DXLANDER_ENCRYPTION_KEY="your-custom-encryption-key-here-must-be-at-least-32-characters"
+# Generate a secure 44+ character base64 key (32 raw bytes encoded in base64 produce 44 characters)
+export DXLANDER_ENCRYPTION_KEY=$(openssl rand -base64 32)
 npx dxlander
 ```
 
@@ -185,7 +186,7 @@ This approach is recommended for:
 - CI/CD pipelines where consistent encryption is needed across environments
 - Disaster recovery scenarios where backups need to be restored with the correct encryption key
 
-**Security Note:** The encryption key must be at least 32 characters long to ensure adequate security.
+**Security Note:** The encryption key must be at least 44 characters long (32 raw bytes encoded in base64) to ensure adequate security for AES-256-GCM encryption.
 
 ## Understanding the Codebase
 
@@ -229,7 +230,8 @@ rm ~/.dxlander/encryption.key
 # Restart app to regenerate
 
 # Using custom encryption key (production)
-export DXLANDER_ENCRYPTION_KEY="your-secure-key-here-must-be-at-least-32-characters"
+# Generate a secure 44+ character base64 key
+export DXLANDER_ENCRYPTION_KEY=$(openssl rand -base64 32)
 npx dxlander
 ```
 

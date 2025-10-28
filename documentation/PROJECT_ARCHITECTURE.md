@@ -259,7 +259,7 @@ packages/shared → packages/database (types only)
 
 ### Environment Variables
 
-- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (32+ chars, production)
+- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (44+ chars base64, production)
 - `DATABASE_URL` - PostgreSQL connection (optional)
 - `NODE_ENV` - Environment mode
 - `PORT` - API server port (default: 3001)
@@ -271,7 +271,7 @@ packages/shared → packages/database (types only)
 - All API keys and credentials are encrypted before database storage
 - Master encryption key can be provided via environment variable or file
 - File permissions set to 0600 (owner read/write only)
-- Minimum 32-character key length enforced for security
+- Minimum 44-character base64 key length enforced for security (32 raw bytes encoded in base64 produce 44 characters)
 
 ### Authentication
 

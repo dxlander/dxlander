@@ -24,7 +24,8 @@ const DXLANDER_HOME = process.env.DXLANDER_HOME || join(homedir(), '.dxlander');
 const ENCRYPTION_KEY_FILE = 'encryption.key';
 const ENCRYPTION_KEY_PATH = join(DXLANDER_HOME, ENCRYPTION_KEY_FILE);
 const KEY_LENGTH = 32; // 256 bits for AES-256
-const MIN_KEY_LENGTH = 32; // Minimum 32 characters for security
+// 32 raw bytes encoded in base64 produce 44 characters, so only base64 keys of length >=44 are accepted
+const MIN_KEY_LENGTH = 44;
 
 /**
  * Get or create the master encryption key (synchronous)
@@ -43,7 +44,7 @@ export function getOrCreateEncryptionKey(): string {
     // Validate key length for security
     if (envKey.length < MIN_KEY_LENGTH) {
       throw new Error(
-        `DXLANDER_ENCRYPTION_KEY must be at least ${MIN_KEY_LENGTH} characters long for security`
+        `DXLANDER_ENCRYPTION_KEY must be at least ${MIN_KEY_LENGTH} characters long for security (32 raw bytes encoded in base64 produce 44 characters)`
       );
     }
 
@@ -60,7 +61,7 @@ export function getOrCreateEncryptionKey(): string {
       // Validate key length for security
       if (key.length < MIN_KEY_LENGTH) {
         throw new Error(
-          `Encryption key in ${ENCRYPTION_KEY_PATH} must be at least ${MIN_KEY_LENGTH} characters long for security`
+          `Encryption key in ${ENCRYPTION_KEY_PATH} must be at least ${MIN_KEY_LENGTH} characters long for security (32 raw bytes encoded in base64 produce 44 characters)`
         );
       }
 
