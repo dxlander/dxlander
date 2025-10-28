@@ -17,7 +17,7 @@ import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
 
-interface DeleteProjectDialogProps {
+export interface DeleteProjectDialogProps {
   project: {
     id: string;
     name: string;
