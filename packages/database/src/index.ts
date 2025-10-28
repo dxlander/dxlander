@@ -25,3 +25,7 @@ export {
   auditLogs,
 } from './schema';
 export type { User, Project, Deployment, Setting } from './types';
+
+// Export new PostgreSQL support
+export { createPostgresConnection } from './postgres-connection';
+export type { DatabaseType, DatabaseConfig, SqliteConfig, PostgresConfig } from './types';
