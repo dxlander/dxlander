@@ -13,7 +13,19 @@ export interface PostgresConfig {
   database: string;
   user: string;
   password: string;
-  ssl?: boolean;
+  // Flexible SSL config: boolean or object
+  ssl?:
+    | boolean
+    | {
+        rejectUnauthorized?: boolean;
+        ca?: string;
+        cert?: string;
+        key?: string;
+      };
+  // NEW: Optional pool parameters
+  max?: number;
+  idleTimeoutMillis?: number;
+  connectionTimeoutMillis?: number;
 }
 
 export type DatabaseConfig = SqliteConfig | PostgresConfig;

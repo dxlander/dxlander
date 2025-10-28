@@ -5,8 +5,10 @@ import * as schema from './schema';
 
 export function createPostgresConnection(config: PostgresConfig) {
   // Validate required parameters
-  if (!config.host || !config.database || !config.user) {
-    throw new Error('Missing required PostgreSQL configuration parameters');
+  if (!config.host?.trim() || !config.database?.trim() || !config.user?.trim()) {
+    throw new Error(
+      'Missing or invalid required PostgreSQL configuration parameters (host, database, user)'
+    );
   }
 
   const pool = new Pool({
