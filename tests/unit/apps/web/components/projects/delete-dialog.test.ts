@@ -139,16 +139,19 @@ describe('DeleteProjectDialog Component Logic', () => {
     it('should validate project name matches exactly', () => {
       const projectName = 'Test Project';
 
+      // This matches the component's validation: confirmText === project.name
       const isConfirmationValid = (confirmText: string, projectName: string) => {
-        return confirmText.trim() === projectName;
+        return confirmText === projectName;
       };
 
       expect(isConfirmationValid('Test Project', projectName)).toBe(true);
       expect(isConfirmationValid('test project', projectName)).toBe(false); // Case sensitive
-      expect(isConfirmationValid('Test Project ', projectName)).toBe(true); // Trims whitespace
+      expect(isConfirmationValid('Test Project ', projectName)).toBe(false); // Exact match, no trimming
+      expect(isConfirmationValid(' Test Project', projectName)).toBe(false); // Leading space
       expect(isConfirmationValid('Test', projectName)).toBe(false); // Partial match
       expect(isConfirmationValid('', projectName)).toBe(false); // Empty
       expect(isConfirmationValid('Wrong Name', projectName)).toBe(false); // Wrong name
+      expect(isConfirmationValid('Test Project', 'Test Project')).toBe(true); // Both identical
     });
   });
 
