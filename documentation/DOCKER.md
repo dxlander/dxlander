@@ -329,6 +329,116 @@ This ensures:
 - Use Docker secrets for sensitive environment variables
 - Keep volumes backed up regularly
 
+### Encryption Key Management
+
+DXLander uses AES-256-GCM encryption to secure all credentials and sensitive data. You can manage the encryption key in two ways:
+
+#### Option 1: Environment Variable (Recommended for Production)
+
+Set the `DXLANDER_ENCRYPTION_KEY` environment variable with your own key:
+
+```bash
+# Generate a secure key
+export DXLANDER_ENCRYPTION_KEY=$(openssl rand -base64 32)
+
+# Run container with custom key
+docker run -d \
+  -e DXLANDER_ENCRYPTION_KEY=$DXLANDER_ENCRYPTION_KEY \
+  -v dxlander-data:/app/.dxlander \
+  ghcr.io/dxlander/dxlander:latest
+```
+
+**Advantages:**
+
+- Works across multiple container instances
+- Integrates with secret management systems (Kubernetes Secrets, Docker Swarm secrets)
+- No file-based key to manage
+- Essential for distributed deployments
+
+**Requirements:**
+
+- Key must be at least 32 characters long
+- Use a cryptographically secure random key (e.g., `openssl rand -base64 32`)
+- Store securely in your secret management system
+
+#### Option 2: File-Based Key (Default)
+
+If no environment variable is set, DXLander auto-generates a key and saves it to `/app/.dxlander/encryption.key`:
+
+```bash
+# Auto-generated key on first run
+docker run -d \
+  -v dxlander-data:/app/.dxlander \
+  ghcr.io/dxlander/dxlander:latest
+
+# Backup the key from the volume
+docker run --rm \
+  -v dxlander-data:/data \
+  alpine cat /data/encryption.key > encryption.key.backup
+```
+
+**Important:**
+
+- Key is generated once on first launch
+- Must be backed up to recover encrypted data
+- Same key must be used across container restarts
+- Not suitable for multi-instance deployments
+
+#### Priority Order
+
+DXLander checks for encryption keys in this order:
+
+1. **`DXLANDER_ENCRYPTION_KEY` environment variable** (highest priority)
+2. **`/app/.dxlander/encryption.key` file** (if no env var set)
+3. **Auto-generate new key** (if neither exists)
+
+#### Docker Secrets Example
+
+For Docker Swarm or Kubernetes:
+
+```bash
+# Create a secret
+echo $(openssl rand -base64 32) | docker secret create dxlander_encryption_key -
+
+# Use in docker-compose.yml
+services:
+  dxlander:
+    image: ghcr.io/dxlander/dxlander:latest
+    secrets:
+      - dxlander_encryption_key
+    environment:
+      - DXLANDER_ENCRYPTION_KEY_FILE=/run/secrets/dxlander_encryption_key
+```
+
+#### Kubernetes ConfigMap/Secret Example
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: dxlander-encryption-key
+type: Opaque
+data:
+  encryption-key: <base64-encoded-key>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dxlander
+spec:
+  template:
+    spec:
+      containers:
+        - name: dxlander
+          image: ghcr.io/dxlander/dxlander:latest
+          env:
+            - name: DXLANDER_ENCRYPTION_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: dxlander-encryption-key
+                  key: encryption-key
+```
+
 ## Support
 
 - **Documentation**: [documentation/](../documentation)

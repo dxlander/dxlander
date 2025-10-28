@@ -14,7 +14,7 @@
  * - Key is 32 bytes (256 bits) for AES-256
  */
 
-import { existsSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
+import { existsSync, readFileSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { randomBytes } from 'crypto';
@@ -24,6 +24,47 @@ const DXLANDER_HOME = process.env.DXLANDER_HOME || join(homedir(), '.dxlander');
 const ENCRYPTION_KEY_FILE = 'encryption.key';
 const ENCRYPTION_KEY_PATH = join(DXLANDER_HOME, ENCRYPTION_KEY_FILE);
 const KEY_LENGTH = 32; // 256 bits for AES-256
+const MIN_KEY_LENGTH = 32; // Minimum key length in characters for security
+
+/**
+ * Validate encryption key meets minimum security requirements
+ *
+ * @param {string} key - The encryption key to validate
+ * @throws {Error} If key is invalid
+ */
+function _validateEncryptionKey(key: string): void {
+  if (!key || typeof key !== 'string') {
+    throw new Error('Encryption key must be a non-empty string');
+  }
+
+  if (key.length < MIN_KEY_LENGTH) {
+    throw new Error(
+      `Encryption key must be at least ${MIN_KEY_LENGTH} characters long for AES-256-GCM security. ` +
+        `Current length: ${key.length} characters. ` +
+        `Please generate a secure key using: openssl rand -base64 32`
+    );
+  }
+}
+
+/**
+ * Read encryption key from file
+ *
+ * @returns {string} Base64-encoded encryption key from file
+ */
+function _readEncryptionKeyFromFile(): string {
+  try {
+    const key = readFileSync(ENCRYPTION_KEY_PATH, 'utf-8').trim();
+    _validateEncryptionKey(key);
+    return key;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (errorMessage.includes('Encryption key must be at least')) {
+      // Re-throw validation errors
+      throw error;
+    }
+    throw new Error(`Failed to read encryption key from ${ENCRYPTION_KEY_PATH}: ${errorMessage}`);
+  }
+}
 
 /**
  * Get or create the master encryption key (synchronous)
@@ -33,18 +74,27 @@ const KEY_LENGTH = 32; // 256 bits for AES-256
  * 2. ~/.dxlander/encryption.key file (auto-generated on first launch)
  *
  * @returns {string} Base64-encoded encryption key
+ * @throws {Error} If key validation fails
  */
 export function getOrCreateEncryptionKey(): string {
   // Priority 1: Check environment variable (production deployments)
-  if (process.env.DXLANDER_ENCRYPTION_KEY) {
-    console.log('✅ Using encryption key from DXLANDER_ENCRYPTION_KEY environment variable');
-    return process.env.DXLANDER_ENCRYPTION_KEY;
+  if (process.env.DXLANDER_ENCRYPTION_KEY !== undefined) {
+    try {
+      const envKey = process.env.DXLANDER_ENCRYPTION_KEY;
+      _validateEncryptionKey(envKey);
+      console.log('✅ Using encryption key from DXLANDER_ENCRYPTION_KEY environment variable');
+      return envKey;
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('❌ Invalid DXLANDER_ENCRYPTION_KEY:', errorMessage);
+      throw error;
+    }
   }
 
   // Priority 2: Check for existing key file
   if (existsSync(ENCRYPTION_KEY_PATH)) {
     console.log(`✅ Using encryption key from ${ENCRYPTION_KEY_PATH}`);
-    return _generateAndSaveEncryptionKey();
+    return _readEncryptionKeyFromFile();
   }
 
   // Priority 3: Generate new key
@@ -86,9 +136,10 @@ function _generateAndSaveEncryptionKey(): string {
     );
 
     return key;
-  } catch (error: any) {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
     console.error('❌ Failed to generate encryption key:', error);
-    throw new Error(`Failed to create encryption key: ${error.message}`);
+    throw new Error(`Failed to create encryption key: ${errorMessage}`);
   }
 }
 
@@ -107,7 +158,7 @@ export function getEncryptionKeyPath(): string {
  * @returns {boolean} True if key exists (either in env var or file)
  */
 export function hasEncryptionKey(): boolean {
-  return !!(process.env.DXLANDER_ENCRYPTION_KEY || existsSync(ENCRYPTION_KEY_PATH));
+  return !!(process.env.DXLANDER_ENCRYPTION_KEY !== undefined || existsSync(ENCRYPTION_KEY_PATH));
 }
 
 /**

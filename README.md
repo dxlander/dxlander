@@ -174,7 +174,7 @@ Your data is automatically stored in the `dxlander-data` volume:
 
 - Database: `/app/.dxlander/data/dxlander.db`
 - Projects: `/app/.dxlander/projects/`
-- Encryption keys: `/app/.dxlander/encryption.key`
+- Encryption keys: `/app/.dxlander/encryption.key` (or use `DXLANDER_ENCRYPTION_KEY` env var)
 
 **Useful Commands**
 

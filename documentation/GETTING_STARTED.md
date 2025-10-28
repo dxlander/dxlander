@@ -167,7 +167,7 @@ DXLander works out of the box with sensible defaults:
 
 - **Database:** SQLite at `~/.dxlander/data/dxlander.db`
 - **Storage:** Files at `~/.dxlander/projects/`
-- **Encryption:** Auto-generated key at `~/.dxlander/encryption.key`
+- **Encryption:** Auto-generated key at `~/.dxlander/encryption.key` (or use `DXLANDER_ENCRYPTION_KEY` environment variable)
 
 ## Understanding the Codebase
 
@@ -296,10 +296,17 @@ rm ~/.dxlander/data/dxlander.db
 # View encryption key
 cat ~/.dxlander/encryption.key
 
+# Use custom encryption key (recommended for production)
+export DXLANDER_ENCRYPTION_KEY=$(openssl rand -base64 32)
+npx dxlander
+
 # Reset encryption (development only - loses all credentials)
 rm ~/.dxlander/encryption.key
+unset DXLANDER_ENCRYPTION_KEY
 # Restart app to regenerate
 ```
+
+**Note:** The encryption key must be at least 32 characters long. For production deployments, use the `DXLANDER_ENCRYPTION_KEY` environment variable to ensure consistency across multiple instances or container restarts.
 
 ## Troubleshooting
 
