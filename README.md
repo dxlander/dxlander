@@ -249,12 +249,19 @@ pnpm build:api        # Build backend only
 ### Testing & Quality
 
 ```bash
+# Linting & Formatting
 pnpm lint             # Lint all code
 pnpm lint:fix         # Auto-fix linting issues
 pnpm format           # Format code with Prettier
 pnpm format:check     # Check formatting
 pnpm typecheck        # TypeScript type checking
-pnpm test             # Run tests
+
+# Testing
+pnpm test             # Run all tests
+pnpm test:unit        # Run unit tests only
+pnpm test:integration # Run integration tests only
+pnpm test:e2e         # Run end-to-end tests only
+pnpm test:ui          # Run tests with Vitest UI
 ```
 
 ---
@@ -290,6 +297,19 @@ All PRs must pass automated checks:
 - ✅ TypeScript (no type errors)
 - ✅ Tests (all tests passing)
 - ✅ Build (successful build)
+
+### Test Structure
+
+```text
+tests/
+├── unit/           # Unit tests for individual components and functions
+│   └── apps/       # App-specific unit tests
+│       └── web/    # Web app unit tests
+│           └── components/
+├── integration/    # Integration tests for API endpoints
+│   └── projects/   # Project-specific integration tests
+└── e2e/           # End-to-end tests (coming soon)
+```
 
 See our [Development Workflow Guide](documentation/DEVELOPMENT_WORKFLOW.md) for details.
 
