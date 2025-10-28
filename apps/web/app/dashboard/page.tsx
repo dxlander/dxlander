@@ -41,13 +41,33 @@ import {
   FileCode,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { DeleteProjectDialog } from '@/components/projects/delete-dialog';
+import {
+  DeleteProjectDialog,
+  type DeleteProjectDialogProps,
+} from '@/components/projects/delete-dialog';
+
+// Extended project type to include all properties used in the dashboard
+type Project = DeleteProjectDialogProps['project'] & {
+  framework?: string | null;
+  language?: string | null;
+  generatedConfigs?: Record<string, unknown> | null;
+  lastActivity?: string | null;
+  localPath?: string | null;
+  sourceBranch?: string | null;
+  deployUrl?: string | null;
+  sourceHash?: string;
+  sourceType?: string;
+  sourceUrl?: string | null;
+  userId?: string;
+  updatedAt?: string;
+  projectSize?: number | null;
+};
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<(typeof projects)[0] | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   // Fetch real projects from API
   const { data, isLoading } = trpc.projects.list.useQuery({
@@ -57,7 +77,7 @@ export default function Dashboard() {
 
   const projects = data?.projects || [];
 
-  const handleDeleteClick = (project: any) => {
+  const handleDeleteClick = (project: Project) => {
     setProjectToDelete(project);
     setDeleteDialogOpen(true);
   };
@@ -133,7 +153,7 @@ export default function Dashboard() {
     return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
   };
 
-  const filteredProjects = projects.filter((project: any) => {
+  const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (project.framework && project.framework.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -150,9 +170,9 @@ export default function Dashboard() {
 
   const stats = {
     all: projects.length,
-    imported: projects.filter((p: any) => p.status === 'imported').length,
-    configured: projects.filter((p: any) => p.status === 'configured').length,
-    deployed: projects.filter((p: any) => p.status === 'deployed').length,
+    imported: projects.filter((p: Project) => p.status === 'imported').length,
+    configured: projects.filter((p: Project) => p.status === 'configured').length,
+    deployed: projects.filter((p: Project) => p.status === 'deployed').length,
   };
 
   const headerActions = (
@@ -365,21 +385,22 @@ export default function Dashboard() {
                                     )}
 
                                     {/* Generated Configs */}
-                                    {(project as any).generatedConfigs &&
-                                      Object.keys((project as any).generatedConfigs).length > 0 && (
+                                    {(project as Project).generatedConfigs &&
+                                      Object.keys((project as Project).generatedConfigs || {})
+                                        .length > 0 && (
                                         <div className="flex items-center gap-2 flex-wrap">
                                           <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                          {Object.keys((project as any).generatedConfigs).map(
-                                            (file: string, idx: number) => (
-                                              <Badge
-                                                key={idx}
-                                                variant="secondary"
-                                                className="text-xs bg-gray-100 text-gray-700"
-                                              >
-                                                {file}
-                                              </Badge>
-                                            )
-                                          )}
+                                          {Object.keys(
+                                            (project as Project).generatedConfigs || {}
+                                          ).map((file: string, idx: number) => (
+                                            <Badge
+                                              key={idx}
+                                              variant="secondary"
+                                              className="text-xs bg-gray-100 text-gray-700"
+                                            >
+                                              {file}
+                                            </Badge>
+                                          ))}
                                         </div>
                                       )}
 
