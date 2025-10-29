@@ -30,27 +30,32 @@ const CreateProjectSchema = z.object({
     .optional(),
 });
 
-const ImportProjectSchema = z.object({
-  sourceType: z.enum(['github', 'gitlab', 'bitbucket']),
-  repoUrl: z.string().optional(),
-  branch: z.string().optional(),
-  token: z.string().optional(),
-  projectName: z.string().optional(),
-
-  // GitLab
-  gitlabUrl: z.string().optional(),
-  gitlabToken: z.string().optional(),
-  gitlabProject: z.string().optional(),
-  gitlabBranch: z.string().optional(),
-
-  // Bitbucket
-  bitbucketUsername: z.string().optional(),
-  bitbucketPassword: z.string().optional(),
-  bitbucketWorkspace: z.string().optional(),
-  bitbucketRepo: z.string().optional(),
-  bitbucketBranch: z.string().optional(),
-});
-
+const ImportProjectSchema = z.discriminatedUnion('sourceType', [
+  z.object({
+    sourceType: z.literal('github'),
+    repoUrl: z.string().url(),
+    branch: z.string().optional(),
+    token: z.string().optional(),
+    projectName: z.string().optional(),
+  }),
+  z.object({
+    sourceType: z.literal('gitlab'),
+    gitlabUrl: z.string().url().optional(),
+    gitlabToken: z.string(),
+    gitlabProject: z.string(),
+    gitlabBranch: z.string().optional(),
+    projectName: z.string().optional(),
+  }),
+  z.object({
+    sourceType: z.literal('bitbucket'),
+    bitbucketUsername: z.string(),
+    bitbucketPassword: z.string(),
+    bitbucketWorkspace: z.string(),
+    bitbucketRepo: z.string(),
+    bitbucketBranch: z.string().optional(),
+    projectName: z.string().optional(),
+  }),
+]);
 export const projectsRouter = router({
   list: protectedProcedure.input(PaginationSchema).query(async ({ input, ctx }) => {
     try {

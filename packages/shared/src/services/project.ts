@@ -247,6 +247,14 @@ export async function importFromGitLab(
       cwd: extractPath,
     });
 
+    // Cleanup archive to avoid disk space leaks
+    try {
+      fs.unlinkSync(archivePath);
+    } catch (err) {
+      // Best-effort cleanup; ignore errors
+      void err;
+    }
+
     return extractPath;
   } catch (error) {
     // Cleanup on error
@@ -295,6 +303,14 @@ export async function importFromBitbucket(
       file: archivePath,
       cwd: extractPath,
     });
+
+    // Cleanup archive to avoid disk space leaks
+    try {
+      fs.unlinkSync(archivePath);
+    } catch (err) {
+      // Best-effort cleanup; ignore errors
+      void err;
+    }
 
     return extractPath;
   } catch (error) {

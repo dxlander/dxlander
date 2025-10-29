@@ -1,4 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
+import fs from 'fs';
+import path from 'path';
 
 export interface BitbucketConfig {
   username: string;
@@ -47,20 +49,23 @@ export class BitbucketService {
         description: data.description || '',
         mainBranch,
         url: data.links.html.href,
-        cloneUrl: data.links.clone.find((l: any) => l.name === 'https')?.href || '',
+        cloneUrl:
+          data.links.clone.find((l: { name?: string; href?: string }) => l.name === 'https')
+            ?.href || '',
         size: data.size || 0,
       };
-    } catch (error: any) {
-      throw new Error(
-        `Failed to fetch Bitbucket repository: ${error.response?.data?.error?.message || error.message}`
-      );
+    } catch (error: unknown) {
+      // Keep safe logging only
+      const axiosErr = error as { response?: { data?: unknown } };
+      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      throw new Error('Failed to fetch Bitbucket repository');
     }
   }
 
   async downloadRepository(
     workspace: string,
     repoSlug: string,
-    branch: string = 'main',
+    branch: string,
     outputPath: string
   ): Promise<string> {
     try {
@@ -76,17 +81,15 @@ export class BitbucketService {
         },
       });
 
-      const fs = await import('fs');
-      const path = await import('path');
-
       const archivePath = path.join(outputPath, `${repoSlug}-${branch}.tar.gz`);
       fs.writeFileSync(archivePath, data);
 
       return archivePath;
-    } catch (error: any) {
-      throw new Error(
-        `Failed to download Bitbucket repository: ${error.response?.data?.error?.message || error.message}`
-      );
+    } catch (error: unknown) {
+      // Keep safe logging only
+      const axiosErr = error as { response?: { data?: unknown } };
+      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      throw new Error('Failed to download Bitbucket repository');
     }
   }
 
@@ -96,10 +99,11 @@ export class BitbucketService {
         `/repositories/${workspace}/${repoSlug}/refs/branches`
       );
       return data.values.map((b: any) => b.name);
-    } catch (error: any) {
-      throw new Error(
-        `Failed to list Bitbucket branches: ${error.response?.data?.error?.message || error.message}`
-      );
+    } catch (error: unknown) {
+      // Keep safe logging only
+      const axiosErr = error as { response?: { data?: unknown } };
+      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      throw new Error('Failed to list Bitbucket branches');
     }
   }
 
