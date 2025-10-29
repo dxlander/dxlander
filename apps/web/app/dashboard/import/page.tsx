@@ -22,13 +22,10 @@ import {
   Upload,
   GitBranch,
   Globe,
-  FolderGit2,
   CheckCircle2,
   Shield,
   Rocket,
   Package,
-  Archive,
-  Link2,
   Search,
   Star,
   ArrowRight,
@@ -54,15 +51,27 @@ export default function ImportPage() {
   const [githubRepoType, setGithubRepoType] = useState<'public' | 'private'>('public');
   const [projectName, setProjectName] = useState('');
 
+  // GitLab form state
+  const [gitlabUrl, setGitlabUrl] = useState('');
+  const [gitlabToken, setGitlabToken] = useState('');
+  const [gitlabProject, setGitlabProject] = useState('');
+  const [gitlabBranch, setGitlabBranch] = useState('');
+
+  // Bitbucket form state
+  const [bitbucketUsername, setBitbucketUsername] = useState('');
+  const [bitbucketPassword, setBitbucketPassword] = useState('');
+  const [bitbucketWorkspace, setBitbucketWorkspace] = useState('');
+  const [bitbucketRepo, setBitbucketRepo] = useState('');
+  const [bitbucketBranch, setBitbucketBranch] = useState('');
+
   // ZIP upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
   // tRPC mutation
-  const importGitHub = trpc.projects.importFromGitHub.useMutation({
+  const importProject = trpc.projects.import.useMutation({
     onSuccess: (data) => {
       console.log('Import successful:', data);
-      // Redirect to project detail page
       router.push(`/project/${data.project.id}`);
     },
     onError: (error) => {
@@ -79,6 +88,31 @@ export default function ImportPage() {
       icon: <Github className="h-5 w-5" />,
       description: 'Import from public or private repositories',
       popular: true,
+      enabled: true,
+    },
+    {
+      id: 'gitlab' as ImportMethod,
+      name: 'GitLab',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M22.65 14.39L12 22.13 1.35 14.39a.84.84 0 0 1-.3-.94l1.22-3.78 2.44-7.51A.42.42 0 0 1 4.82 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.49h8.1l2.44-7.51A.42.42 0 0 1 18.6 2a.43.43 0 0 1 .58 0 .42.42 0 0 1 .11.18l2.44 7.51L23 13.45a.84.84 0 0 1-.35.94z" />
+        </svg>
+      ),
+      description: 'Import from GitLab repositories',
+      popular: false,
+      enabled: true,
+    },
+    {
+      id: 'bitbucket' as ImportMethod,
+      name: 'Bitbucket',
+      icon: (
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M.778 1.213a.768.768 0 00-.768.892l3.263 19.81c.084.5.515.868 1.022.873H19.95a.772.772 0 00.77-.646l3.27-20.03a.768.768 0 00-.768-.891zM14.52 15.53H9.522L8.17 8.466h7.561z" />
+        </svg>
+      ),
+      description: 'Import from Bitbucket repositories',
+      popular: false,
+      enabled: true,
     },
     {
       id: 'zip' as ImportMethod,
@@ -86,20 +120,7 @@ export default function ImportPage() {
       icon: <Upload className="h-5 w-5" />,
       description: 'Upload project as ZIP archive',
       popular: true,
-    },
-    {
-      id: 'gitlab' as ImportMethod,
-      name: 'GitLab',
-      icon: <FolderGit2 className="h-5 w-5" />,
-      description: 'Import from GitLab repositories',
-      popular: false,
-    },
-    {
-      id: 'bitbucket' as ImportMethod,
-      name: 'Bitbucket',
-      icon: <GitBranch className="h-5 w-5" />,
-      description: 'Import from Bitbucket repositories',
-      popular: false,
+      enabled: true,
     },
     {
       id: 'git' as ImportMethod,
@@ -107,6 +128,7 @@ export default function ImportPage() {
       icon: <Globe className="h-5 w-5" />,
       description: 'Clone from any Git repository URL',
       popular: false,
+      enabled: false,
     },
   ];
 
@@ -122,42 +144,57 @@ export default function ImportPage() {
 
     try {
       if (selectedMethod === 'github') {
-        // Validate GitHub URL
         if (!githubUrl.trim()) {
           setError('Please enter a GitHub repository URL');
           setIsImporting(false);
           return;
         }
 
-        // Call API
-        await importGitHub.mutateAsync({
+        await importProject.mutateAsync({
+          sourceType: 'github',
           repoUrl: githubUrl.trim(),
           branch: githubBranch || undefined,
           token: githubToken || undefined,
           projectName: projectName || undefined,
         });
+      } else if (selectedMethod === 'gitlab') {
+        if (!gitlabToken.trim() || !gitlabProject.trim()) {
+          setError('Please enter GitLab token and project');
+          setIsImporting(false);
+          return;
+        }
+
+        // TODO: Implement GitLab import API call
+        setError('GitLab import will be implemented in the API');
+        setIsImporting(false);
+      } else if (selectedMethod === 'bitbucket') {
+        if (!bitbucketUsername || !bitbucketPassword || !bitbucketWorkspace || !bitbucketRepo) {
+          setError('Please fill all Bitbucket fields');
+          setIsImporting(false);
+          return;
+        }
+
+        // TODO: Implement Bitbucket import API call
+        setError('Bitbucket import will be implemented in the API');
+        setIsImporting(false);
       } else if (selectedMethod === 'zip') {
-        // Validate file is selected
         if (!selectedFile) {
           setError('Please select a ZIP file to upload');
           setIsImporting(false);
           return;
         }
 
-        // Create form data
         const formData = new FormData();
         formData.append('file', selectedFile);
         if (projectName) {
           formData.append('projectName', projectName);
         }
 
-        // Get auth token
         const token = localStorage.getItem('dxlander-token');
         if (!token) {
           throw new Error('Authentication required. Please log in again.');
         }
 
-        // Upload ZIP file
         const response = await fetch(`${config.apiUrl}/upload/zip`, {
           method: 'POST',
           headers: {
@@ -175,7 +212,6 @@ export default function ImportPage() {
         console.log('ZIP upload successful:', data);
         router.push(`/project/${data.project.id}`);
       } else {
-        // Other import methods not yet implemented
         setError(`${selectedMethod} import not yet implemented`);
         setIsImporting(false);
       }
@@ -186,7 +222,6 @@ export default function ImportPage() {
     }
   };
 
-  // Drag & drop handlers
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -249,12 +284,11 @@ export default function ImportPage() {
       <Section spacing="lg" container={false}>
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid lg:grid-cols-[380px_1fr] gap-6">
-            {/* Left Sidebar - Import Methods */}
+            {/* Left Sidebar */}
             <div className="space-y-4">
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold text-gray-900">Import Source</h2>
 
-                {/* Search */}
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
@@ -266,11 +300,9 @@ export default function ImportPage() {
                 </div>
               </div>
 
-              {/* Method List */}
               <div className="space-y-2">
                 {filteredMethods.map((method) => {
-                  // Enable GitHub and ZIP, disable others
-                  const isDisabled = method.id !== 'zip' && method.id !== 'github';
+                  const isDisabled = !method.enabled;
                   return (
                     <button
                       key={method.id}
@@ -333,7 +365,6 @@ export default function ImportPage() {
                 })}
               </div>
 
-              {/* Info Card */}
               <Card className="border-ocean-200 bg-gradient-to-br from-ocean-50 to-blue-50">
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
@@ -358,7 +389,7 @@ export default function ImportPage() {
               </Card>
             </div>
 
-            {/* Right Panel - Import Form */}
+            {/* Right Panel */}
             <Card className="shadow-elegant-lg h-fit">
               <CardHeader className="border-b bg-gradient-to-r from-gray-50 to-ocean-50/30">
                 <div className="flex items-center gap-3">
@@ -370,22 +401,12 @@ export default function ImportPage() {
                       Import from {importMethods.find((m) => m.id === selectedMethod)?.name}
                     </CardTitle>
                     <CardDescription>
-                      {selectedMethod === 'github' &&
-                        'Connect your GitHub repository to generate build configurations'}
-                      {selectedMethod === 'gitlab' &&
-                        'Connect your GitLab repository to generate build configurations'}
-                      {selectedMethod === 'bitbucket' &&
-                        'Connect your Bitbucket repository to generate build configurations'}
-                      {selectedMethod === 'zip' &&
-                        'Upload your project files to generate build configurations'}
-                      {selectedMethod === 'git' &&
-                        'Clone from any Git repository to generate build configurations'}
+                      Connect your repository to generate build configurations
                     </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-8 space-y-6">
-                {/* Error Banner */}
                 {error && (
                   <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 rounded-lg">
                     <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0" />
@@ -396,7 +417,7 @@ export default function ImportPage() {
                   </div>
                 )}
 
-                {/* GitHub Import */}
+                {/* GitHub Form */}
                 {selectedMethod === 'github' && (
                   <>
                     <div className="space-y-4">
@@ -457,86 +478,119 @@ export default function ImportPage() {
                         disabled={isImporting}
                       />
                     </div>
-
-                    <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5" />
-                        <div className="flex-1 text-sm text-gray-700">
-                          <p className="font-medium mb-1">Quick Setup</p>
-                          <p>
-                            Example:{' '}
-                            <code className="bg-white px-2 py-0.5 rounded text-ocean-600 font-mono text-xs">
-                              username/repo-name
-                            </code>{' '}
-                            or full URL
-                          </p>
-                        </div>
-                      </div>
-                    </div>
                   </>
                 )}
 
-                {/* GitLab Import */}
+                {/* GitLab Form */}
                 {selectedMethod === 'gitlab' && (
-                  <>
-                    <div className="space-y-4">
-                      <FloatingInput
-                        label="GitLab Project URL"
-                        leftIcon={<FolderGit2 className="h-4 w-4" />}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>GitLab Instance URL (optional)</Label>
+                      <Input
+                        placeholder="https://gitlab.com (default)"
+                        value={gitlabUrl}
+                        onChange={(e) => setGitlabUrl(e.target.value)}
+                        disabled={isImporting}
                       />
+                      <p className="text-sm text-muted-foreground">
+                        Leave empty for GitLab.com, or enter your self-hosted URL
+                      </p>
+                    </div>
 
-                      <FloatingInput
-                        label="Branch"
-                        leftIcon={<GitBranch className="h-4 w-4" />}
-                        defaultValue="main"
-                      />
-
-                      <FloatingInput
-                        label="Personal Access Token"
+                    <div className="space-y-2">
+                      <Label>Personal Access Token *</Label>
+                      <Input
                         type="password"
-                        leftIcon={<Shield className="h-4 w-4" />}
+                        placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
+                        value={gitlabToken}
+                        onChange={(e) => setGitlabToken(e.target.value)}
+                        disabled={isImporting}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Create token at GitLab → Settings → Access Tokens (api + read_repository
+                        scopes)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Project ID or Namespace/Project *</Label>
+                      <Input
+                        placeholder="12345 or username/project-name"
+                        value={gitlabProject}
+                        onChange={(e) => setGitlabProject(e.target.value)}
+                        disabled={isImporting}
                       />
                     </div>
 
-                    <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <FolderGit2 className="h-5 w-5 text-purple-600 mt-0.5" />
-                        <div className="flex-1 text-sm text-gray-700">
-                          <p className="font-medium mb-1">GitLab Integration</p>
-                          <p>
-                            Supports GitLab CI/CD pipeline integration and automatic deployments
-                          </p>
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Branch (optional)</Label>
+                      <Input
+                        placeholder="main"
+                        value={gitlabBranch}
+                        onChange={(e) => setGitlabBranch(e.target.value)}
+                        disabled={isImporting}
+                      />
                     </div>
-                  </>
+                  </div>
                 )}
 
-                {/* Bitbucket Import */}
+                {/* Bitbucket Form */}
                 {selectedMethod === 'bitbucket' && (
-                  <>
-                    <div className="space-y-4">
-                      <FloatingInput
-                        label="Bitbucket Repository URL"
-                        leftIcon={<GitBranch className="h-4 w-4" />}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Username *</Label>
+                      <Input
+                        placeholder="your-username"
+                        value={bitbucketUsername}
+                        onChange={(e) => setBitbucketUsername(e.target.value)}
+                        disabled={isImporting}
                       />
-
-                      <FloatingInput
-                        label="Branch"
-                        leftIcon={<GitBranch className="h-4 w-4" />}
-                        defaultValue="main"
-                      />
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FloatingInput label="Username" leftIcon={<Github className="h-4 w-4" />} />
-                        <FloatingInput
-                          label="App Password"
-                          type="password"
-                          leftIcon={<Shield className="h-4 w-4" />}
-                        />
-                      </div>
                     </div>
-                  </>
+
+                    <div className="space-y-2">
+                      <Label>App Password *</Label>
+                      <Input
+                        type="password"
+                        placeholder="App password"
+                        value={bitbucketPassword}
+                        onChange={(e) => setBitbucketPassword(e.target.value)}
+                        disabled={isImporting}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Create at Bitbucket → Settings → App passwords (Repositories: Read)
+                      </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Workspace *</Label>
+                      <Input
+                        placeholder="your-workspace"
+                        value={bitbucketWorkspace}
+                        onChange={(e) => setBitbucketWorkspace(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Repository Slug *</Label>
+                      <Input
+                        placeholder="repository-name"
+                        value={bitbucketRepo}
+                        onChange={(e) => setBitbucketRepo(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Branch (optional)</Label>
+                      <Input
+                        placeholder="main"
+                        value={bitbucketBranch}
+                        onChange={(e) => setBitbucketBranch(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
+                  </div>
                 )}
 
                 {/* ZIP Upload */}
@@ -607,81 +661,6 @@ export default function ImportPage() {
                               </>
                             )}
                           </div>
-                          {!selectedFile && (
-                            <div className="flex items-center gap-4 text-xs text-gray-500">
-                              <div className="flex items-center gap-1.5">
-                                <Archive className="h-4 w-4" />
-                                <span>.zip</span>
-                              </div>
-                              <span>•</span>
-                              <div className="flex items-center gap-1.5">
-                                <Package className="h-4 w-4" />
-                                <span>Source code</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3 text-xs">
-                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-gray-700">No account required</span>
-                        </div>
-                        <div className="flex items-center gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          <span className="text-gray-700">Quick import</span>
-                        </div>
-                      </div>
-                    </div>
-                  </>
-                )}
-
-                {/* Git URL Import */}
-                {selectedMethod === 'git' && (
-                  <>
-                    <div className="space-y-4">
-                      <FloatingInput
-                        label="Git Repository URL"
-                        leftIcon={<Link2 className="h-4 w-4" />}
-                      />
-
-                      <div className="grid grid-cols-2 gap-4">
-                        <FloatingInput
-                          label="Branch"
-                          leftIcon={<GitBranch className="h-4 w-4" />}
-                          defaultValue="main"
-                        />
-                        <div className="space-y-2">
-                          <Label>Clone Method</Label>
-                          <Select defaultValue="https">
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="https">HTTPS</SelectItem>
-                              <SelectItem value="ssh">SSH</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      <FloatingInput
-                        label="Authentication (if required)"
-                        type="password"
-                        leftIcon={<Shield className="h-4 w-4" />}
-                      />
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <div className="flex items-start gap-3">
-                        <Globe className="h-5 w-5 text-gray-600 mt-0.5" />
-                        <div className="flex-1 text-sm text-gray-700">
-                          <p className="font-medium mb-1">Universal Git Support</p>
-                          <p>
-                            Works with any Git hosting provider: GitHub, GitLab, Bitbucket, or
-                            self-hosted
-                          </p>
                         </div>
                       </div>
                     </div>

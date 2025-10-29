@@ -1,4 +1,9 @@
 import { createHash } from 'crypto';
+import { GitLabService, type GitLabConfig } from './gitlab';
+import { BitbucketService, type BitbucketConfig } from './bitbucket';
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 
 export interface ProjectAnalysisInput {
   projectId: string;
@@ -204,4 +209,97 @@ export function generateRandomProjectName(): string {
   const number = Math.floor(10000 + Math.random() * 90000); // 5-digit number
 
   return `${adjective}-${noun}-${number}`;
+}
+
+export async function importFromGitLab(
+  config: GitLabConfig,
+  projectId: string,
+  branch?: string
+): Promise<string> {
+  const gitlabService = new GitLabService(config);
+
+  // Validate token
+  const isValid = await gitlabService.validateToken();
+  if (!isValid) {
+    throw new Error('Invalid GitLab token');
+  }
+
+  // Get repository info
+  const repoInfo = await gitlabService.getRepository(projectId);
+  const targetBranch = branch || repoInfo.defaultBranch;
+
+  // Create temp directory
+  const tempDir = path.join(os.tmpdir(), `gitlab-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  try {
+    // Download repository
+    const archivePath = await gitlabService.downloadRepository(projectId, targetBranch, tempDir);
+
+    // Extract archive
+    const extractPath = path.join(tempDir, 'extracted');
+    fs.mkdirSync(extractPath, { recursive: true });
+
+    // Use tar to extract
+    const tar = await import('tar');
+    await tar.x({
+      file: archivePath,
+      cwd: extractPath,
+    });
+
+    return extractPath;
+  } catch (error) {
+    // Cleanup on error
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+export async function importFromBitbucket(
+  config: BitbucketConfig,
+  workspace: string,
+  repoSlug: string,
+  branch?: string
+): Promise<string> {
+  const bitbucketService = new BitbucketService(config);
+
+  // Validate credentials
+  const isValid = await bitbucketService.validateCredentials();
+  if (!isValid) {
+    throw new Error('Invalid Bitbucket credentials');
+  }
+
+  // Get repository info
+  const repoInfo = await bitbucketService.getRepository(workspace, repoSlug);
+  const targetBranch = branch || repoInfo.mainBranch;
+
+  // Create temp directory
+  const tempDir = path.join(os.tmpdir(), `bitbucket-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  try {
+    // Download repository
+    const archivePath = await bitbucketService.downloadRepository(
+      workspace,
+      repoSlug,
+      targetBranch,
+      tempDir
+    );
+
+    // Extract archive
+    const extractPath = path.join(tempDir, 'extracted');
+    fs.mkdirSync(extractPath, { recursive: true });
+
+    const tar = await import('tar');
+    await tar.x({
+      file: archivePath,
+      cwd: extractPath,
+    });
+
+    return extractPath;
+  } catch (error) {
+    // Cleanup on error
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw error;
+  }
 }

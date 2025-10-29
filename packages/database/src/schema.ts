@@ -34,7 +34,9 @@ export const projects = sqliteTable(
     description: text('description'),
 
     // Source information
-    sourceType: text('source_type').notNull(), // 'github', 'gitlab', 'zip', 'git'
+    source_type: text('source_type', {
+      enum: ['github', 'gitlab', 'bitbucket', 'zip', 'local'],
+    }).notNull(),
     sourceUrl: text('source_url'),
     sourceHash: text('source_hash').notNull(), // For duplicate detection
     sourceBranch: text('source_branch'),
