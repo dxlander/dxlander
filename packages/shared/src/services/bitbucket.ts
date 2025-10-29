@@ -19,12 +19,10 @@ export interface BitbucketRepoInfo {
 
 export class BitbucketService {
   private client: AxiosInstance;
-  private username: string;
-  private appPassword: string;
+  private config: BitbucketConfig; // ✅ store full config
 
   constructor(config: BitbucketConfig) {
-    this.username = config.username;
-    this.appPassword = config.appPassword;
+    this.config = config; // ✅ assign config
 
     this.client = axios.create({
       baseURL: 'https://api.bitbucket.org/2.0',
@@ -41,7 +39,6 @@ export class BitbucketService {
   async getRepository(workspace: string, repoSlug: string): Promise<BitbucketRepoInfo> {
     try {
       const { data } = await this.client.get(`/repositories/${workspace}/${repoSlug}`);
-
       const mainBranch = data.mainbranch?.name || 'main';
 
       return {
@@ -67,10 +64,17 @@ export class BitbucketService {
     outputPath: string
   ): Promise<string> {
     try {
-      const { data } = await this.client.get(
-        `/repositories/${workspace}/${repoSlug}/downloads/${branch}.tar.gz`,
-        { responseType: 'arraybuffer' }
-      );
+      // ✅ use correct endpoint for downloading
+      const url = `https://bitbucket.org/${workspace}/${repoSlug}/get/${encodeURIComponent(branch)}.tar.gz`;
+
+      // ✅ use the axios import at the top — no need to re-import dynamically
+      const { data } = await axios.get(url, {
+        responseType: 'arraybuffer',
+        auth: {
+          username: this.config.username,
+          password: this.config.appPassword,
+        },
+      });
 
       const fs = await import('fs');
       const path = await import('path');

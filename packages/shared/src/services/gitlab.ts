@@ -1,5 +1,4 @@
-import { Gitlab } from '@gitbeaker/node';
-
+import { Gitlab } from '@gitbeaker/rest';
 export interface GitLabConfig {
   url?: string; // For self-hosted instances
   token: string;

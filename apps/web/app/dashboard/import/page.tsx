@@ -6,26 +6,16 @@ import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { FloatingInput, Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   ArrowLeft,
   Github,
   Upload,
-  GitBranch,
-  Globe,
   CheckCircle2,
   Shield,
   Rocket,
-  Package,
   Search,
   Star,
   ArrowRight,
@@ -35,7 +25,7 @@ import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import { config } from '@/lib/config';
 
-type ImportMethod = 'github' | 'zip' | 'git' | 'gitlab' | 'bitbucket';
+type ImportMethod = 'github' | 'zip' | 'gitlab' | 'bitbucket';
 
 export default function ImportPage() {
   const router = useRouter();
@@ -48,7 +38,6 @@ export default function ImportPage() {
   const [githubUrl, setGithubUrl] = useState('');
   const [githubBranch, setGithubBranch] = useState('');
   const [githubToken, setGithubToken] = useState('');
-  const [githubRepoType, setGithubRepoType] = useState<'public' | 'private'>('public');
   const [projectName, setProjectName] = useState('');
 
   // GitLab form state
@@ -122,14 +111,6 @@ export default function ImportPage() {
       popular: true,
       enabled: true,
     },
-    {
-      id: 'git' as ImportMethod,
-      name: 'Git URL',
-      icon: <Globe className="h-5 w-5" />,
-      description: 'Clone from any Git repository URL',
-      popular: false,
-      enabled: false,
-    },
   ];
 
   const filteredMethods = importMethods.filter(
@@ -164,9 +145,14 @@ export default function ImportPage() {
           return;
         }
 
-        // TODO: Implement GitLab import API call
-        setError('GitLab import will be implemented in the API');
-        setIsImporting(false);
+        await importProject.mutateAsync({
+          sourceType: 'gitlab',
+          gitlabUrl: gitlabUrl || undefined,
+          gitlabToken: gitlabToken,
+          gitlabProject: gitlabProject,
+          gitlabBranch: gitlabBranch || undefined,
+          projectName: projectName || undefined,
+        });
       } else if (selectedMethod === 'bitbucket') {
         if (!bitbucketUsername || !bitbucketPassword || !bitbucketWorkspace || !bitbucketRepo) {
           setError('Please fill all Bitbucket fields');
@@ -174,9 +160,15 @@ export default function ImportPage() {
           return;
         }
 
-        // TODO: Implement Bitbucket import API call
-        setError('Bitbucket import will be implemented in the API');
-        setIsImporting(false);
+        await importProject.mutateAsync({
+          sourceType: 'bitbucket',
+          bitbucketUsername: bitbucketUsername,
+          bitbucketPassword: bitbucketPassword,
+          bitbucketWorkspace: bitbucketWorkspace,
+          bitbucketRepo: bitbucketRepo,
+          bitbucketBranch: bitbucketBranch || undefined,
+          projectName: projectName || undefined,
+        });
       } else if (selectedMethod === 'zip') {
         if (!selectedFile) {
           setError('Please select a ZIP file to upload');
@@ -211,9 +203,6 @@ export default function ImportPage() {
 
         console.log('ZIP upload successful:', data);
         router.push(`/project/${data.project.id}`);
-      } else {
-        setError(`${selectedMethod} import not yet implemented`);
-        setIsImporting(false);
       }
     } catch (err: any) {
       console.error('Import error:', err);
@@ -344,14 +333,6 @@ export default function ImportPage() {
                                 Popular
                               </Badge>
                             )}
-                            {isDisabled && (
-                              <Badge
-                                variant="secondary"
-                                className="bg-gray-100 text-gray-600 border-gray-200 text-xs"
-                              >
-                                Coming Soon
-                              </Badge>
-                            )}
                           </div>
                           <p
                             className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}
@@ -419,66 +400,48 @@ export default function ImportPage() {
 
                 {/* GitHub Form */}
                 {selectedMethod === 'github' && (
-                  <>
-                    <div className="space-y-4">
-                      <FloatingInput
-                        label="Repository URL or Owner/Repo"
-                        leftIcon={<Github className="h-4 w-4" />}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Repository URL or Owner/Repo</Label>
+                      <Input
+                        placeholder="username/repo or https://github.com/username/repo"
                         value={githubUrl}
                         onChange={(e) => setGithubUrl(e.target.value)}
                         disabled={isImporting}
                       />
+                    </div>
 
-                      <div className="grid grid-cols-2 gap-4 items-end">
-                        <FloatingInput
-                          label="Branch (Optional)"
-                          leftIcon={<GitBranch className="h-4 w-4" />}
-                          value={githubBranch}
-                          onChange={(e) => setGithubBranch(e.target.value)}
-                          disabled={isImporting}
-                        />
-                        <div className="space-y-2">
-                          <Label className="text-sm font-semibold text-gray-700">
-                            Repository Type
-                          </Label>
-                          <Select
-                            value={githubRepoType}
-                            onValueChange={(value) =>
-                              setGithubRepoType(value as 'public' | 'private')
-                            }
-                            disabled={isImporting}
-                          >
-                            <SelectTrigger>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="public">Public Repository</SelectItem>
-                              <SelectItem value="private">Private Repository</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
+                    <div className="space-y-2">
+                      <Label>Branch (optional)</Label>
+                      <Input
+                        placeholder="main"
+                        value={githubBranch}
+                        onChange={(e) => setGithubBranch(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
 
-                      {githubRepoType === 'private' && (
-                        <FloatingInput
-                          label="Personal Access Token"
-                          type="password"
-                          leftIcon={<Shield className="h-4 w-4" />}
-                          value={githubToken}
-                          onChange={(e) => setGithubToken(e.target.value)}
-                          disabled={isImporting}
-                        />
-                      )}
+                    <div className="space-y-2">
+                      <Label>Personal Access Token (for private repos)</Label>
+                      <Input
+                        type="password"
+                        placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                        value={githubToken}
+                        onChange={(e) => setGithubToken(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
 
-                      <FloatingInput
-                        label="Project Name (Optional)"
-                        leftIcon={<Package className="h-4 w-4" />}
+                    <div className="space-y-2">
+                      <Label>Project Name (optional)</Label>
+                      <Input
+                        placeholder="my-project"
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         disabled={isImporting}
                       />
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* GitLab Form */}
@@ -507,8 +470,7 @@ export default function ImportPage() {
                         disabled={isImporting}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Create token at GitLab → Settings → Access Tokens (api + read_repository
-                        scopes)
+                        Create token at GitLab → Settings → Access Tokens (api + read_repository scopes)
                       </p>
                     </div>
 
@@ -595,76 +557,76 @@ export default function ImportPage() {
 
                 {/* ZIP Upload */}
                 {selectedMethod === 'zip' && (
-                  <>
-                    <div className="space-y-4">
-                      <FloatingInput
-                        label="Project Name (Optional)"
-                        leftIcon={<Package className="h-4 w-4" />}
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label>Project Name (optional)</Label>
+                      <Input
+                        placeholder="my-project"
                         value={projectName}
                         onChange={(e) => setProjectName(e.target.value)}
                         disabled={isImporting}
                       />
+                    </div>
 
-                      <div
-                        onDragOver={handleDragOver}
-                        onDragLeave={handleDragLeave}
-                        onDrop={handleDrop}
-                        onClick={() => document.getElementById('file-input')?.click()}
-                        className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${
-                          isDragging
-                            ? 'border-ocean-500 bg-ocean-100'
-                            : selectedFile
-                              ? 'border-green-400 bg-green-50'
-                              : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
-                        }`}
-                      >
-                        <input
-                          id="file-input"
-                          type="file"
-                          accept=".zip"
-                          onChange={handleFileSelect}
-                          className="hidden"
-                          disabled={isImporting}
-                        />
-                        <div className="flex flex-col items-center gap-4">
-                          <div
-                            className={`p-4 rounded-full transition-colors ${
-                              selectedFile
-                                ? 'bg-green-100'
-                                : 'bg-ocean-100 group-hover:bg-ocean-200'
-                            }`}
-                          >
-                            {selectedFile ? (
-                              <CheckCircle2 className="h-10 w-10 text-green-600" />
-                            ) : (
-                              <Upload className="h-10 w-10 text-ocean-600" />
-                            )}
-                          </div>
-                          <div>
-                            {selectedFile ? (
-                              <>
-                                <p className="text-lg font-semibold text-gray-900 mb-1">
-                                  {selectedFile.name}
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                                </p>
-                                <p className="text-xs text-ocean-600 mt-2">Click to change file</p>
-                              </>
-                            ) : (
-                              <>
-                                <p className="text-lg font-semibold text-gray-900 mb-1">
-                                  <span className="text-ocean-600">Click to upload</span> or drag
-                                  and drop
-                                </p>
-                                <p className="text-sm text-gray-600">ZIP archive up to 500MB</p>
-                              </>
-                            )}
-                          </div>
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => document.getElementById('file-input')?.click()}
+                      className={`border-2 border-dashed rounded-xl p-12 text-center transition-all cursor-pointer group ${
+                        isDragging
+                          ? 'border-ocean-500 bg-ocean-100'
+                          : selectedFile
+                            ? 'border-green-400 bg-green-50'
+                            : 'border-ocean-300 bg-gradient-to-br from-ocean-50/50 to-blue-50/50 hover:border-ocean-400'
+                      }`}
+                    >
+                      <input
+                        id="file-input"
+                        type="file"
+                        accept=".zip"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        disabled={isImporting}
+                      />
+                      <div className="flex flex-col items-center gap-4">
+                        <div
+                          className={`p-4 rounded-full transition-colors ${
+                            selectedFile
+                              ? 'bg-green-100'
+                              : 'bg-ocean-100 group-hover:bg-ocean-200'
+                          }`}
+                        >
+                          {selectedFile ? (
+                            <CheckCircle2 className="h-10 w-10 text-green-600" />
+                          ) : (
+                            <Upload className="h-10 w-10 text-ocean-600" />
+                          )}
+                        </div>
+                        <div>
+                          {selectedFile ? (
+                            <>
+                              <p className="text-lg font-semibold text-gray-900 mb-1">
+                                {selectedFile.name}
+                              </p>
+                              <p className="text-sm text-gray-600">
+                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                              </p>
+                              <p className="text-xs text-ocean-600 mt-2">Click to change file</p>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-lg font-semibold text-gray-900 mb-1">
+                                <span className="text-ocean-600">Click to upload</span> or drag
+                                and drop
+                              </p>
+                              <p className="text-sm text-gray-600">ZIP archive up to 500MB</p>
+                            </>
+                          )}
                         </div>
                       </div>
                     </div>
-                  </>
+                  </div>
                 )}
 
                 {/* Import Actions */}
