@@ -1,6 +1,6 @@
 import { createHash } from 'crypto';
-import { GitLabService, type GitLabConfig } from './gitlab';
-import { BitbucketService, type BitbucketConfig } from './bitbucket';
+import { GitLabService, type GitLabConfig, type GitLabRepoInfo } from './gitlab';
+import { BitbucketService, type BitbucketConfig, type BitbucketRepoInfo } from './bitbucket';
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
@@ -215,7 +215,7 @@ export async function importFromGitLab(
   config: GitLabConfig,
   projectId: string,
   branch?: string
-): Promise<string> {
+): Promise<{ extractPath: string; branch: string; repoInfo: GitLabRepoInfo }> {
   const gitlabService = new GitLabService(config);
 
   // Validate token
@@ -245,6 +245,13 @@ export async function importFromGitLab(
     await tar.x({
       file: archivePath,
       cwd: extractPath,
+      strip: 1,
+      preservePaths: false,
+      strict: true,
+      filter: (_p, entry) => {
+        const t = (entry as { type?: unknown })?.type;
+        return typeof t === 'string' && (t === 'File' || t === 'Directory');
+      },
     });
 
     // Cleanup archive to avoid disk space leaks
@@ -255,7 +262,7 @@ export async function importFromGitLab(
       void err;
     }
 
-    return extractPath;
+    return { extractPath, branch: targetBranch, repoInfo };
   } catch (error) {
     // Cleanup on error
     fs.rmSync(tempDir, { recursive: true, force: true });
@@ -268,7 +275,7 @@ export async function importFromBitbucket(
   workspace: string,
   repoSlug: string,
   branch?: string
-): Promise<string> {
+): Promise<{ extractPath: string; branch: string; repoInfo: BitbucketRepoInfo }> {
   const bitbucketService = new BitbucketService(config);
 
   // Validate credentials
@@ -302,6 +309,13 @@ export async function importFromBitbucket(
     await tar.x({
       file: archivePath,
       cwd: extractPath,
+      strip: 1,
+      preservePaths: false,
+      strict: true,
+      filter: (_p, entry) => {
+        const t = (entry as { type?: unknown })?.type;
+        return typeof t === 'string' && (t === 'File' || t === 'Directory');
+      },
     });
 
     // Cleanup archive to avoid disk space leaks
@@ -312,7 +326,7 @@ export async function importFromBitbucket(
       void err;
     }
 
-    return extractPath;
+    return { extractPath, branch: targetBranch, repoInfo };
   } catch (error) {
     // Cleanup on error
     fs.rmSync(tempDir, { recursive: true, force: true });

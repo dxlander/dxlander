@@ -107,6 +107,9 @@ export const projectsRouter = router({
       let sourceBranch: string | undefined;
 
       if (input.sourceType === 'github') {
+        if (!input.repoUrl?.trim()) {
+          throw new Error('GitHub repository URL is required');
+        }
         const parsed = parseGitHubUrl(input.repoUrl!);
         if (!parsed) throw new Error('Invalid GitHub URL format.');
 
@@ -165,7 +168,7 @@ export const projectsRouter = router({
       if (input.sourceType === 'gitlab') {
         const { importFromGitLab } = await import('@dxlander/shared');
 
-        projectPath = await importFromGitLab(
+        const result = await importFromGitLab(
           {
             url: input.gitlabUrl,
             token: input.gitlabToken!,
@@ -174,14 +177,15 @@ export const projectsRouter = router({
           input.gitlabBranch
         );
 
-        sourceUrl = `${input.gitlabUrl || 'https://gitlab.com'}/${input.gitlabProject}`;
-        sourceBranch = input.gitlabBranch || 'main';
+        projectPath = result.extractPath;
+        sourceUrl = result.repoInfo.url;
+        sourceBranch = result.branch;
       }
 
       if (input.sourceType === 'bitbucket') {
         const { importFromBitbucket } = await import('@dxlander/shared');
 
-        projectPath = await importFromBitbucket(
+        const result = await importFromBitbucket(
           {
             username: input.bitbucketUsername!,
             appPassword: input.bitbucketPassword!,
@@ -191,14 +195,49 @@ export const projectsRouter = router({
           input.bitbucketBranch
         );
 
-        sourceUrl = `https://bitbucket.org/${input.bitbucketWorkspace}/${input.bitbucketRepo}`;
-        sourceBranch = input.bitbucketBranch || 'main';
+        projectPath = result.extractPath;
+        sourceUrl = result.repoInfo.url;
+        sourceBranch = result.branch;
       }
 
       if (input.sourceType === 'gitlab' || input.sourceType === 'bitbucket') {
         const projectId = randomUUID();
         const projectName = input.projectName?.trim() || generateRandomProjectName();
+
+        const nameValidation = validateProjectName(projectName);
+        if (!nameValidation.valid) throw new Error(nameValidation.error);
+
         const sourceHash = generateSourceHash(sourceUrl!, sourceBranch!);
+
+        const existingProject = await db.query.projects.findFirst({
+          where: and(
+            eq(schema.projects.userId, userId),
+            eq(schema.projects.sourceHash, sourceHash)
+          ),
+        });
+        if (existingProject)
+          throw new Error(`This repository is already imported as "${existingProject.name}"`);
+
+        // Calculate filesCount and projectSize from extracted directory
+        let filesCount = 0;
+        let totalSize = 0;
+        if (projectPath) {
+          const fs = await import('fs');
+          const path = await import('path');
+          const traverse = (currentPath: string) => {
+            const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+            for (const entry of entries) {
+              const fullPath = path.join(currentPath, entry.name);
+              if (entry.isDirectory()) {
+                traverse(fullPath);
+              } else {
+                filesCount++;
+                totalSize += fs.statSync(fullPath).size;
+              }
+            }
+          };
+          traverse(projectPath);
+        }
 
         const projectData = {
           id: projectId,
@@ -210,8 +249,8 @@ export const projectsRouter = router({
           sourceBranch,
           sourceHash,
           localPath: projectPath,
-          filesCount: 0,
-          projectSize: 0,
+          filesCount,
+          projectSize: totalSize,
           language: undefined,
           status: 'imported' as const,
           createdAt: new Date(),
