@@ -22,7 +22,7 @@ type Project = inferRouterOutputs<AppRouter>['projects']['get'];
 
 export interface DeleteConfigDialogProps {
   config: ConfigSet;
-  project: Project;
+  project: Project | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
@@ -64,11 +64,6 @@ export function DeleteConfigDialog({
   };
 
   const isDeleteDisabled = confirmText !== expectedConfirmText || deleteConfig.isPending;
-
-  // Handle the case where project might be null
-  if (!project) {
-    return null;
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
