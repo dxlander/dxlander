@@ -25,6 +25,9 @@ jobs:
           version: 8.15.0
           run_install: false
 
+      - name: Install pnpm fallback
+        run: npm install -g pnpm@8.15.0
+
       - name: Verify pnpm installation
         run: pnpm --version
 
