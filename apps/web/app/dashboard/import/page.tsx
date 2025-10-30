@@ -52,6 +52,7 @@ export default function ImportPage() {
   const [bitbucketWorkspace, setBitbucketWorkspace] = useState('');
   const [bitbucketRepo, setBitbucketRepo] = useState('');
   const [bitbucketBranch, setBitbucketBranch] = useState('');
+  const [bitbucketProjectName, setBitbucketProjectName] = useState('');
 
   // ZIP upload state
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -167,7 +168,7 @@ export default function ImportPage() {
           bitbucketWorkspace: bitbucketWorkspace,
           bitbucketRepo: bitbucketRepo,
           bitbucketBranch: bitbucketBranch || undefined,
-          projectName: projectName || undefined,
+          projectName: bitbucketProjectName || undefined,
         });
       } else if (selectedMethod === 'zip') {
         if (!selectedFile) {
@@ -541,6 +542,16 @@ export default function ImportPage() {
                         placeholder="repository-name"
                         value={bitbucketRepo}
                         onChange={(e) => setBitbucketRepo(e.target.value)}
+                        disabled={isImporting}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Project Name (optional)</Label>
+                      <Input
+                        placeholder="project-name"
+                        value={bitbucketProjectName}
+                        onChange={(e) => setBitbucketProjectName(e.target.value)}
                         disabled={isImporting}
                       />
                     </div>
