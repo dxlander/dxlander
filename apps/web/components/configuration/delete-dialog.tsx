@@ -1,4 +1,7 @@
+import React, { useState } from 'react';
+
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -7,19 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AlertTriangle, Trash2 } from 'lucide-react';
-import React, { useState } from 'react';
-
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { trpc } from '@/lib/trpc';
+import { trpc, type AppRouter } from '@/lib/trpc';
 import type { ConfigSet } from '@dxlander/shared';
+import type { inferRouterOutputs } from '@trpc/server';
+import { AlertTriangle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Define types for our data
-import type { RouterOutputs } from '@/lib/trpc';
-
-type Project = RouterOutputs['projects']['get'];
+type Project = inferRouterOutputs<AppRouter>['projects']['get'];
 
 export interface DeleteConfigDialogProps {
   config: ConfigSet;
@@ -65,6 +64,11 @@ export function DeleteConfigDialog({
   };
 
   const isDeleteDisabled = confirmText !== expectedConfirmText || deleteConfig.isPending;
+
+  // Handle the case where project might be null
+  if (!project) {
+    return null;
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
