@@ -57,7 +57,7 @@
     "pnpm-lock.yaml"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:api\" \"pnpm run dev:web\"",
+    "dev": "concurrently --raw \"pnpm run dev:api\" \"pnpm run dev:web\"",
     "dev:web": "pnpm --filter @dxlander/web run dev",
     "dev:api": "pnpm --filter @dxlander/api run dev",
     "build": "pnpm run build:packages && pnpm run build:api && pnpm run build:web",
@@ -102,7 +102,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/ui": "^1.6.1",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "esbuild": "^0.19.12",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
