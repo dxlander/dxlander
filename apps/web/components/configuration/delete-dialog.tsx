@@ -17,21 +17,9 @@ import type { ConfigSet } from '@dxlander/shared';
 import { toast } from 'sonner';
 
 // Define types for our data
-interface Project {
-  id: string;
-  userId: string;
-  name: string;
-  description: string | null;
-  localPath: string;
-  gitOrigin?: string;
-  gitBranch?: string;
-  gitCommit?: string;
-  filesCount?: number;
-  status: string;
-  errorMessage?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import type { RouterOutputs } from '@/lib/trpc';
+
+type Project = RouterOutputs['projects']['get'];
 
 export interface DeleteConfigDialogProps {
   config: ConfigSet;
