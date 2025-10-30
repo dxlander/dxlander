@@ -86,7 +86,11 @@ export class BitbucketService {
         },
       });
 
-      const archivePath = path.join(outputPath, `${repoSlug}-${branch}.tar.gz`);
+      // Security: Sanitize filename to prevent path traversal from branch names like "feature/foo"
+      const sanitizedRepoSlug = repoSlug.replace(/[/\\:*?"<>|]/g, '_');
+      const sanitizedBranch = branch.replace(/[/\\:*?"<>|]/g, '_');
+      const archivePath = path.join(outputPath, `${sanitizedRepoSlug}-${sanitizedBranch}.tar.gz`);
+
       fs.writeFileSync(archivePath, data);
 
       return archivePath;

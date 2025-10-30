@@ -61,7 +61,11 @@ export class GitLabService {
       const fs = await import('fs');
       const path = await import('path');
 
-      const archivePath = path.join(outputPath, `${projectId}-${branch}.tar.gz`);
+      // Security: Sanitize filename to prevent path traversal from branch names like "feature/foo"
+      const sanitizedProjectId = projectId.replace(/[/\\:*?"<>|]/g, '_');
+      const sanitizedBranch = branch.replace(/[/\\:*?"<>|]/g, '_');
+      const archivePath = path.join(outputPath, `${sanitizedProjectId}-${sanitizedBranch}.tar.gz`);
+
       fs.writeFileSync(archivePath, archiveBuffer);
 
       return archivePath;
