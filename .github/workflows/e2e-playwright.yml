@@ -25,6 +25,9 @@ jobs:
           version: 8.15.0
           run_install: false
 
+      - name: Verify pnpm installation
+        run: pnpm --version
+
       - name: Ensure E2E_BASE_URL is provided
         id: ensure_base
         env:
