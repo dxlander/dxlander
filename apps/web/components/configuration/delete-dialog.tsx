@@ -13,34 +13,10 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { trpc } from '@/lib/trpc';
+import type { ConfigSet } from '@dxlander/shared';
 import { toast } from 'sonner';
 
 // Define types for our data
-interface ConfigSet {
-  id: string;
-  projectId: string;
-  analysisRunId?: string;
-  userId: string;
-  name: string;
-  type: string;
-  version: number;
-  localPath?: string;
-  status: string;
-  progress?: number;
-  generatedBy: string;
-  aiModel?: string;
-  description?: string;
-  tags?: string;
-  notes?: string;
-  errorMessage?: string;
-  startedAt?: Date;
-  completedAt?: Date;
-  duration?: number;
-  createdAt: Date;
-  updatedAt: Date;
-  fileCount?: number;
-}
-
 interface Project {
   id: string;
   userId: string;

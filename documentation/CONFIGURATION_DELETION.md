@@ -86,8 +86,8 @@ Integration tests verify:
 
 ### TRPC Mutation
 
-```
-configs.delete({ id: string })
+```typescript
+configs.delete({ id: string });
 ```
 
 Parameters:
