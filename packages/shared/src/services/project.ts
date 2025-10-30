@@ -236,12 +236,24 @@ export async function importFromGitLab(
     // Download repository
     const archivePath = await gitlabService.downloadRepository(projectId, targetBranch, tempDir);
 
+    // Security: Validate archive size to prevent zip bombs
+    const archiveStats = fs.statSync(archivePath);
+    const MAX_ARCHIVE_SIZE = 500 * 1024 * 1024; // 500MB
+    if (archiveStats.size > MAX_ARCHIVE_SIZE) {
+      throw new Error(
+        `Archive too large (${(archiveStats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed: 500MB`
+      );
+    }
+
     // Extract archive
     const extractPath = path.join(tempDir, 'extracted');
     fs.mkdirSync(extractPath, { recursive: true });
 
-    // Use tar to extract
+    // Use tar to extract with security filters
     const tar = await import('tar');
+    let fileCount = 0;
+    const MAX_FILES = 10000;
+
     await tar.x({
       file: archivePath,
       cwd: extractPath,
@@ -249,8 +261,26 @@ export async function importFromGitLab(
       preservePaths: false,
       strict: true,
       filter: (_p, entry) => {
+        // Security: Limit file count to prevent resource exhaustion
+        fileCount++;
+        if (fileCount > MAX_FILES) {
+          throw new Error(`Archive contains too many files (>${MAX_FILES})`);
+        }
+
+        // Security: Validate file type
         const t = (entry as { type?: unknown })?.type;
-        return typeof t === 'string' && (t === 'File' || t === 'Directory');
+        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+          return false;
+        }
+
+        // Security: Prevent path traversal attacks
+        const entryPath = (entry as { path?: string })?.path || '';
+        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
+          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+          return false;
+        }
+
+        return true;
       },
     });
 
@@ -301,11 +331,24 @@ export async function importFromBitbucket(
       tempDir
     );
 
+    // Security: Validate archive size to prevent zip bombs
+    const archiveStats = fs.statSync(archivePath);
+    const MAX_ARCHIVE_SIZE = 500 * 1024 * 1024; // 500MB
+    if (archiveStats.size > MAX_ARCHIVE_SIZE) {
+      throw new Error(
+        `Archive too large (${(archiveStats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed: 500MB`
+      );
+    }
+
     // Extract archive
     const extractPath = path.join(tempDir, 'extracted');
     fs.mkdirSync(extractPath, { recursive: true });
 
+    // Use tar to extract with security filters
     const tar = await import('tar');
+    let fileCount = 0;
+    const MAX_FILES = 10000;
+
     await tar.x({
       file: archivePath,
       cwd: extractPath,
@@ -313,8 +356,26 @@ export async function importFromBitbucket(
       preservePaths: false,
       strict: true,
       filter: (_p, entry) => {
+        // Security: Limit file count to prevent resource exhaustion
+        fileCount++;
+        if (fileCount > MAX_FILES) {
+          throw new Error(`Archive contains too many files (>${MAX_FILES})`);
+        }
+
+        // Security: Validate file type
         const t = (entry as { type?: unknown })?.type;
-        return typeof t === 'string' && (t === 'File' || t === 'Directory');
+        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+          return false;
+        }
+
+        // Security: Prevent path traversal attacks
+        const entryPath = (entry as { path?: string })?.path || '';
+        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
+          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+          return false;
+        }
+
+        return true;
       },
     });
 

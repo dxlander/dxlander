@@ -1,4 +1,5 @@
 import { Gitlab } from '@gitbeaker/rest';
+
 export interface GitLabConfig {
   url?: string; // For self-hosted instances
   token: string;
@@ -18,6 +19,8 @@ export interface GitLabRepoInfo {
 }
 
 export class GitLabService {
+  // NOTE: Using 'any' due to complex @gitbeaker/rest types that don't match runtime API
+  // TODO: Investigate proper typing for Gitlab client
   private client: any;
 
   constructor(config: GitLabConfig) {

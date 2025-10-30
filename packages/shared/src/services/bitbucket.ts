@@ -55,9 +55,14 @@ export class BitbucketService {
         size: data.size || 0,
       };
     } catch (error: unknown) {
-      // Keep safe logging only
-      const axiosErr = error as { response?: { data?: unknown } };
-      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      // Security: Safe logging without exposing credentials
+      const axiosErr = error as { response?: { status?: number; statusText?: string } };
+      console.error('Bitbucket API error:', {
+        status: axiosErr?.response?.status,
+        statusText: axiosErr?.response?.statusText,
+        workspace,
+        repoSlug,
+      });
       throw new Error('Failed to fetch Bitbucket repository');
     }
   }
@@ -86,9 +91,15 @@ export class BitbucketService {
 
       return archivePath;
     } catch (error: unknown) {
-      // Keep safe logging only
-      const axiosErr = error as { response?: { data?: unknown } };
-      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      // Security: Safe logging without exposing credentials
+      const axiosErr = error as { response?: { status?: number; statusText?: string } };
+      console.error('Bitbucket download error:', {
+        status: axiosErr?.response?.status,
+        statusText: axiosErr?.response?.statusText,
+        workspace,
+        repoSlug,
+        branch,
+      });
       throw new Error('Failed to download Bitbucket repository');
     }
   }
@@ -100,9 +111,14 @@ export class BitbucketService {
       );
       return data.values.map((b: any) => b.name);
     } catch (error: unknown) {
-      // Keep safe logging only
-      const axiosErr = error as { response?: { data?: unknown } };
-      console.error('Bitbucket API error:', axiosErr?.response?.data);
+      // Security: Safe logging without exposing credentials
+      const axiosErr = error as { response?: { status?: number; statusText?: string } };
+      console.error('Bitbucket branches error:', {
+        status: axiosErr?.response?.status,
+        statusText: axiosErr?.response?.statusText,
+        workspace,
+        repoSlug,
+      });
       throw new Error('Failed to list Bitbucket branches');
     }
   }

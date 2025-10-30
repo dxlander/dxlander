@@ -98,28 +98,6 @@ DXLander supports two database options:
 - Better for multi-user environments
 - Requires PostgreSQL server
 
-#### PostgreSQL Setup
-
-1. Install PostgreSQL from https://www.postgresql.org/download/
-2. Create a database:
-
-```bash
-   createdb dxlander
-```
-
-3. Configure environment variables in `.env`:
-
-```bash
-   DATABASE_TYPE=postgresql
-   POSTGRES_HOST=localhost
-   POSTGRES_PORT=5432
-   POSTGRES_DATABASE=dxlander
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=your_password
-```
-
-4. Run the application - it will connect to PostgreSQL automatically
-
 ### AI-Powered Project Discovery
 
 - **Framework Detection**: Next.js, React, Vue, Python, Go, and more
