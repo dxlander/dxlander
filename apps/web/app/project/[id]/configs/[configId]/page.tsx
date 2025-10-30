@@ -45,6 +45,12 @@ type EnvironmentVariables = {
   }>;
 };
 
+type ConfigFileEntry = {
+  fileName: string;
+  path?: string;
+  content?: string;
+};
+
 interface PageProps {
   params: Promise<{ id: string; configId: string }>;
 }
@@ -204,8 +210,8 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
   const integrationsCount = integrations?.detected?.length || 0;
 
   // Count config files (excluding summary)
-  const configFilesCount =
-    configSet.files?.filter((file: any) => file.fileName !== '_summary.json').length || 0;
+  const configFiles = Array.isArray(configSet.files) ? (configSet.files as ConfigFileEntry[]) : [];
+  const configFilesCount = configFiles.filter((file) => file.fileName !== '_summary.json').length;
 
   return (
     <PageLayout background="default">

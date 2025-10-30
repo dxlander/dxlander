@@ -204,9 +204,10 @@ export default function ImportPage() {
         console.log('ZIP upload successful:', data);
         router.push(`/project/${data.project.id}`);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Import error:', err);
-      setError(err.message || 'Import failed');
+      const message = err instanceof Error ? err.message : 'Import failed';
+      setError(message);
       setIsImporting(false);
     }
   };
@@ -470,7 +471,8 @@ export default function ImportPage() {
                         disabled={isImporting}
                       />
                       <p className="text-sm text-muted-foreground">
-                        Create token at GitLab → Settings → Access Tokens (api + read_repository scopes)
+                        Create token at GitLab → Settings → Access Tokens (api + read_repository
+                        scopes)
                       </p>
                     </div>
 
@@ -592,9 +594,7 @@ export default function ImportPage() {
                       <div className="flex flex-col items-center gap-4">
                         <div
                           className={`p-4 rounded-full transition-colors ${
-                            selectedFile
-                              ? 'bg-green-100'
-                              : 'bg-ocean-100 group-hover:bg-ocean-200'
+                            selectedFile ? 'bg-green-100' : 'bg-ocean-100 group-hover:bg-ocean-200'
                           }`}
                         >
                           {selectedFile ? (
@@ -617,8 +617,8 @@ export default function ImportPage() {
                           ) : (
                             <>
                               <p className="text-lg font-semibold text-gray-900 mb-1">
-                                <span className="text-ocean-600">Click to upload</span> or drag
-                                and drop
+                                <span className="text-ocean-600">Click to upload</span> or drag and
+                                drop
                               </p>
                               <p className="text-sm text-gray-600">ZIP archive up to 500MB</p>
                             </>

@@ -137,7 +137,7 @@ export function IntegrationsTab({ summary, integrationsCount }: IntegrationsTabP
                 No External Integrations Detected
               </h3>
               <p className="text-sm text-gray-600 mb-1">
-                This project is self-contained and doesn't require external services.
+                This project is self-contained and doesn&apos;t require external services.
               </p>
               <p className="text-xs text-gray-500 mt-4">
                 <strong>Note:</strong> Integrations are external services requiring API keys,

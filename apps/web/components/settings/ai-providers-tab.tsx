@@ -221,6 +221,21 @@ export function AIProvidersTab() {
     setShowEditDialog(true);
   };
 
+  interface ProviderSerializedSettings {
+    model?: string;
+    baseUrl?: string;
+  }
+
+  interface ProviderUpdatePayload {
+    id: string;
+    name: string;
+    settings: {
+      model: string;
+      baseUrl?: string;
+    };
+    apiKey?: string;
+  }
+
   const handleDelete = (provider: AIProvider) => {
     setSelectedProvider(provider);
     setShowDeleteDialog(true);
@@ -332,7 +347,7 @@ export function AIProvidersTab() {
   const handleUpdate = () => {
     if (!selectedProvider) return;
 
-    const updateData: any = {
+    const updateData: ProviderUpdatePayload = {
       id: selectedProvider.id,
       name: formData.name,
       settings: {
@@ -425,7 +440,9 @@ export function AIProvidersTab() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {providers.map((provider) => {
             const info = PROVIDER_INFO[provider.provider as ProviderType];
-            const settings = provider.settings ? JSON.parse(provider.settings) : {};
+            const settings: ProviderSerializedSettings = provider.settings
+              ? JSON.parse(provider.settings)
+              : {};
 
             return (
               <Card
@@ -619,7 +636,8 @@ export function AIProvidersTab() {
                 leftIcon={<Zap className="h-4 w-4" />}
               />
               <p className="text-xs text-gray-500">
-                A friendly name to identify this provider (e.g., "Production OpenAI", "Dev Claude")
+                A friendly name to identify this provider (e.g., &quot;Production OpenAI&quot;,
+                &quot;Dev Claude&quot;)
               </p>
             </div>
 

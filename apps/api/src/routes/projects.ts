@@ -11,6 +11,7 @@ import {
   generateRandomProjectName,
   saveProjectFiles,
   deleteProjectFiles,
+  persistTempProjectDirectory,
 } from '@dxlander/shared';
 import { db, schema } from '@dxlander/database';
 import { eq, and, desc, inArray } from 'drizzle-orm';
@@ -34,7 +35,7 @@ const CreateProjectSchema = z.object({
 const ImportProjectSchema = z.discriminatedUnion('sourceType', [
   z.object({
     sourceType: z.literal('github'),
-    repoUrl: z.string().url(),
+    repoUrl: z.string().min(1),
     branch: z.string().optional(),
     token: z.string().optional(),
     projectName: z.string().optional(),
@@ -60,7 +61,8 @@ const ImportProjectSchema = z.discriminatedUnion('sourceType', [
 export const projectsRouter = router({
   list: protectedProcedure.input(PaginationSchema).query(async ({ input, ctx }) => {
     try {
-      const userId = ctx.userId!;
+      const userId = ctx.userId;
+      if (!userId) throw new Error('Unauthorized');
 
       const projects = await db.query.projects.findMany({
         where: eq(schema.projects.userId, userId),
@@ -87,7 +89,8 @@ export const projectsRouter = router({
 
   get: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
     try {
-      const userId = ctx.userId!;
+      const userId = ctx.userId;
+      if (!userId) throw new Error('Unauthorized');
       const project = await db.query.projects.findFirst({
         where: and(eq(schema.projects.id, input.id), eq(schema.projects.userId, userId)),
       });
@@ -102,7 +105,8 @@ export const projectsRouter = router({
 
   import: protectedProcedure.input(ImportProjectSchema).mutation(async ({ input, ctx }) => {
     try {
-      const userId = ctx.userId!;
+      const userId = ctx.userId;
+      if (!userId) throw new Error('Unauthorized');
       let projectPath: string | undefined;
       let sourceUrl: string | undefined;
       let sourceBranch: string | undefined;
@@ -111,12 +115,12 @@ export const projectsRouter = router({
         if (!input.repoUrl?.trim()) {
           throw new Error('GitHub repository URL is required');
         }
-        const parsed = parseGitHubUrl(input.repoUrl!);
+        const parsed = parseGitHubUrl(input.repoUrl);
         if (!parsed) throw new Error('Invalid GitHub URL format.');
 
         const githubService = new GitHubService(input.token);
         const { repoInfo, files, fileTree } = await githubService.cloneRepoMetadata(
-          input.repoUrl!,
+          input.repoUrl,
           input.branch,
           input.token
         );
@@ -125,7 +129,7 @@ export const projectsRouter = router({
         const nameValidation = validateProjectName(projectName);
         if (!nameValidation.valid) throw new Error(nameValidation.error);
 
-        const sourceHash = generateSourceHash(input.repoUrl!, repoInfo.branch);
+        const sourceHash = generateSourceHash(input.repoUrl, repoInfo.branch);
         const existingProject = await db.query.projects.findFirst({
           where: and(
             eq(schema.projects.userId, userId),
@@ -172,9 +176,9 @@ export const projectsRouter = router({
         const result = await importFromGitLab(
           {
             url: input.gitlabUrl,
-            token: input.gitlabToken!,
+            token: input.gitlabToken,
           },
-          input.gitlabProject!,
+          input.gitlabProject,
           input.gitlabBranch
         );
 
@@ -188,11 +192,11 @@ export const projectsRouter = router({
 
         const result = await importFromBitbucket(
           {
-            username: input.bitbucketUsername!,
-            appPassword: input.bitbucketPassword!,
+            username: input.bitbucketUsername,
+            appPassword: input.bitbucketPassword,
           },
-          input.bitbucketWorkspace!,
-          input.bitbucketRepo!,
+          input.bitbucketWorkspace,
+          input.bitbucketRepo,
           input.bitbucketBranch
         );
 
@@ -208,7 +212,8 @@ export const projectsRouter = router({
         const nameValidation = validateProjectName(projectName);
         if (!nameValidation.valid) throw new Error(nameValidation.error);
 
-        const sourceHash = generateSourceHash(sourceUrl!, sourceBranch!);
+        if (!sourceUrl || !sourceBranch) throw new Error('Missing source repository details');
+        const sourceHash = generateSourceHash(sourceUrl, sourceBranch);
 
         const existingProject = await db.query.projects.findFirst({
           where: and(
@@ -219,25 +224,15 @@ export const projectsRouter = router({
         if (existingProject)
           throw new Error(`This repository is already imported as "${existingProject.name}"`);
 
-        // Calculate filesCount and projectSize from extracted directory
+        // Move extracted temp directory to permanent project storage and compute stats
         let filesCount = 0;
         let totalSize = 0;
+        let localPath: string | undefined;
         if (projectPath) {
-          const fs = await import('fs');
-          const path = await import('path');
-          const traverse = (currentPath: string) => {
-            const entries = fs.readdirSync(currentPath, { withFileTypes: true });
-            for (const entry of entries) {
-              const fullPath = path.join(currentPath, entry.name);
-              if (entry.isDirectory()) {
-                traverse(fullPath);
-              } else {
-                filesCount++;
-                totalSize += fs.statSync(fullPath).size;
-              }
-            }
-          };
-          traverse(projectPath);
+          const persisted = persistTempProjectDirectory(projectId, projectPath);
+          filesCount = persisted.filesCount;
+          totalSize = persisted.totalSize;
+          localPath = persisted.localPath;
         }
 
         const projectData = {
@@ -249,7 +244,7 @@ export const projectsRouter = router({
           sourceUrl,
           sourceBranch,
           sourceHash,
-          localPath: projectPath,
+          localPath,
           filesCount,
           projectSize: totalSize,
           language: undefined,
@@ -259,19 +254,25 @@ export const projectsRouter = router({
         };
 
         await db.insert(schema.projects).values(projectData);
-        return { project: projectData, metadata: { localPath: projectPath } };
+        const resolvedLocalPath = localPath ?? projectPath;
+        return {
+          project: projectData,
+          metadata: { localPath: resolvedLocalPath, filesCount, totalSize },
+        };
       }
 
       throw new Error('Unsupported source type');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Import failed:', error);
-      throw new Error(error.message || 'Failed to import project');
+      const message = error instanceof Error ? error.message : 'Failed to import project';
+      throw new Error(message);
     }
   }),
 
   create: protectedProcedure.input(CreateProjectSchema).mutation(async ({ input, ctx }) => {
     try {
-      const userId = ctx.userId!;
+      const userId = ctx.userId;
+      if (!userId) throw new Error('Unauthorized');
       const projectId = randomUUID();
       const sourceHash = generateSourceHash(input.sourceUrl || `upload-${projectId}`, 'default');
 
@@ -289,9 +290,10 @@ export const projectsRouter = router({
 
       await db.insert(schema.projects).values(projectData);
       return projectData;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to create project:', error);
-      throw new Error('Failed to create project');
+      const message = error instanceof Error ? error.message : 'Failed to create project';
+      throw new Error(message);
     }
   }),
 
@@ -303,7 +305,8 @@ export const projectsRouter = router({
     )
     .mutation(async ({ input, ctx }) => {
       try {
-        const userId = ctx.userId!;
+        const userId = ctx.userId;
+        if (!userId) throw new Error('Unauthorized');
         const { AIAnalysisService } = await import('../services/ai-analysis.service');
         const analysisId = await AIAnalysisService.analyzeProject(input.projectId, userId);
 
@@ -313,9 +316,10 @@ export const projectsRouter = router({
           status: 'analyzing',
           message: 'AI analysis started in background',
         };
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to start analysis:', error);
-        throw new Error(error.message || 'Failed to start project analysis');
+        const message = error instanceof Error ? error.message : 'Failed to start project analysis';
+        throw new Error(message);
       }
     }),
 
