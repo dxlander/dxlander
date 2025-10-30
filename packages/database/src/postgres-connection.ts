@@ -17,14 +17,14 @@ export function createPostgresConnection(config: PostgresConfig) {
     database: config.database,
     user: config.user,
     password: config.password,
-    ssl: config.ssl, // <-- Key change for flexible SSL config!
-    max: 20, // Maximum pool size
-    idleTimeoutMillis: 30000, // 30 seconds
-    connectionTimeoutMillis: 5000, // 5 seconds
+    ssl: config.ssl,
+    max: config.max ?? 20,
+    idleTimeoutMillis: config.idleTimeoutMillis ?? 30000,
+    connectionTimeoutMillis: config.connectionTimeoutMillis ?? 5000,
   });
 
   // Handle pool errors
-  pool.on('error', (err) => {
+  pool.on('error', (err: Error) => {
     console.error('Unexpected error on idle PostgreSQL client', err);
   });
 

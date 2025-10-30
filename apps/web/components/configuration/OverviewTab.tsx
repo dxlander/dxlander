@@ -162,16 +162,18 @@ export function OverviewTab({
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-3">Built-in Features</p>
                   <div className="flex flex-wrap gap-2">
-                    {summary.builtInCapabilities.map((capability: any, idx: number) => (
-                      <Badge
-                        key={idx}
-                        variant="secondary"
-                        className="flex items-center gap-1.5 py-1.5 px-3 bg-gray-100 text-gray-700"
-                      >
-                        <Package className="h-3.5 w-3.5" />
-                        {capability.name}
-                      </Badge>
-                    ))}
+                    {summary.builtInCapabilities.map(
+                      (capability: BuiltInCapability, idx: number) => (
+                        <Badge
+                          key={idx}
+                          variant="secondary"
+                          className="flex items-center gap-1.5 py-1.5 px-3 bg-gray-100 text-gray-700"
+                        >
+                          <Package className="h-3.5 w-3.5" />
+                          {capability.name}
+                        </Badge>
+                      )
+                    )}
                   </div>
                 </div>
               </>
@@ -188,7 +190,7 @@ export function OverviewTab({
                   </p>
                   <div className="space-y-3">
                     {Object.entries(summary.language.breakdown).map(
-                      ([lang, percent]: [string, any]) => (
+                      ([lang, percent]: [string, number]) => (
                         <div key={lang} className="space-y-1">
                           <div className="flex justify-between text-sm">
                             <span className="font-medium text-gray-700">{lang}</span>
