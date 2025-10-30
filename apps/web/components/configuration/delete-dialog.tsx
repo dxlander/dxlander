@@ -39,6 +39,12 @@ export function DeleteConfigDialog({
   const [confirmText, setConfirmText] = useState('');
   const expectedConfirmText = `${config.type} v${config.version}`;
 
+  React.useEffect(() => {
+    if (open) {
+      setConfirmText('');
+    }
+  }, [open, config.id]);
+
   const deleteConfig = trpc.configs.delete.useMutation({
     onSuccess: () => {
       toast.success(`Configuration "${config.type} v${config.version}" deleted successfully`);
