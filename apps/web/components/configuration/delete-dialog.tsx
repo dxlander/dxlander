@@ -65,6 +65,11 @@ export function DeleteConfigDialog({
 
   const isDeleteDisabled = confirmText !== expectedConfirmText || deleteConfig.isPending;
 
+  // Handle the case where project might be null
+  if (!project) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
