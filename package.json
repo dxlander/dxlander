@@ -120,7 +120,7 @@
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@8.15.1",
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
