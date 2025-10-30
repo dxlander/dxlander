@@ -45,7 +45,7 @@ interface Project {
   id: string;
   userId: string;
   name: string;
-  description?: string;
+  description: string | null;
   localPath: string;
   gitOrigin?: string;
   gitBranch?: string;
@@ -77,9 +77,7 @@ export function DeleteConfigDialog({
 
   const deleteConfig = trpc.configs.delete.useMutation({
     onSuccess: () => {
-      toast.success(
-        `Configuration &quot;${config.type} v${config.version}&quot; deleted successfully`
-      );
+      toast.success(`Configuration "${config.type} v${config.version}" deleted successfully`);
       onOpenChange(false);
       if (onSuccess) {
         onSuccess();
