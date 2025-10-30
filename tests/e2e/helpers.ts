@@ -36,10 +36,8 @@ export async function ensureAuth(page: Page, options: EnsureAuthOptions = {}) {
   // adapt selectors as needed for your app
   await page.fill('input[name="email"]', E2E_EMAIL);
   await page.fill('input[name="password"]', E2E_PASSWORD);
-  await Promise.all([
-    page.waitForNavigation({ url: '**/dashboard' }),
-    page.click('button:has-text("Sign in")'),
-  ]);
+  await page.click('button:has-text("Sign in")');
+  await page.waitForURL('**/dashboard');
 
   // save storage state for subsequent tests
   if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });

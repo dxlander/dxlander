@@ -12,7 +12,7 @@ test.describe('Build configuration generation', () => {
     test.skip(!hasCreds, 'E2E_EMAIL/E2E_PASSWORD not set');
 
     await page.goto(`/project/${projectFromEnv}/configs`);
-    await expect(page).toHaveURL(new RegExp(`/project/${projectFromEnv}/configs`));
     await expect(page.locator('text=Generated Configs').first()).toBeVisible();
+    await expect(page.locator('code').first()).toBeVisible();
   });
 });

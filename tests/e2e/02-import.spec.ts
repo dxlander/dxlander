@@ -1,11 +1,13 @@
 import { test, expect } from '@playwright/test';
 
-const hasCreds = Boolean(process.env.E2E_EMAIL && process.env.E2E_PASSWORD);
-
 test.describe('Project import flow', () => {
-  test.skip(!hasCreds, 'E2E_EMAIL/E2E_PASSWORD not set');
-
   test('navigates to import page and shows import options', async ({ page }) => {
+    const hasCreds = Boolean(process.env.E2E_EMAIL && process.env.E2E_PASSWORD);
+    if (!hasCreds) {
+      test.skip(true, 'E2E_EMAIL/E2E_PASSWORD not set');
+      return;
+    }
+
     await page.goto('/dashboard/import');
     await expect(page).toHaveURL(/.*dashboard\/import/);
     // basic checks for import UI
@@ -20,15 +22,15 @@ test.describe('Project import flow', () => {
       return;
     }
 
-    const repo = repoFromEnv;
+    const hasCreds = Boolean(process.env.E2E_EMAIL && process.env.E2E_PASSWORD);
+    if (!hasCreds) {
+      test.skip(true, 'E2E_EMAIL/E2E_PASSWORD not set');
+      return;
+    }
 
     await page.goto('/dashboard/import');
-    await page.fill('input[name=githubRepo]', repo);
-    await Promise.all([
-      page.waitForNavigation({ url: /.*project\/.*$/ }),
-      page.click('button:has-text("Import")'),
-    ]);
-
-    await expect(page.url()).toMatch(/\/project\//);
+    await page.fill('input[name=githubRepo]', repoFromEnv);
+    await page.click('button:has-text("Import")');
+    await page.waitForURL(/.*project\/.*$/);
   });
 });

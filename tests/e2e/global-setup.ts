@@ -19,7 +19,15 @@ export default async function globalSetup() {
     });
 
     const page = await context.newPage();
-    await ensureAuth(page);
+    try {
+      await ensureAuth(page);
+    } catch (error) {
+      console.error('Global setup authentication failed:', error);
+      throw error;
+    } finally {
+      await page.close();
+    }
+
     await context.close();
   } finally {
     await browser.close();

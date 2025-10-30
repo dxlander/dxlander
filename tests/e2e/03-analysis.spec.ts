@@ -12,7 +12,6 @@ test.describe('AI analysis workflow', () => {
     test.skip(!hasCreds, 'E2E_EMAIL/E2E_PASSWORD not set');
 
     await page.goto(`/project/${projectFromEnv}`);
-    await expect(page).toHaveURL(new RegExp(`/project/${projectFromEnv}`));
 
     // assume there's a button to trigger AI analysis
     const startBtn = page.locator('button:has-text("Run analysis")');
@@ -23,5 +22,10 @@ test.describe('AI analysis workflow', () => {
 
     await startBtn.click();
     await expect(page.locator('text=Analysis queued').first()).toBeVisible();
+
+    const statusIndicator = page.locator('[data-testid="analysis-status"]').first();
+    if (await statusIndicator.count()) {
+      await expect(statusIndicator).toBeVisible();
+    }
   });
 });

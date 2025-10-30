@@ -17,7 +17,7 @@ test.describe('Authentication flow', () => {
     await page.goto('/dashboard');
     await expect(page).toHaveURL(/.*dashboard/);
     // basic sanity check for dashboard content
-    await expect(page.locator('text=Create project').first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Create project' })).toBeVisible();
 
     // storage state file should exist
     expect(fs.existsSync(storageStatePath())).toBeTruthy();
@@ -33,10 +33,7 @@ test.describe('Authentication flow', () => {
     await page.goto('/dashboard');
     // adapt selector - typical sign out button
     const signOut = page.locator('button:has-text("Sign out")');
-    if (!(await signOut.count())) {
-      test.skip(true, 'Sign out button not found - skipping');
-    }
-
+    await expect(signOut).toBeVisible();
     await signOut.click();
     await expect(page).toHaveURL(/.*login/);
   });
