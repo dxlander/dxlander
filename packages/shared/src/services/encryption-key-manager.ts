@@ -14,16 +14,18 @@
  * - Key is 32 bytes (256 bits) for AES-256
  */
 
-import { existsSync, writeFileSync, mkdirSync, chmodSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 import { randomBytes } from 'crypto';
+import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 
 // Constants
 const DXLANDER_HOME = process.env.DXLANDER_HOME || join(homedir(), '.dxlander');
 const ENCRYPTION_KEY_FILE = 'encryption.key';
 const ENCRYPTION_KEY_PATH = join(DXLANDER_HOME, ENCRYPTION_KEY_FILE);
 const KEY_LENGTH = 32; // 256 bits for AES-256
+// 32 raw bytes encoded in base64 produce 44 characters, so only base64 keys of length >=44 are accepted
+const MIN_KEY_LENGTH = 44;
 
 /**
  * Get or create the master encryption key (synchronous)
@@ -37,14 +39,37 @@ const KEY_LENGTH = 32; // 256 bits for AES-256
 export function getOrCreateEncryptionKey(): string {
   // Priority 1: Check environment variable (production deployments)
   if (process.env.DXLANDER_ENCRYPTION_KEY) {
+    const envKey = process.env.DXLANDER_ENCRYPTION_KEY;
+
+    // Validate key length for security
+    if (envKey.length < MIN_KEY_LENGTH) {
+      throw new Error(
+        `DXLANDER_ENCRYPTION_KEY must be at least ${MIN_KEY_LENGTH} characters long for security (32 raw bytes encoded in base64 produce 44 characters)`
+      );
+    }
+
     console.log('✅ Using encryption key from DXLANDER_ENCRYPTION_KEY environment variable');
-    return process.env.DXLANDER_ENCRYPTION_KEY;
+    return envKey;
   }
 
   // Priority 2: Check for existing key file
   if (existsSync(ENCRYPTION_KEY_PATH)) {
     console.log(`✅ Using encryption key from ${ENCRYPTION_KEY_PATH}`);
-    return _generateAndSaveEncryptionKey();
+    try {
+      const key = readFileSync(ENCRYPTION_KEY_PATH, 'utf8').trim();
+
+      // Validate key length for security
+      if (key.length < MIN_KEY_LENGTH) {
+        throw new Error(
+          `Encryption key in ${ENCRYPTION_KEY_PATH} must be at least ${MIN_KEY_LENGTH} characters long for security (32 raw bytes encoded in base64 produce 44 characters)`
+        );
+      }
+
+      return key;
+    } catch (error: any) {
+      console.error(`❌ Failed to read encryption key from ${ENCRYPTION_KEY_PATH}:`, error);
+      throw new Error(`Failed to read encryption key: ${error.message}`);
+    }
   }
 
   // Priority 3: Generate new key

@@ -10,9 +10,10 @@ import {
   validateProjectName,
   generateRandomProjectName,
   saveProjectFiles,
+  deleteProjectFiles,
 } from '@dxlander/shared';
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, inArray } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 const CreateProjectSchema = z.object({
@@ -318,21 +319,96 @@ export const projectsRouter = router({
       }
     }),
 
+  /**
+   * Delete a project and all associated data
+   */
   delete: protectedProcedure.input(IdSchema).mutation(async ({ input, ctx }) => {
+    const projectId = input.id;
+    const userId = ctx.userId;
+    if (!userId) throw new Error('Unauthorized');
+
     try {
-      const userId = ctx.userId!;
+      // Verify ownership
       const project = await db.query.projects.findFirst({
-        where: and(eq(schema.projects.id, input.id), eq(schema.projects.userId, userId)),
+        where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
       });
-      if (!project) throw new Error('Project not found');
 
-      await db.delete(schema.projects).where(eq(schema.projects.id, input.id));
-      await db.delete(schema.deployments).where(eq(schema.deployments.projectId, input.id));
+      if (!project) {
+        throw new Error('Project not found or access denied');
+      }
 
-      return { success: true };
+      // Perform deletion in a transaction for data consistency
+      await db.transaction(async (tx) => {
+        // First, get all config sets for this project to delete related records
+        const configSetsToDelete = await tx
+          .select({ id: schema.configSets.id })
+          .from(schema.configSets)
+          .where(eq(schema.configSets.projectId, projectId));
+
+        const configSetIds = configSetsToDelete.map((cs) => cs.id);
+
+        // 1. Delete config activity logs (child records)
+        if (configSetIds.length > 0) {
+          await tx
+            .delete(schema.configActivityLogs)
+            .where(inArray(schema.configActivityLogs.configSetId, configSetIds));
+
+          // 2. Delete config files
+          await tx
+            .delete(schema.configFiles)
+            .where(inArray(schema.configFiles.configSetId, configSetIds));
+        }
+
+        // 3. Delete config sets
+        await tx.delete(schema.configSets).where(eq(schema.configSets.projectId, projectId));
+
+        // 4. Delete build runs
+        await tx.delete(schema.buildRuns).where(eq(schema.buildRuns.projectId, projectId));
+
+        // 5. Delete analysis runs
+        await tx.delete(schema.analysisRuns).where(eq(schema.analysisRuns.projectId, projectId));
+
+        // 6. Delete deployments
+        await tx.delete(schema.deployments).where(eq(schema.deployments.projectId, projectId));
+
+        // 7. Finally delete the project
+        await tx.delete(schema.projects).where(eq(schema.projects.id, projectId));
+      });
+
+      // Clean up file system (outside transaction)
+      try {
+        deleteProjectFiles(projectId);
+        console.log(`[DELETE] Cleaned up project files: ${projectId}`);
+      } catch (fileError) {
+        console.error(`[DELETE] Failed to clean up project files: ${projectId}`, fileError);
+        // Don't fail the operation, but log the error for monitoring
+      }
+
+      // Log successful deletion for audit purposes
+      console.log(`[DELETE] Project deleted: ${projectId} by user: ${userId}`);
+
+      return {
+        success: true,
+        deletedProject: {
+          id: projectId,
+          name: project.name,
+        },
+      };
     } catch (error) {
-      console.error('Failed to delete project:', error);
-      throw new Error('Failed to delete project');
+      console.error('Failed to delete project:', {
+        projectId,
+        userId,
+        error: error instanceof Error ? error.message : error,
+      });
+
+      if (error instanceof Error) {
+        // Provide more specific error messages
+        if (error.message.includes('Project not found')) {
+          throw new Error('Project not found or access denied');
+        }
+      }
+
+      throw new Error('Failed to delete project. Please try again later.');
     }
   }),
 });
