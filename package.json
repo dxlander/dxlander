@@ -127,8 +127,6 @@
     ]
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.14",
-    "@types/pg": "^8.15.6",
-    "pg": "^8.16.3"
+    "@anthropic-ai/claude-agent-sdk": "^0.1.14"
   }
 }
