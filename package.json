@@ -73,6 +73,8 @@
     "test:unit": "vitest tests/unit",
     "test:integration": "vitest tests/integration",
     "test:e2e": "vitest tests/e2e",
+    "test:e2e:playwright": "playwright test --config=tests/e2e/playwright.config.ts",
+    "test:e2e:playwright:ci": "playwright install --with-deps && playwright test --config=tests/e2e/playwright.config.ts --reporter=github",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
@@ -110,7 +112,9 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "@playwright/test": "^1.43.0",
+    "@types/node": "^20.11.30"
   },
   "engines": {
     "node": ">=18.0.0",

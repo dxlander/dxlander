@@ -1,0 +1,47 @@
+name: E2E Playwright
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Setup pnpm
+        run: corepack enable && corepack prepare pnpm@8.15.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Ensure E2E_BASE_URL is provided
+        env:
+          SECRET_E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+        run: |
+          if [ -z "${SECRET_E2E_BASE_URL}" ] && [ -z "${E2E_BASE_URL}" ]; then
+            echo "E2E_BASE_URL is not set. Configure a deployed URL or set this secret to run E2E tests."
+            exit 78
+          fi
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Run Playwright tests (CI)
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_GITHUB_REPO: ${{ secrets.E2E_GITHUB_REPO }}
+          E2E_PROJECT_ID: ${{ secrets.E2E_PROJECT_ID }}
+        run: pnpm run test:e2e:playwright:ci
