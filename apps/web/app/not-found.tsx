@@ -30,6 +30,7 @@ export default function NotFoundPage() {
               Go Home
             </Link>
             <button
+              aria-label="Go back to previous page"
               onClick={() => router.back()}
               className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
             >
