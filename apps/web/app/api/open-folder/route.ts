@@ -8,9 +8,13 @@ const BASE_ALLOWED_PATH = process.env.DXLANDER_PROJECTS_PATH || process.cwd();
 
 function isPathAllowed(targetPath: string) {
   try {
-    const resolvedBase = path.resolve(BASE_ALLOWED_PATH);
-    const resolvedTarget = path.resolve(targetPath);
-    return resolvedTarget.startsWith(resolvedBase);
+    const resolvedBase = fs.realpathSync(BASE_ALLOWED_PATH);
+    const resolvedTarget = fs.realpathSync(targetPath);
+    const relative = path.relative(
+      process.platform === 'win32' ? resolvedBase.toLowerCase() : resolvedBase,
+      process.platform === 'win32' ? resolvedTarget.toLowerCase() : resolvedTarget
+    );
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
   } catch (e) {
     return false;
   }
@@ -18,6 +22,10 @@ function isPathAllowed(targetPath: string) {
 
 export async function POST(req: NextRequest) {
   try {
+    if (process.env.NODE_ENV !== 'development') {
+      return NextResponse.json({ error: 'Endpoint disabled outside development' }, { status: 403 });
+    }
+
     const { path: target } = await req.json();
 
     if (!target || typeof target !== 'string') {
