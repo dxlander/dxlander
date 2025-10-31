@@ -5,6 +5,16 @@ import { useRouter } from 'next/navigation';
 
 export default function NotFoundPage() {
   const router = useRouter();
+  const handleBackClick = () => {
+    if (typeof window !== 'undefined') {
+      const historyLength = window.history.length;
+      if (!historyLength || historyLength <= 1) {
+        router.push('/');
+        return;
+      }
+    }
+    router.back();
+  };
 
   // ...Your getOceanFact function (keep if you need; skip to launch fast)
 
@@ -31,7 +41,7 @@ export default function NotFoundPage() {
             </Link>
             <button
               aria-label="Go back to previous page"
-              onClick={() => router.back()}
+              onClick={handleBackClick}
               className="rounded-lg border border-gray-300 bg-white px-6 py-3 text-base font-medium text-gray-700 shadow-sm transition-all hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
             >
               Go Back
