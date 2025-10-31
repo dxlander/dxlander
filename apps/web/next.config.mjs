@@ -7,7 +7,10 @@ const __dirname = path.dirname(__filename);
 
 const isWindows = process.platform === 'win32';
 
-/** @type {import('next').NextConfig} */
+/**
+ * Next.js configuration
+ * @type {import('next').NextConfig}
+ */
 const nextConfig = {
   // Disable standalone output on Windows to avoid symlink errors during build.
   // See: https://github.com/vercel/next.js/discussions/50133 (Windows symlink issues with standalone)
