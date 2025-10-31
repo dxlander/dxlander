@@ -25,9 +25,28 @@ import {
   Save,
   RefreshCw,
 } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 function DatabaseContent() {
   const [databaseType, setDatabaseType] = useState('sqlite');
+  const { data, isLoading } = trpc.settings.getDatabaseStats.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
+
+  function formatBytes(bytes: number) {
+    if (!bytes) return '0 B';
+    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  }
+
+  const fileSizeLabel = data ? formatBytes(data.fileSizeBytes) : '—';
+  const tablesCountLabel = data ? String(data.tablesCount) : '—';
+  const recordsLabel = data ? String(data.totalRecords) : '—';
+
+  // helper to get per-table count
+  const tableCount = (name: string) =>
+    data?.perTable.find((p: { name: string; count: number }) => p.name === name)?.count ?? 0;
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -74,10 +93,10 @@ function DatabaseContent() {
                         Healthy
                       </Badge>
                       <Badge variant="secondary" className="bg-gray-200 text-gray-700">
-                        2.4 MB
+                        {isLoading ? 'Loading...' : fileSizeLabel}
                       </Badge>
                       <Badge variant="secondary" className="bg-gray-200 text-gray-700">
-                        12 Projects
+                        {isLoading ? 'Loading...' : `${tableCount('projects')} Projects`}
                       </Badge>
                     </div>
                   </div>
@@ -100,7 +119,9 @@ function DatabaseContent() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Total Size</p>
-                    <p className="text-2xl font-bold text-gray-900">2.4 MB</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {isLoading ? '—' : fileSizeLabel}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -114,7 +135,9 @@ function DatabaseContent() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Tables</p>
-                    <p className="text-2xl font-bold text-gray-900">8</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {isLoading ? '—' : tablesCountLabel}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -128,7 +151,9 @@ function DatabaseContent() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Records</p>
-                    <p className="text-2xl font-bold text-gray-900">1,234</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {isLoading ? '—' : recordsLabel}
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -288,37 +313,55 @@ function DatabaseContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { name: 'Projects', count: 12, size: '1.2 MB', color: 'bg-blue-500' },
-                  { name: 'Configurations', count: 45, size: '680 KB', color: 'bg-purple-500' },
-                  { name: 'Integrations', count: 5, size: '240 KB', color: 'bg-green-500' },
-                  {
-                    name: 'Deployment Credentials',
-                    count: 8,
-                    size: '180 KB',
-                    color: 'bg-ocean-500',
-                  },
-                  { name: 'Analysis Results', count: 23, size: '120 KB', color: 'bg-amber-500' },
-                ].map((item, idx) => (
-                  <div key={idx} className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                        <span className="text-sm font-medium text-gray-900">{item.name}</span>
-                        <Badge variant="secondary" className="bg-gray-100 text-gray-600">
-                          {item.count} records
-                        </Badge>
+                {(
+                  [
+                    { label: 'Projects', table: 'projects', color: 'bg-blue-500' },
+                    { label: 'Configurations', table: 'config_files', color: 'bg-purple-500' },
+                    { label: 'Integrations', table: 'integrations', color: 'bg-green-500' },
+                    {
+                      label: 'Deployment Credentials',
+                      table: 'deployment_credentials',
+                      color: 'bg-ocean-500',
+                    },
+                    { label: 'Analysis Results', table: 'analysis_runs', color: 'bg-amber-500' },
+                  ] as Array<{ label: string; table: string; color: string }>
+                ).map((item, idx) => {
+                  const count = data ? tableCount(item.table) : undefined;
+                  const estimatedBytes =
+                    data && data.totalRecords > 0 && count !== undefined
+                      ? Math.round((count / Math.max(1, data.totalRecords)) * data.fileSizeBytes)
+                      : 0;
+                  const sizeLabel = data
+                    ? formatBytes(estimatedBytes)
+                    : item.label === 'Projects'
+                      ? '—'
+                      : '—';
+                  const pct =
+                    data && data.fileSizeBytes > 0
+                      ? (estimatedBytes / data.fileSizeBytes) * 100
+                      : 0;
+
+                  return (
+                    <div key={idx} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
+                          <span className="text-sm font-medium text-gray-900">{item.label}</span>
+                          <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                            {isLoading ? '—' : `${count ?? 0} records`}
+                          </Badge>
+                        </div>
+                        <span className="text-sm text-gray-600">{isLoading ? '—' : sizeLabel}</span>
                       </div>
-                      <span className="text-sm text-gray-600">{item.size}</span>
+                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full ${item.color}`}
+                          style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${item.color}`}
-                        style={{ width: `${(parseFloat(item.size) / 2.4) * 100}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

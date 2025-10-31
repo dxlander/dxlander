@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { router, protectedProcedure, encryptionService } from '@dxlander/shared';
-import { db, schema } from '@dxlander/database';
+import { db, schema, getDatabaseStats } from '@dxlander/database';
 import { eq, and } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
@@ -215,4 +215,23 @@ export const settingsRouter = router({
         throw new Error('Failed to delete AI provider');
       }
     }),
+
+  /**
+   * Get basic database statistics (file size, tables, record counts)
+   */
+  getDatabaseStats: protectedProcedure.query(async () => {
+    try {
+      const stats = await getDatabaseStats();
+      return stats;
+    } catch (error) {
+      console.error('Failed to fetch database stats:', error);
+      return {
+        dbPath: '',
+        fileSizeBytes: 0,
+        tablesCount: 0,
+        totalRecords: 0,
+        perTable: [],
+      };
+    }
+  }),
 });

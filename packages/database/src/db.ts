@@ -485,3 +485,71 @@ export async function markSetupComplete(): Promise<void> {
 }
 
 export default db;
+
+/**
+ * Return the absolute path to the SQLite database file used by the app
+ */
+export function getDatabaseFilePath(): string {
+  return dbPath;
+}
+
+/**
+ * Gather simple database statistics:
+ * - fileSizeBytes: size of the sqlite file on disk
+ * - tablesCount: number of user tables
+ * - totalRecords: sum of row counts across user tables
+ * - perTable: array of { name, count }
+ *
+ * This uses the same sqlite connection (better-sqlite3) and is intentionally
+ * synchronous/simple so it can be called from server code without extra
+ * dependencies.
+ */
+export async function getDatabaseStats(): Promise<{
+  dbPath: string;
+  fileSizeBytes: number;
+  tablesCount: number;
+  totalRecords: number;
+  perTable: Array<{ name: string; count: number }>;
+}> {
+  try {
+    const stats = fs.statSync(dbPath);
+    // Get user tables (exclude sqlite internal tables)
+    const tables = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+      .all() as Array<{ name: string }>;
+
+    let totalRecords = 0;
+    const perTable: Array<{ name: string; count: number }> = [];
+
+    for (const t of tables) {
+      try {
+        const row = sqlite.prepare(`SELECT COUNT(*) as cnt FROM "${t.name}";`).get() as
+          | { cnt: number }
+          | undefined;
+        const cnt = row?.cnt ?? 0;
+        totalRecords += cnt;
+        perTable.push({ name: t.name, count: cnt });
+      } catch (err) {
+        // If counting a table fails for any reason, skip it but continue
+        console.error('Failed to count rows for table', t.name, err);
+      }
+    }
+
+    return {
+      dbPath,
+      fileSizeBytes: stats.size,
+      tablesCount: tables.length,
+      totalRecords,
+      perTable,
+    };
+  } catch (error) {
+    console.error('Failed to collect database stats:', error);
+    return {
+      dbPath,
+      fileSizeBytes: 0,
+      tablesCount: 0,
+      totalRecords: 0,
+      perTable: [],
+    };
+  }
+}
