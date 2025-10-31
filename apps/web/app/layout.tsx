@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     other: [
       {
         rel: 'mask-icon',
-        url: '/android-chrome-maskable-512x512.png',
+        url: '/safari-pinned-tab.svg',
         color: '#0f172a',
       },
     ],
