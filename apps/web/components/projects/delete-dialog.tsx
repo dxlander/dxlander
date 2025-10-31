@@ -13,6 +13,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { formatDateTime } from '@dxlander/shared/utils';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
@@ -62,16 +63,7 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 
   const isDeleteDisabled = confirmText !== project.name || deleteProject.isPending;
 
-  const formatDate = (date: Date | string) => {
-    const d = typeof date === 'string' ? new Date(date) : date;
-    return new Intl.DateTimeFormat('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }).format(d);
-  };
+
 
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat().format(num);
@@ -110,7 +102,7 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
                   </p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-ocean-600">
-                  <span>Created {formatDate(project.createdAt)}</span>
+                  <span>Created {formatDateTime(project.createdAt)}</span>
                   <Badge
                     variant="secondary"
                     data-testid="project-status-badge"

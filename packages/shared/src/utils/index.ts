@@ -46,3 +46,12 @@ export function debounce<T extends (..._args: any[]) => any>(
     timeoutId = setTimeout(() => func(...args), delay);
   };
 }
+
+// Date formatting utilities
+export {
+  formatDate,
+  formatDateTime,
+  formatRelativeTime,
+  formatRelativeTimeFull,
+  type DateInput,
+} from './date';

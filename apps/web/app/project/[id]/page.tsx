@@ -28,6 +28,7 @@ import {
   FolderTree,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { formatRelativeTime, formatDate } from '@dxlander/shared/utils';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -135,19 +136,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
     return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
   };
 
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
 
   return (
     <PageLayout background="default">
@@ -310,7 +299,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900">Project imported</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {formatDate(project.createdAt)}
+                          {formatRelativeTime(project.createdAt)}
                         </p>
                       </div>
                     </div>
@@ -324,7 +313,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                             {config.type} configuration created
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(config.createdAt)}
+                            {formatRelativeTime(config.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -337,7 +326,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-gray-900">Project updated</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDate(project.updatedAt)}
+                            {formatRelativeTime(project.updatedAt)}
                           </p>
                         </div>
                       </div>
