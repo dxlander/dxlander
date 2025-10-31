@@ -81,6 +81,23 @@ DXLander is a **self-hosted platform** that lets you test and deploy any project
 - **Duplicate Detection**: SHA256 hashing prevents re-importing same project
 - **Real-time Dashboard**: Status-based filtering, search, and organization
 
+## Database Support
+
+DXLander supports two database options:
+
+### SQLite (Default)
+
+- Simple file-based database
+- No setup required
+- Perfect for development and small deployments
+- Automatically created on first run
+
+### PostgreSQL
+
+- Production-ready relational database
+- Better for multi-user environments
+- Requires PostgreSQL server
+
 ### AI-Powered Project Discovery
 
 - **Framework Detection**: Next.js, React, Vue, Python, Go, and more

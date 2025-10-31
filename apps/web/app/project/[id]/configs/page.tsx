@@ -1,33 +1,39 @@
 'use client';
 
-import { use } from 'react';
-import Link from 'next/link';
-import { PageLayout, Header, Section } from '@/components/layouts';
+import { DeleteConfigDialog } from '@/components/configuration/delete-dialog';
+import { Header, PageLayout, Section } from '@/components/layouts';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import {
-  ArrowLeft,
-  Plus,
-  FileCode,
-  Eye,
-  Pencil,
-  Rocket,
-  Download,
-  Copy,
-  Trash2,
-  Loader2,
-  AlertCircle,
-  CheckCircle2,
-} from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import type { ConfigSet } from '@dxlander/shared';
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  Copy,
+  Download,
+  Eye,
+  FileCode,
+  Loader2,
+  Pencil,
+  Plus,
+  Rocket,
+  Trash2,
+} from 'lucide-react';
+import Link from 'next/link';
+import { use, useState } from 'react';
+import { toast } from 'sonner';
 
+// Define types for our data
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
 export default function BuildConfigurationsPage({ params }: PageProps) {
   const resolvedParams = use(params);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedConfig, setSelectedConfig] = useState<ConfigSet | null>(null);
 
   const {
     data: project,
@@ -37,7 +43,11 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
     id: resolvedParams.id,
   });
 
-  const { data: configSets = [], isLoading: configsLoading } = trpc.configs.list.useQuery({
+  const {
+    data: configSets = [],
+    isLoading: configsLoading,
+    refetch: refetchConfigs,
+  } = trpc.configs.list.useQuery({
     projectId: resolvedParams.id,
   });
 
@@ -67,7 +77,8 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
               <p className="text-gray-600 mb-8">
-                The project you're looking for doesn't exist or you don't have access to it.
+                The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
+                to it.
               </p>
               <Link href="/dashboard">
                 <Button>
@@ -94,6 +105,17 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
     if (diffMins < 60) return `${diffMins}m ago`;
     if (diffHours < 24) return `${diffHours}h ago`;
     return `${diffDays}d ago`;
+  };
+
+  const handleDeleteClick = (config: ConfigSet) => {
+    setSelectedConfig(config);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteSuccess = () => {
+    // Refetch configurations after successful deletion
+    refetchConfigs();
+    toast.success('Configuration deleted successfully');
   };
 
   const headerActions = (
@@ -202,6 +224,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                           variant="ghost"
                           size="sm"
                           className="text-red-600 hover:text-red-700"
+                          onClick={() => handleDeleteClick(config)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -214,6 +237,16 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           )}
         </div>
       </Section>
+
+      {selectedConfig && project && (
+        <DeleteConfigDialog
+          config={selectedConfig}
+          project={project}
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          onSuccess={handleDeleteSuccess}
+        />
+      )}
     </PageLayout>
   );
 }

@@ -584,7 +584,7 @@ export default function DeploymentsPage() {
                   <h4 className="font-medium text-gray-900 mb-1">Automatic Encryption</h4>
                   <p className="text-sm text-gray-700">
                     All credentials are encrypted using AES-256-GCM with your master encryption key.
-                    They're securely stored and never exposed in plain text.
+                    They&apos;re securely stored and never exposed in plain text.
                   </p>
                 </div>
               </div>

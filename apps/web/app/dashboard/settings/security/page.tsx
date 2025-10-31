@@ -136,7 +136,7 @@ function SecurityContent() {
                     </Button>
                   </div>
                   <p className="text-xs text-gray-500">
-                    Keep this key safe. You'll need it to decrypt your data if you migrate to
+                    Keep this key safe. You&apos;ll need it to decrypt your data if you migrate to
                     another instance.
                   </p>
                 </div>

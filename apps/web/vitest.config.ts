@@ -5,7 +5,10 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['../../tests/setup.ts'],
-    include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
+    include: [
+      'tests/**/*.{test,spec}.{js,ts,tsx}',
+      '../../tests/unit/apps/web/**/*.{test,spec}.{js,ts,tsx}',
+    ],
     exclude: ['node_modules', 'dist', '.next', '**/*.d.ts'],
     testTimeout: 30000,
     hookTimeout: 30000,

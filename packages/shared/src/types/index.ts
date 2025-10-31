@@ -86,6 +86,9 @@ export const DeploymentSchema = z.object({
 });
 export type Deployment = z.infer<typeof DeploymentSchema>;
 
+// Configuration types
+export type { ConfigSet } from './config';
+
 // API types
 export const ApiErrorSchema = z.object({
   message: z.string(),
