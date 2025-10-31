@@ -54,10 +54,22 @@ Setup creates the following directory structure:
 
 ```
 ~/.dxlander/
-├── data/dxlander.db       # SQLite database
-├── encryption.key         # Master encryption key
-└── projects/              # Project storage
+├── data/
+│   └── dxlander.db           # SQLite database
+├── encryption.key            # Master encryption key
+└── projects/                 # Project storage
+    └── {projectId}/          # Individual project directory
+        ├── files/            # Imported source code
+        └── configs/          # Generated configurations
+            └── {configId}/   # Individual config set
 ```
+
+**Project Organization:**
+
+- Each imported project gets its own directory under `~/.dxlander/projects/{projectId}/`
+- Source files are stored in the `/files` subdirectory
+- Generated deployment configs are stored in the `/configs` subdirectory
+- This structure is consistent across all import methods (GitHub, GitLab, Bitbucket, ZIP)
 
 ## Development Workflow
 
@@ -166,7 +178,9 @@ dxlander/
 DXLander works out of the box with sensible defaults:
 
 - **Database:** SQLite at `~/.dxlander/data/dxlander.db`
-- **Storage:** Files at `~/.dxlander/projects/`
+- **Storage:** Projects at `~/.dxlander/projects/{projectId}/`
+  - Source files in `{projectId}/files/`
+  - Generated configs in `{projectId}/configs/`
 - **Encryption:** Auto-generated key at `~/.dxlander/encryption.key`
 
 ### Custom Encryption Key

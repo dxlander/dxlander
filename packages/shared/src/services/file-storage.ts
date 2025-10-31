@@ -136,52 +136,70 @@ export function countFiles(dirPath: string): number {
 /**
  * Save project files to disk
  * Returns: { filesCount, totalSize, localPath }
+ *
+ * IMPORTANT: Files are saved to ~/.dxlander/projects/{projectId}/files/
+ * This ensures separation from configs directory.
  */
 export interface SaveProjectResult {
   filesCount: number;
   totalSize: number;
+  /** Path to project root directory (not files directory) */
   localPath: string;
 }
 
 export function saveProjectFiles(projectId: string, files: Map<string, string>): SaveProjectResult {
-  const projectDir = getProjectDir(projectId);
+  // Get project directories
+  const projectRoot = getProjectDir(projectId);
+  const filesDir = getProjectFilesDir(projectId);
 
-  // Ensure project directory exists
-  ensureDir(projectDir);
+  // Ensure both project root and files directory exist
+  ensureDir(projectRoot);
+  ensureDir(filesDir);
 
-  // Write all files
+  // Write all files to the /files subdirectory
   let filesWritten = 0;
   for (const [filePath, content] of files.entries()) {
-    const fullPath = path.join(projectDir, filePath);
+    const fullPath = path.join(filesDir, filePath);
     writeFile(fullPath, content);
     filesWritten++;
   }
 
-  // Calculate total size
-  const totalSize = getDirSize(projectDir);
+  // Calculate total size of files directory
+  const totalSize = getDirSize(filesDir);
 
   return {
     filesCount: filesWritten,
     totalSize,
-    localPath: projectDir,
+    localPath: projectRoot, // Return project root, not files dir
   };
 }
 
 /**
  * Move a temporary extracted project into permanent storage and return file statistics.
+ *
+ * IMPORTANT: Files are moved to ~/.dxlander/projects/{projectId}/files/
+ * This ensures separation from configs directory and consistency across all import sources.
  */
 export function persistTempProjectDirectory(
   projectId: string,
   tempExtractPath: string
 ): SaveProjectResult {
-  const permanentDir = getProjectDir(projectId);
-  ensureDir(permanentDir);
+  // Get project directories
+  const projectRoot = getProjectDir(projectId);
+  const filesDir = getProjectFilesDir(projectId);
 
-  fs.cpSync(tempExtractPath, permanentDir, { recursive: true, force: true });
+  // Ensure both project root and files directory exist
+  ensureDir(projectRoot);
+  ensureDir(filesDir);
 
-  const filesCount = countFiles(permanentDir);
-  const totalSize = getDirSize(permanentDir);
+  // Copy extracted files to the /files subdirectory
+  fs.cpSync(tempExtractPath, filesDir, { recursive: true, force: true });
 
+  // Calculate stats from files directory
+  const filesCount = countFiles(filesDir);
+  const totalSize = getDirSize(filesDir);
+
+  // Cleanup temp directory
   const tempRoot = path.dirname(tempExtractPath);
   try {
     fs.rmSync(tempRoot, { recursive: true, force: true });
@@ -193,7 +211,7 @@ export function persistTempProjectDirectory(
   return {
     filesCount,
     totalSize,
-    localPath: permanentDir,
+    localPath: projectRoot, // Return project root, not files dir
   };
 }
 

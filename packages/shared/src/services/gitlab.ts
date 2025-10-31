@@ -1,4 +1,5 @@
 import { Gitlab } from '@gitbeaker/rest';
+import axios from 'axios';
 
 export interface GitLabConfig {
   url?: string; // For self-hosted instances
@@ -85,9 +86,18 @@ export class GitLabService {
 
   async validateToken(): Promise<boolean> {
     try {
-      await this.client.Users.current();
-      return true;
-    } catch {
+      const host = this.client.options.host || 'https://gitlab.com';
+      const token = this.client.options.token;
+
+      const response = await axios.get(`${host}/api/v4/user`, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+        },
+      });
+
+      return response.status === 200;
+    } catch (error) {
+      console.error('GitLab token validation failed with axios:', error);
       return false;
     }
   }

@@ -12,6 +12,7 @@ import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
   getConfigDir,
+  ProjectStructureManager,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
 
@@ -83,6 +84,11 @@ export class ConfigGenerationService {
 
       // Use helper function to get config directory
       const configPath = getConfigDir(projectId, configSetId);
+
+      // Validate that config path is in the correct location (safety check)
+      if (!ProjectStructureManager.isValidConfigPath(projectId, configPath)) {
+        throw new Error('Invalid config path detected. Configs must be in the configs directory.');
+      }
 
       // Ensure config directory exists
       await fs.mkdir(configPath, { recursive: true });
