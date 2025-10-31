@@ -5,7 +5,6 @@ export * from './trpc';
 export * from './services/github';
 export * from './services/project';
 export * from './services/file-storage';
-export * from './services/project-structure';
 export * from './services/zip-upload';
 export * from './services/encryption';
 export * from './services/encryption-key-manager';

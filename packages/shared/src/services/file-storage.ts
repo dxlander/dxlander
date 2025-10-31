@@ -222,3 +222,53 @@ export function deleteProjectFiles(projectId: string): void {
   const projectDir = getProjectDir(projectId);
   deleteDir(projectDir);
 }
+
+/**
+ * Validate that a path is within the project files directory
+ * Prevents accidental writes to configs or other directories
+ *
+ * @param projectId - Unique project identifier
+ * @param targetPath - Path to validate
+ * @returns true if path is valid for file operations
+ */
+export function isValidFilePath(projectId: string, targetPath: string): boolean {
+  const filesDir = getProjectFilesDir(projectId);
+  const normalizedTarget = path.normalize(targetPath);
+  const normalizedFilesDir = path.normalize(filesDir);
+
+  // Path must be inside the files directory
+  return normalizedTarget.startsWith(normalizedFilesDir);
+}
+
+/**
+ * Validate that a path is within the project configs directory
+ * Prevents accidental writes to files or other directories
+ *
+ * @param projectId - Unique project identifier
+ * @param targetPath - Path to validate
+ * @returns true if path is valid for config operations
+ */
+export function isValidConfigPath(projectId: string, targetPath: string): boolean {
+  const configsDir = getProjectConfigsDir(projectId);
+  const normalizedTarget = path.normalize(targetPath);
+  const normalizedConfigsDir = path.normalize(configsDir);
+
+  // Path must be inside the configs directory
+  return normalizedTarget.startsWith(normalizedConfigsDir);
+}
+
+/**
+ * Initialize project directory structure
+ * Creates: {projectId}/, {projectId}/files/, {projectId}/configs/
+ *
+ * @param projectId - Unique project identifier
+ */
+export function initializeProjectStructure(projectId: string): void {
+  const projectRoot = getProjectDir(projectId);
+  const filesDir = getProjectFilesDir(projectId);
+  const configsDir = getProjectConfigsDir(projectId);
+
+  ensureDir(projectRoot);
+  ensureDir(filesDir);
+  ensureDir(configsDir);
+}

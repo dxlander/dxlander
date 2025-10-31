@@ -12,7 +12,7 @@ import {
   saveProjectFiles,
   deleteProjectFiles,
   persistTempProjectDirectory,
-  ProjectStructureManager,
+  initializeProjectStructure,
 } from '@dxlander/shared';
 import { db, schema } from '@dxlander/database';
 import { eq, and, desc, inArray } from 'drizzle-orm';
@@ -151,7 +151,7 @@ export const projectsRouter = router({
         sourceBranch = repoInfo.branch;
 
         // Initialize project structure (creates /files and /configs directories)
-        ProjectStructureManager.initializeProjectStructure(projectId);
+        initializeProjectStructure(projectId);
 
         // Save files to {projectId}/files/ directory
         const { filesCount, totalSize, localPath } = saveProjectFiles(projectId, files);
@@ -237,7 +237,7 @@ export const projectsRouter = router({
           throw new Error(`This repository is already imported as "${existingProject.name}"`);
 
         // Initialize project structure (creates /files and /configs directories)
-        ProjectStructureManager.initializeProjectStructure(projectId);
+        initializeProjectStructure(projectId);
 
         // Move extracted temp directory to permanent project storage and compute stats
         let filesCount = 0;
