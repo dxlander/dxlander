@@ -64,8 +64,8 @@ describe('Date Utilities', () => {
       expect(formatRelativeTime(date)).toBe('2d ago');
     });
   });
-});  de
-scribe('formatRelativeTimeFull', () => {
+
+  describe('formatRelativeTimeFull', () => {
     it('should return "Just now" for very recent dates', () => {
       const date = new Date('2024-01-15T11:59:30Z'); // 30 seconds ago
       expect(formatRelativeTimeFull(date)).toBe('Just now');
