@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { trpc } from '@/lib/trpc';
 import {
+  type LucideIcon,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -15,10 +16,38 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
+type DatabaseType = 'sqlite' | 'postgresql';
+type AIProvider = 'openai' | 'anthropic' | 'google' | 'azure';
+
+type FormState = {
+  dbType: DatabaseType;
+  dbPath: string;
+  pgHost: string;
+  pgPort: string;
+  pgDatabase: string;
+  pgUser: string;
+  pgPassword: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminConfirmPassword: string;
+  aiEnabled: boolean;
+  aiProvider: AIProvider;
+  aiApiKey: string;
+};
+
+type FormField = keyof FormState;
+type FormErrors = Partial<Record<FormField | 'submit', string>>;
+
+type StepConfig = {
+  id: number;
+  title: string;
+  icon: LucideIcon;
+};
+
 export default function SetupPage() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [formData, setFormData] = useState({
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [formData, setFormData] = useState<FormState>({
     dbType: 'sqlite',
     dbPath: './dxlander.db',
     pgHost: 'localhost',
@@ -33,18 +62,18 @@ export default function SetupPage() {
     aiProvider: 'openai',
     aiApiKey: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
-  const clearSubmitError = () => {
+  const clearSubmitError = (): void => {
     setErrors((prev) => {
       if (!prev.submit) return prev;
       const { submit: _submit, ...rest } = prev;
-      return rest;
+      return rest as FormErrors;
     });
   };
 
-  const clearSensitiveFields = () => {
+  const clearSensitiveFields = (): void => {
     setFormData((prev) => ({
       ...prev,
       pgPassword: '',
@@ -69,7 +98,7 @@ export default function SetupPage() {
     },
   });
 
-  const steps = [
+  const steps: StepConfig[] = [
     { id: 0, title: 'Welcome', icon: Rocket },
     { id: 1, title: 'Database', icon: Database },
     { id: 2, title: 'Admin Account', icon: User },
@@ -78,17 +107,16 @@ export default function SetupPage() {
     { id: 5, title: 'Complete', icon: CheckCircle2 },
   ];
 
-  const handleChange = (field: string, value: string | boolean) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+  const handleChange = <K extends FormField>(field: K, value: FormState[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }) as FormState);
     if (errors[field]) {
-      const newErrors = { ...errors };
-      delete newErrors[field];
-      setErrors(newErrors);
+      const { [field]: _removed, ...rest } = errors;
+      setErrors(rest as FormErrors);
     }
   };
 
-  const validateStep = (step: number) => {
-    const newErrors: Record<string, string> = {};
+  const validateStep = (step: number): boolean => {
+    const newErrors: FormErrors = {};
 
     if (step === 1) {
       if (formData.dbType === 'postgresql') {
@@ -152,7 +180,7 @@ export default function SetupPage() {
     setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const handleUseDefaults = async () => {
+  const handleUseDefaults = async (): Promise<void> => {
     clearSubmitError();
     setLoading(true);
     try {
@@ -169,7 +197,7 @@ export default function SetupPage() {
     }
   };
 
-  const handleComplete = async () => {
+  const handleComplete = async (): Promise<void> => {
     if (!validateStep(currentStep)) return;
     clearSubmitError();
     setLoading(true);
@@ -192,7 +220,7 @@ export default function SetupPage() {
     }
   };
 
-  const renderStepContent = () => {
+  const renderStepContent = (): React.ReactNode => {
     switch (currentStep) {
       case 0:
         return (
@@ -466,7 +494,7 @@ export default function SetupPage() {
                     </label>
                     <select
                       value={formData.aiProvider}
-                      onChange={(e) => handleChange('aiProvider', e.target.value)}
+                      onChange={(e) => handleChange('aiProvider', e.target.value as AIProvider)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
