@@ -1,6 +1,8 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 
+// NOTE: This is the authoritative Next.js config file (using .mjs for ESM compatibility).
+// The previous next.config.ts was converted to .mjs to avoid TypeScript type-checking issues in CI.
 // __dirname is not defined in ESM; derive it from import.meta.url
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
