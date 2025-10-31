@@ -12,6 +12,7 @@ import {
   saveProjectFiles,
   deleteProjectFiles,
   persistTempProjectDirectory,
+  initializeProjectStructure,
 } from '@dxlander/shared';
 import { db, schema } from '@dxlander/database';
 import { eq, and, desc, inArray } from 'drizzle-orm';
@@ -42,9 +43,15 @@ const ImportProjectSchema = z.discriminatedUnion('sourceType', [
   }),
   z.object({
     sourceType: z.literal('gitlab'),
-    gitlabUrl: z.string().url().optional(),
-    gitlabToken: z.string(),
-    gitlabProject: z.string(),
+    gitlabUrl: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== '' ? val : undefined))
+      .refine((val) => !val || z.string().url().safeParse(val).success, {
+        message: 'Invalid URL format',
+      }),
+    gitlabToken: z.string().min(1, 'GitLab token is required'),
+    gitlabProject: z.string().min(1, 'GitLab project ID is required'),
     gitlabBranch: z.string().optional(),
     projectName: z.string().optional(),
   }),
@@ -142,6 +149,11 @@ export const projectsRouter = router({
         const projectId = randomUUID();
         sourceUrl = `https://github.com/${parsed.owner}/${parsed.repo}`;
         sourceBranch = repoInfo.branch;
+
+        // Initialize project structure (creates /files and /configs directories)
+        initializeProjectStructure(projectId);
+
+        // Save files to {projectId}/files/ directory
         const { filesCount, totalSize, localPath } = saveProjectFiles(projectId, files);
 
         const projectData = {
@@ -224,11 +236,15 @@ export const projectsRouter = router({
         if (existingProject)
           throw new Error(`This repository is already imported as "${existingProject.name}"`);
 
+        // Initialize project structure (creates /files and /configs directories)
+        initializeProjectStructure(projectId);
+
         // Move extracted temp directory to permanent project storage and compute stats
         let filesCount = 0;
         let totalSize = 0;
         let localPath: string | undefined;
         if (projectPath) {
+          // Persist to {projectId}/files/ directory
           const persisted = persistTempProjectDirectory(projectId, projectPath);
           filesCount = persisted.filesCount;
           totalSize = persisted.totalSize;

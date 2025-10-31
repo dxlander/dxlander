@@ -1,4 +1,5 @@
 import { Gitlab } from '@gitbeaker/rest';
+import axios from 'axios';
 
 export interface GitLabConfig {
   url?: string; // For self-hosted instances
@@ -22,8 +23,10 @@ export class GitLabService {
   // NOTE: Using 'any' due to complex @gitbeaker/rest types that don't match runtime API
   // TODO: Investigate proper typing for Gitlab client
   private client: any;
+  private config: GitLabConfig;
 
   constructor(config: GitLabConfig) {
+    this.config = config;
     this.client = new Gitlab({
       host: config.url || 'https://gitlab.com',
       token: config.token,
@@ -54,8 +57,19 @@ export class GitLabService {
     outputPath: string
   ): Promise<string> {
     try {
-      const archiveBuffer = await this.client.Projects.downloadArchive(projectId, {
-        sha: branch,
+      const host = this.config.url || 'https://gitlab.com';
+      const token = this.config.token;
+
+      // Encode project ID for URL (e.g., "namespace/project" -> "namespace%2Fproject")
+      const encodedProjectId = encodeURIComponent(projectId);
+      const archiveUrl = `${host}/api/v4/projects/${encodedProjectId}/repository/archive.tar.gz?sha=${branch}`;
+
+      // Download archive using axios
+      const response = await axios.get(archiveUrl, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+        },
+        responseType: 'arraybuffer',
       });
 
       const fs = await import('fs');
@@ -66,7 +80,7 @@ export class GitLabService {
       const sanitizedBranch = branch.replace(/[/\\:*?"<>|]/g, '_');
       const archivePath = path.join(outputPath, `${sanitizedProjectId}-${sanitizedBranch}.tar.gz`);
 
-      fs.writeFileSync(archivePath, archiveBuffer);
+      fs.writeFileSync(archivePath, Buffer.from(response.data));
 
       return archivePath;
     } catch (error: any) {
@@ -85,9 +99,18 @@ export class GitLabService {
 
   async validateToken(): Promise<boolean> {
     try {
-      await this.client.Users.current();
-      return true;
-    } catch {
+      const host = this.config.url || 'https://gitlab.com';
+      const token = this.config.token;
+
+      const response = await axios.get(`${host}/api/v4/user`, {
+        headers: {
+          'PRIVATE-TOKEN': token,
+        },
+      });
+
+      return response.status === 200;
+    } catch (error) {
+      console.error('GitLab token validation failed with axios:', error);
       return false;
     }
   }
