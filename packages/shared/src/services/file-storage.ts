@@ -168,6 +168,36 @@ export function saveProjectFiles(projectId: string, files: Map<string, string>):
 }
 
 /**
+ * Move a temporary extracted project into permanent storage and return file statistics.
+ */
+export function persistTempProjectDirectory(
+  projectId: string,
+  tempExtractPath: string
+): SaveProjectResult {
+  const permanentDir = getProjectDir(projectId);
+  ensureDir(permanentDir);
+
+  fs.cpSync(tempExtractPath, permanentDir, { recursive: true, force: true });
+
+  const filesCount = countFiles(permanentDir);
+  const totalSize = getDirSize(permanentDir);
+
+  const tempRoot = path.dirname(tempExtractPath);
+  try {
+    fs.rmSync(tempRoot, { recursive: true, force: true });
+  } catch (error) {
+    // Best effort cleanup, ignore failures.
+    void error;
+  }
+
+  return {
+    filesCount,
+    totalSize,
+    localPath: permanentDir,
+  };
+}
+
+/**
  * Delete project files
  */
 export function deleteProjectFiles(projectId: string): void {

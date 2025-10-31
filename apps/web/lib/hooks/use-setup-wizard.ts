@@ -32,7 +32,7 @@ export function useSetupWizard({
 
   // Update configuration field
   const updateConfig = useCallback(
-    (key: keyof SetupConfig, value: any) => {
+    <K extends keyof SetupConfig>(key: K, value: SetupConfig[K]) => {
       setConfig((prev) => ({ ...prev, [key]: value }));
 
       // Clear related errors when field is updated

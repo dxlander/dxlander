@@ -12,3 +12,11 @@ export * from './services/encryption-init';
 export * from './services/ai/types';
 export * from './services/ai/prompts';
 export * from './services/ai/providers/claude-agent';
+// GitLab and Bitbucket services
+export { GitLabService, type GitLabConfig, type GitLabRepoInfo } from './services/gitlab';
+export {
+  BitbucketService,
+  type BitbucketConfig,
+  type BitbucketRepoInfo,
+} from './services/bitbucket';
+export { importFromGitLab, importFromBitbucket } from './services/project';

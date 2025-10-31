@@ -8,12 +8,17 @@ const __dirname = path.dirname(__filename);
 
 const isWindows = process.platform === 'win32';
 
+const isWindows = process.platform === 'win32';
+
 const nextConfig: NextConfig = {
   // Disable standalone output on Windows to avoid symlink errors during build.
   // See: https://github.com/vercel/next.js/discussions/50133 (Windows symlink issues with standalone)
   ...(isWindows ? {} : { output: 'standalone' }),
   // Set monorepo root to silence tracing root warnings
   outputFileTracingRoot: path.resolve(__dirname, '../../'),
+  // Next standalone output attempts to create symlinks, which fails on Windows without admin rights.
+  // Keep standalone for CI/Unix builds but fall back locally on Windows so `pnpm run build` succeeds.
+  ...(isWindows ? {} : { output: 'standalone' }),
   typescript: {
     // Temporarily ignore type errors for alpha build
     // TODO: Fix workspace package resolution for production builds

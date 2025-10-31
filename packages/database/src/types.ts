@@ -1,3 +1,35 @@
+// Database configuration types
+export type DatabaseType = 'sqlite' | 'postgresql';
+
+export interface SqliteConfig {
+  type: 'sqlite';
+  filename: string;
+}
+
+export interface PostgresConfig {
+  type: 'postgresql';
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+  // Flexible SSL config: boolean or object
+  ssl?:
+    | boolean
+    | {
+        rejectUnauthorized?: boolean;
+        ca?: string;
+        cert?: string;
+        key?: string;
+      };
+  // NEW: Optional pool parameters
+  max?: number;
+  idleTimeoutMillis?: number;
+  connectionTimeoutMillis?: number;
+}
+
+export type DatabaseConfig = SqliteConfig | PostgresConfig;
+
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { users, projects, deployments, settings } from './schema';
 

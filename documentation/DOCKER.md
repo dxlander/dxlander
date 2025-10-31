@@ -66,13 +66,13 @@ docker run -d \
 
 ### Environment Variables
 
-| Variable                  | Default          | Description           |
-| ------------------------- | ---------------- | --------------------- |
-| `NODE_ENV`                | `production`     | Node environment      |
-| `PORT`                    | `3000`           | Web UI port           |
-| `API_PORT`                | `3001`           | API server port       |
-| `DXLANDER_HOME`           | `/app/.dxlander` | Data directory        |
-| `DXLANDER_ENCRYPTION_KEY` | Auto-generated   | Master encryption key |
+| Variable                  | Default          | Description                              |
+| ------------------------- | ---------------- | ---------------------------------------- |
+| `NODE_ENV`                | `production`     | Node environment                         |
+| `PORT`                    | `3000`           | Web UI port                              |
+| `API_PORT`                | `3001`           | API server port                          |
+| `DXLANDER_HOME`           | `/app/.dxlander` | Data directory                           |
+| `DXLANDER_ENCRYPTION_KEY` | Auto-generated   | Master encryption key (44+ chars base64) |
 
 ### Volume Mounts
 
@@ -112,11 +112,13 @@ docker run -d \
 
 ### Using Custom Encryption Key
 
-```bash
-# Generate a secure key
-ENCRYPTION_KEY=$(openssl rand -hex 32)
+For production deployments, you can provide a custom encryption key via the `DXLANDER_ENCRYPTION_KEY` environment variable instead of relying on the auto-generated key file.
 
-# Run with custom key
+```bash
+# Generate a secure 44+ character base64 key (32 raw bytes encoded in base64 produce 44 characters)
+ENCRYPTION_KEY=$(openssl rand -base64 32)
+
+# Run with custom key (no key file will be generated)
 docker run -d \
   -p 3000:3000 \
   -p 3001:3001 \
@@ -124,6 +126,19 @@ docker run -d \
   -v dxlander-data:/app/.dxlander \
   ghcr.io/dxlander/dxlander:latest
 ```
+
+**Benefits of using DXLANDER_ENCRYPTION_KEY:**
+
+- Works better in distributed deployments where multiple instances need to share the same key
+- More suitable for container environments where file-based keys don't persist well
+- Complies with organizational security requirements that mandate external key management
+- Simplifies backup/restore scenarios by ensuring the same key is used across environments
+
+**Security Requirements:**
+
+- The key must be at least 44 characters long (32 raw bytes encoded in base64)
+- Keep the key secure and backed up
+- For maximum security, use Docker secrets or Kubernetes secrets to manage the key
 
 ### Health Checks
 
@@ -324,7 +339,7 @@ This ensures:
 ## Security Notes
 
 - Container runs as non-root user `dxlander` (UID 1001)
-- Encryption key auto-generated on first run
+- Encryption key auto-generated on first run (44+ character base64 minimum enforced)
 - For production, set `DXLANDER_ENCRYPTION_KEY` explicitly
 - Use Docker secrets for sensitive environment variables
 - Keep volumes backed up regularly

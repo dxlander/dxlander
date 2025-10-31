@@ -57,7 +57,7 @@
     "pnpm-lock.yaml"
   ],
   "scripts": {
-    "dev": "concurrently \"pnpm run dev:api\" \"pnpm run dev:web\"",
+    "dev": "concurrently --raw \"pnpm run dev:api\" \"pnpm run dev:web\"",
     "dev:web": "pnpm --filter @dxlander/web run dev",
     "dev:api": "pnpm --filter @dxlander/api run dev",
     "build": "pnpm run build:packages && pnpm run build:api && pnpm run build:web",
@@ -73,6 +73,8 @@
     "test:unit": "vitest tests/unit",
     "test:integration": "vitest tests/integration",
     "test:e2e": "vitest tests/e2e",
+    "test:e2e:playwright": "playwright test --config=tests/e2e/playwright.config.ts",
+    "test:e2e:playwright:ci": "playwright install --with-deps && playwright test --config=tests/e2e/playwright.config.ts --reporter=github",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,md}\"",
@@ -102,7 +104,7 @@
     "@typescript-eslint/eslint-plugin": "^7.0.0",
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/ui": "^1.6.1",
-    "concurrently": "^8.2.2",
+    "concurrently": "^9.2.1",
     "esbuild": "^0.19.12",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^9.1.0",
@@ -110,13 +112,15 @@
     "lint-staged": "^15.2.0",
     "prettier": "^3.2.5",
     "typescript": "^5.4.0",
-    "vitest": "^1.6.1"
+    "vitest": "^1.6.1",
+    "@playwright/test": "^1.43.0",
+    "@types/node": "^20.11.30"
   },
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=8.0.0"
   },
-  "packageManager": "pnpm@8.15.0",
+  "packageManager": "pnpm@8.15.1",
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "eslint --fix",
@@ -127,6 +131,9 @@
     ]
   },
   "dependencies": {
-    "@anthropic-ai/claude-agent-sdk": "^0.1.14"
+    "@anthropic-ai/claude-agent-sdk": "^0.1.14",
+    "@gitbeaker/rest": "^43.7.0",
+    "simple-git": "^3.28.0",
+    "tar": "^7.5.1"
   }
 }
