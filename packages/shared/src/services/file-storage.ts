@@ -250,37 +250,33 @@ export function deleteProjectFiles(projectId: string): void {
 }
 
 /**
- * Validate that a path is within the project files directory
- * Prevents accidental writes to configs or other directories
+ * SECURITY: Validate that a path is within the project files directory
+ * Prevents path traversal attacks and accidental writes to configs or other directories
  *
  * @param projectId - Unique project identifier
- * @param targetPath - Path to validate
- * @returns true if path is valid for file operations
+ * @param targetPath - Path to validate (can be relative or absolute)
+ * @returns true if path is safely inside the files directory
  */
 export function isValidFilePath(projectId: string, targetPath: string): boolean {
   const filesDir = getProjectFilesDir(projectId);
-  const normalizedTarget = path.normalize(targetPath);
-  const normalizedFilesDir = path.normalize(filesDir);
 
-  // Path must be inside the files directory
-  return normalizedTarget.startsWith(normalizedFilesDir);
+  // Use secure path validation to prevent directory traversal
+  return isPathSafe(filesDir, targetPath);
 }
 
 /**
- * Validate that a path is within the project configs directory
- * Prevents accidental writes to files or other directories
+ * SECURITY: Validate that a path is within the project configs directory
+ * Prevents path traversal attacks and accidental writes to files or other directories
  *
  * @param projectId - Unique project identifier
- * @param targetPath - Path to validate
- * @returns true if path is valid for config operations
+ * @param targetPath - Path to validate (can be relative or absolute)
+ * @returns true if path is safely inside the configs directory
  */
 export function isValidConfigPath(projectId: string, targetPath: string): boolean {
   const configsDir = getProjectConfigsDir(projectId);
-  const normalizedTarget = path.normalize(targetPath);
-  const normalizedConfigsDir = path.normalize(configsDir);
 
-  // Path must be inside the configs directory
-  return normalizedTarget.startsWith(normalizedConfigsDir);
+  // Use secure path validation to prevent directory traversal
+  return isPathSafe(configsDir, targetPath);
 }
 
 /**

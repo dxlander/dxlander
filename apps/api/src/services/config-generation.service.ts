@@ -12,7 +12,7 @@ import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
   getConfigDir,
-  isValidConfigPath,
+  getProjectConfigsDir,
   isPathSafe,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
@@ -86,8 +86,10 @@ export class ConfigGenerationService {
       // Use helper function to get config directory
       const configPath = getConfigDir(projectId, configSetId);
 
-      // Validate that config path is in the correct location (safety check)
-      if (!isValidConfigPath(projectId, configPath)) {
+      // SECURITY: Validate that config path is in the correct location
+      // This prevents path traversal attacks where configPath might escape the configs directory
+      const configsDir = getProjectConfigsDir(projectId);
+      if (!isPathSafe(configsDir, configPath)) {
         throw new Error('Invalid config path detected. Configs must be in the configs directory.');
       }
 
