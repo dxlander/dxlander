@@ -55,6 +55,27 @@ export function getConfigDir(projectId: string, configId: string): string {
 }
 
 /**
+ * Validate that a target path is safely within a base directory.
+ * Prevents path traversal attacks by using absolute path resolution.
+ *
+ * @param baseDir - The base directory that should contain the target
+ * @param targetPath - The path to validate (relative or absolute)
+ * @returns true if target is safely within baseDir, false otherwise
+ */
+export function isPathSafe(baseDir: string, targetPath: string): boolean {
+  // Resolve both paths to absolute paths
+  const resolvedBase = path.resolve(baseDir);
+  const resolvedTarget = path.resolve(baseDir, targetPath);
+
+  // Append path separator to base to prevent prefix false positives
+  // E.g., /app vs /app-other
+  const baseDirWithSep = resolvedBase + path.sep;
+
+  // Check if target is strictly inside base directory or equals it
+  return resolvedTarget === resolvedBase || resolvedTarget.startsWith(baseDirWithSep);
+}
+
+/**
  * Ensure directory exists, create if not
  */
 export function ensureDir(dirPath: string): void {
@@ -156,9 +177,14 @@ export function saveProjectFiles(projectId: string, files: Map<string, string>):
   ensureDir(projectRoot);
   ensureDir(filesDir);
 
-  // Write all files to the /files subdirectory
+  // Write all files to the /files subdirectory with path validation
   let filesWritten = 0;
   for (const [filePath, content] of files.entries()) {
+    // Security: Validate path to prevent traversal attacks
+    if (!isPathSafe(filesDir, filePath)) {
+      throw new Error(`Invalid file path: ${filePath} (path traversal detected)`);
+    }
+
     const fullPath = path.join(filesDir, filePath);
     writeFile(fullPath, content);
     filesWritten++;

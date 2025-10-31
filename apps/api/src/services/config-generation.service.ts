@@ -13,6 +13,7 @@ import {
   type DeploymentConfigResult,
   getConfigDir,
   isValidConfigPath,
+  isPathSafe,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
 
@@ -235,6 +236,15 @@ export class ConfigGenerationService {
 
           const fileExtension = fileName.split('.').pop() || 'txt';
           const fileType = fileExtension || 'text';
+
+          // Security: Validate path to prevent traversal attacks
+          if (!isPathSafe(configSet.localPath, fileName)) {
+            await this.logConfigActivity(configSetId, 'read_file', 'failed', fileName, {
+              error: 'Path traversal detected',
+            });
+            console.warn(`[Security] Blocked suspicious path: ${fileName}`);
+            continue;
+          }
 
           // Read file content from disk (AI wrote it in config folder)
           const filePath = path.join(configSet.localPath, fileName);
