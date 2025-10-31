@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { trpc } from '@/lib/trpc';
 import {
   CheckCircle2,
   ChevronLeft,
@@ -14,6 +16,7 @@ import {
 } from 'lucide-react';
 
 export default function SetupPage() {
+  const router = useRouter();
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     dbType: 'sqlite',
@@ -32,6 +35,39 @@ export default function SetupPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  const clearSubmitError = () => {
+    setErrors((prev) => {
+      if (!prev.submit) return prev;
+      const { submit: _submit, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const clearSensitiveFields = () => {
+    setFormData((prev) => ({
+      ...prev,
+      pgPassword: '',
+      adminPassword: '',
+      adminConfirmPassword: '',
+      aiApiKey: '',
+    }));
+  };
+
+  const setupMutation = trpc.setup.completeSetup.useMutation({
+    onSuccess: (data) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dxlander-token', data.token);
+        document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+      }
+      clearSensitiveFields();
+      clearSubmitError();
+      setCurrentStep(5);
+    },
+    onError: (error) => {
+      setErrors((prev) => ({ ...prev, submit: error.message }));
+    },
+  });
 
   const steps = [
     { id: 0, title: 'Welcome', icon: Rocket },
@@ -57,10 +93,24 @@ export default function SetupPage() {
     if (step === 1) {
       if (formData.dbType === 'postgresql') {
         if (!formData.pgHost) newErrors.pgHost = 'Host is required';
-        if (!formData.pgPort) newErrors.pgPort = 'Port is required';
+        if (!formData.pgPort) {
+          newErrors.pgPort = 'Port is required';
+        } else {
+          const parsedPort = parseInt(formData.pgPort, 10);
+          if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+            newErrors.pgPort = 'Port must be a number between 1 and 65535';
+          }
+        }
         if (!formData.pgDatabase) newErrors.pgDatabase = 'Database name is required';
         if (!formData.pgUser) newErrors.pgUser = 'Username is required';
         if (!formData.pgPassword) newErrors.pgPassword = 'Password is required';
+      } else if (formData.dbType === 'sqlite') {
+        const trimmedPath = formData.dbPath.trim();
+        if (!trimmedPath) {
+          newErrors.dbPath = 'Database path is required';
+        } else if (trimmedPath.includes('..')) {
+          newErrors.dbPath = 'Path traversal detected. Please provide a valid path.';
+        }
       }
     }
 
@@ -74,9 +124,11 @@ export default function SetupPage() {
         newErrors.adminPassword = 'Password is required';
       } else if (formData.adminPassword.length < 8) {
         newErrors.adminPassword = 'Password must be at least 8 characters';
-      }
-      if (formData.adminPassword !== formData.adminConfirmPassword) {
+      } else if (formData.adminPassword !== formData.adminConfirmPassword) {
         newErrors.adminConfirmPassword = 'Passwords do not match';
+      }
+      if (!formData.adminConfirmPassword) {
+        newErrors.adminConfirmPassword = 'Please confirm your password';
       }
     }
 
@@ -101,18 +153,43 @@ export default function SetupPage() {
   };
 
   const handleUseDefaults = async () => {
+    clearSubmitError();
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setCurrentStep(5);
-    setLoading(false);
+    try {
+      await setupMutation.mutateAsync({
+        adminEmail: 'admin@dxlander.local',
+        adminPassword: 'admin123456',
+        confirmPassword: 'admin123456',
+        useDefaults: true,
+      });
+    } catch (error) {
+      // Error handled in mutation onError
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleComplete = async () => {
     if (!validateStep(currentStep)) return;
+    clearSubmitError();
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setCurrentStep(5);
-    setLoading(false);
+    try {
+      await setupMutation.mutateAsync({
+        adminEmail: formData.adminEmail.trim(),
+        adminPassword: formData.adminPassword,
+        confirmPassword: formData.adminConfirmPassword,
+        aiApiKey: formData.aiEnabled ? formData.aiApiKey || undefined : undefined,
+        useDefaults: false,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrors((prev) => ({ ...prev, submit: error.message }));
+      } else {
+        setErrors((prev) => ({ ...prev, submit: 'Setup failed. Please try again.' }));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderStepContent = () => {
@@ -196,9 +273,12 @@ export default function SetupPage() {
                     type="text"
                     value={formData.dbPath}
                     onChange={(e) => handleChange('dbPath', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                      errors.dbPath ? 'border-red-500' : 'border-gray-300'
+                    }`}
                     placeholder="./dxlander.db"
                   />
+                  {errors.dbPath && <p className="text-xs text-red-600 mt-1">{errors.dbPath}</p>}
                   <p className="text-xs text-gray-500 mt-1">Local file path for SQLite database</p>
                 </div>
               ) : (
@@ -222,7 +302,10 @@ export default function SetupPage() {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
                       <input
-                        type="text"
+                        type="number"
+                        min="1"
+                        max="65535"
+                        step="1"
                         value={formData.pgPort}
                         onChange={(e) => handleChange('pgPort', e.target.value)}
                         className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
@@ -552,7 +635,7 @@ export default function SetupPage() {
             </p>
             <div className="space-y-3 pt-4">
               <button
-                onClick={() => (window.location.href = '/dashboard')}
+                onClick={() => router.push('/dashboard')}
                 className="w-full max-w-xs mx-auto block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
               >
                 Go to Dashboard
@@ -584,6 +667,10 @@ export default function SetupPage() {
                   <React.Fragment key={step.id}>
                     <div className="flex flex-col items-center">
                       <div
+                        role="img"
+                        aria-label={`Step ${index + 1}: ${step.title}${
+                          isCompleted ? ' - Completed' : isActive ? ' - Current' : ' - Upcoming'
+                        }`}
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                           isActive
                             ? 'bg-blue-600 text-white scale-110'
@@ -626,6 +713,12 @@ export default function SetupPage() {
 
         <div className="bg-white rounded-2xl shadow-xl p-8">
           {renderStepContent()}
+
+          {errors.submit && (
+            <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {errors.submit}
+            </div>
+          )}
 
           {currentStep > 0 && currentStep < 5 && (
             <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
