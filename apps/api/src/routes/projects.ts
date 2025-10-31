@@ -43,9 +43,15 @@ const ImportProjectSchema = z.discriminatedUnion('sourceType', [
   }),
   z.object({
     sourceType: z.literal('gitlab'),
-    gitlabUrl: z.string().url().optional(),
-    gitlabToken: z.string(),
-    gitlabProject: z.string(),
+    gitlabUrl: z
+      .string()
+      .optional()
+      .transform((val) => (val && val.trim() !== '' ? val : undefined))
+      .refine((val) => !val || z.string().url().safeParse(val).success, {
+        message: 'Invalid URL format',
+      }),
+    gitlabToken: z.string().min(1, 'GitLab token is required'),
+    gitlabProject: z.string().min(1, 'GitLab project ID is required'),
     gitlabBranch: z.string().optional(),
     projectName: z.string().optional(),
   }),
