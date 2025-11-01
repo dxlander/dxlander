@@ -94,8 +94,6 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
     );
   }
 
-
-
   const handleDeleteClick = (config: ConfigSet) => {
     setSelectedConfig(config);
     setDeleteDialogOpen(true);

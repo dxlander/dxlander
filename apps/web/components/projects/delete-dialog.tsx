@@ -63,8 +63,6 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
 
   const isDeleteDisabled = confirmText !== project.name || deleteProject.isPending;
 
-
-
   const formatNumber = (num: number) => {
     return new Intl.NumberFormat().format(num);
   };

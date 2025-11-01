@@ -141,7 +141,6 @@ export default function Dashboard() {
 
   // Helper function to format time
 
-
   const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -337,7 +336,9 @@ export default function Dashboard() {
                                       )}
                                       <span className="text-gray-400">•</span>
                                       <span>
-                                        {formatRelativeTimeFull(project.updatedAt || project.createdAt)}
+                                        {formatRelativeTimeFull(
+                                          project.updatedAt || project.createdAt
+                                        )}
                                       </span>
                                     </div>
 

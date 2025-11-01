@@ -136,8 +136,6 @@ export default function ProjectDetailPage({ params }: PageProps) {
     return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
   };
 
-
-
   return (
     <PageLayout background="default">
       <Header
