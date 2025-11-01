@@ -41,8 +41,51 @@ app.use('/trpc/*', authMiddleware);
 app.use('/upload/*', authMiddleware);
 
 // Health check
-app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (c) => {
+  try {
+    const { initializeDatabase } = await import('@dxlander/database'); // database initializing
+
+    // Try database connection
+    await initializeDatabase();
+    const dbStatus = 'ok';
+
+    // Collect basic system info
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024; // MB
+    const uptime = process.uptime();
+
+    const health = {
+      // if db status ok, then system status is ok
+      status: 'ok',
+      checks: {
+        api: 'ok',
+        database: dbStatus,
+      },
+      system: {
+        uptime: `${uptime.toFixed(0)}s`,
+        memory: `${memoryUsage.toFixed(2)} MB`,
+      },
+    };
+
+    return c.json(health, 200);
+  } catch (error) {
+    // if db status error, then system status error
+    console.error('Health check failed:', error);
+
+    const health = {
+      status: 'error',
+      checks: {
+        api: 'ok', // api always ok, because /health is also an api, so if /health works, api endpoints work
+        database: 'error',
+      },
+      system: {
+        uptime: `${process.uptime().toFixed(0)}s`,
+        memory: `${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`,
+      },
+      timestamp: new Date().toISOString(),
+    };
+
+    return c.json(health, 503);
+  }
 });
 
 // Setup status check (for first-time setup wizard)
