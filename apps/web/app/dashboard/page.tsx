@@ -139,7 +139,6 @@ export default function Dashboard() {
     return configs[status as keyof typeof configs] || configs.imported;
   };
 
-  // Helper function to format time
 
   const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch =
