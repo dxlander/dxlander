@@ -41,8 +41,65 @@ app.use('/trpc/*', authMiddleware);
 app.use('/upload/*', authMiddleware);
 
 // Health check
-app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (c) => {
+  const startTime = Date.now();
+
+  try {
+    const { db, isSetupComplete } = await import('@dxlander/database');
+    const { sql } = await import('drizzle-orm');
+
+    let dbOk = true;
+    try {
+      await db.run(sql`SELECT 1`);
+    } catch {
+      dbOk = false;
+    }
+
+    const setupComplete = dbOk ? await isSetupComplete() : false;
+
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
+    const uptime = process.uptime();
+    const responseTime = Date.now() - startTime;
+
+    return c.json(
+      {
+        status: dbOk ? 'ok' : 'error',
+        checks: {
+          api: 'ok',
+          database: dbOk ? 'ok' : 'error',
+          setupComplete,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${responseTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      dbOk ? 200 : 503
+    );
+  } catch (error) {
+    console.error('Health check failed:', error);
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
+    const uptime = process.uptime();
+    return c.json(
+      {
+        status: 'error',
+        checks: {
+          api: 'ok',
+          database: 'error',
+          setupComplete: false,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${Date.now() - startTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      503
+    );
+  }
 });
 
 // Setup status check (for first-time setup wizard)
