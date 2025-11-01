@@ -53,7 +53,7 @@ export class OpenRouterProvider implements IAIProvider {
   }
 
   /**
-   * Test connection by sending a simple query
+   * Validate API key format and basic requirements
    */
   private validateApiKey(apiKey: string): void {
     if (!apiKey) {
