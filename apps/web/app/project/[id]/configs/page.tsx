@@ -22,6 +22,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatRelativeTime } from '@dxlander/shared/utils';
 import { use, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -92,20 +93,6 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
       </PageLayout>
     );
   }
-
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
-  };
 
   const handleDeleteClick = (config: ConfigSet) => {
     setSelectedConfig(config);
@@ -188,7 +175,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                           </div>
 
                           <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                            <span>Created {formatDate(config.createdAt)}</span>
+                            <span>Created {formatRelativeTime(config.createdAt)}</span>
                           </div>
 
                           {/* Files - Note: Files are now stored in a separate table, will be shown in detail view */}
