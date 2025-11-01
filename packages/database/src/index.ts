@@ -5,6 +5,8 @@ export {
   isSetupComplete,
   markSetupComplete,
   completeSetup,
+  getDatabaseStats,
+  getDatabaseFilePath,
 } from './db';
 export {
   schema,
