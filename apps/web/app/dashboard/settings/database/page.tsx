@@ -26,7 +26,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { formatBytes } from '@dxlander/shared';
+import { formatBytes } from '@dxlander/shared/browser';
 
 type PerTableStat = { name: string; count: number };
 
