@@ -179,6 +179,62 @@ class LMStudioTester implements IProviderTester {
 }
 
 /**
+ * OpenRouter Provider Tester
+ */
+class OpenRouterTester implements IProviderTester {
+  validateConfig(config: ProviderTestConfig): void {
+    if (!config.apiKey) {
+      throw new Error('API key is required for OpenRouter');
+    }
+  }
+
+  async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
+    this.validateConfig(config);
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { OpenRouterProvider } = await import('@dxlander/shared');
+      const provider = new OpenRouterProvider();
+
+      // Initialize with a timeout to prevent hanging
+      await Promise.race([
+        provider.initialize({
+          provider: 'openrouter',
+          apiKey: config.apiKey!,
+          model: config.settings?.model || 'openrouter/auto',
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('OpenRouter initialization timed out after 10 seconds')),
+            10000
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        message: 'Successfully connected to OpenRouter API',
+        model: config.settings?.model || 'openrouter/auto',
+        details: {
+          provider: 'openrouter',
+          note: 'API key validated and connection successful',
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `OpenRouter connection failed: ${error.message}`,
+        model: config.settings?.model || 'openrouter/auto',
+        details: {
+          error: error.message,
+          provider: 'openrouter',
+        },
+      };
+    }
+  }
+}
+
+/**
  * Provider Registry
  *
  * Central registry for all provider testers.
@@ -193,6 +249,7 @@ class ProviderTesterRegistry {
     this.register('openai', new OpenAITester());
     this.register('ollama', new OllamaTester());
     this.register('lmstudio', new LMStudioTester());
+    this.register('openrouter', new OpenRouterTester());
   }
 
   /**

@@ -1,19 +1,20 @@
-import { randomUUID } from 'crypto';
 import { db, schema } from '@dxlander/database';
 import {
   ClaudeAgentProvider,
   encryptionService,
   IdSchema,
+  OpenRouterProvider,
   protectedProcedure,
   router,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
 import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { AIProviderTesterService } from '../services/ai-provider-tester.service';
 
 const CreateAIProviderSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic']),
+  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic', 'openrouter']),
   apiKey: z.string().optional(),
   settings: z.record(z.unknown()).optional(),
   isDefault: z.boolean().optional(),
@@ -33,7 +34,7 @@ const TestAIProviderSchema = z.object({
 });
 
 const TestConnectionSchema = z.object({
-  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic']),
+  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic', 'openrouter']),
   apiKey: z.string().optional(),
   settings: z.record(z.unknown()).optional(), // Flexible settings - each provider has different requirements
 });
@@ -337,6 +338,24 @@ export const aiProvidersRouter = router({
             message: 'OpenAI provider configured (full testing coming soon)',
             model: settings.model || 'gpt-4-turbo',
           };
+        } else if (provider.provider === 'openrouter') {
+          // For OpenRouter, test the actual connection
+          if (!apiKey) {
+            throw new Error('API key is required for OpenRouter');
+          }
+
+          // Use the provider tester service for proper testing
+          const testConfig = {
+            provider: 'openrouter',
+            apiKey: apiKey,
+            settings: settings,
+          };
+
+          const testResult = await AIProviderTesterService.testConnection(testConfig);
+
+          if (!testResult.success) {
+            throw new Error(testResult.message);
+          }
         } else {
           // Ollama/LM Studio - check if base URL is provided
           if (!settings.baseUrl) {
@@ -486,6 +505,75 @@ export const aiProvidersRouter = router({
       throw new Error('Failed to get default provider status');
     }
   }),
+
+  /**
+   * Get detailed models for a provider (currently only supports OpenRouter)
+   */
+  getDetailedModels: protectedProcedure
+    .input(z.object({ provider: z.string(), apiKey: z.string().optional() }))
+    .query(async ({ input, ctx }) => {
+      const { userId } = ctx;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      try {
+        // Currently only support OpenRouter for detailed models
+        if (input.provider !== 'openrouter') {
+          return [];
+        }
+
+        // Create a temporary provider instance to fetch models
+        const provider = new OpenRouterProvider();
+
+        // Initialize with provided API key or try to get from existing provider
+        let apiKey = input.apiKey;
+
+        // If no API key provided, try to get from existing provider
+        if (!apiKey) {
+          const existingProvider = await db.query.aiProviders.findFirst({
+            where: and(
+              eq(schema.aiProviders.userId, userId),
+              eq(schema.aiProviders.provider, 'openrouter'),
+              eq(schema.aiProviders.isActive, true)
+            ),
+          });
+
+          if (existingProvider?.encryptedApiKey) {
+            apiKey = encryptionService.decryptFromStorage(existingProvider.encryptedApiKey);
+          }
+        }
+
+        if (!apiKey) {
+          throw new Error('API key is required to fetch OpenRouter models');
+        }
+
+        await provider.initialize({
+          provider: 'openrouter',
+          apiKey,
+        });
+
+        // Check if provider has getDetailedModels method before calling it
+        if (typeof provider.getDetailedModels === 'function') {
+          // Add timeout to prevent hanging
+          const models = await Promise.race([
+            provider.getDetailedModels(),
+            new Promise<any>((_, reject) =>
+              setTimeout(() => reject(new Error('Model fetch timeout after 15 seconds')), 15000)
+            ),
+          ]);
+          return models;
+        } else {
+          throw new Error('Provider does not support detailed models');
+        }
+      } catch (error) {
+        console.error('Failed to fetch detailed models:', error);
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
+        throw new Error('Failed to fetch detailed models');
+      }
+    }),
 
   /**
    * Test connection before saving (no encryption needed)

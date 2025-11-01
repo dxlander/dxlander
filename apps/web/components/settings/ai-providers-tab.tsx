@@ -1,25 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { IconWrapper } from '@/components/common';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { FloatingInput } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   DropdownMenu,
@@ -28,26 +19,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { IconWrapper } from '@/components/common';
+import { FloatingInput } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
-  Plus,
-  Zap,
-  Star,
-  CheckCircle2,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { trpc } from '@/lib/trpc';
+import {
   AlertCircle,
-  MoreHorizontal,
+  Brain,
+  CheckCircle2,
   Edit,
-  Trash2,
-  TestTube,
-  Lock,
-  Server,
   Eye,
   EyeOff,
-  Brain,
-  Sparkles,
   Loader2,
+  Lock,
+  MoreHorizontal,
+  Plus,
+  Server,
+  Sparkles,
+  Star,
+  TestTube,
+  Trash2,
+  Zap,
 } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 // Provider configuration
@@ -97,6 +97,41 @@ const PROVIDER_INFO = {
     borderColor: 'border-indigo-200',
     description: 'Local LM Studio server',
   },
+  openrouter: {
+    name: 'OpenRouter',
+    icon: Sparkles,
+    requiresApiKey: true,
+    requiresBaseUrl: false,
+    models: [
+      'openrouter/auto',
+      'anthropic/claude-3.5-sonnet',
+      'anthropic/claude-3.7-sonnet:thinking',
+      'anthropic/claude-sonnet-4',
+      'anthropic/claude-sonnet-4.5',
+      'anthropic/claude-opus-4.1',
+      'anthropic/claude-haiku-4.5',
+      'openai/gpt-4o',
+      'openai/gpt-4.1',
+      'openai/gpt-5',
+      'openai/gpt-5-mini',
+      'openai/gpt-5-pro',
+      'openai/gpt-5-codex',
+      'google/gemini-pro',
+      'google/gemini-2.5-pro',
+      'google/gemini-2.5-flash',
+      'google/gemini-2.5-flash-lite-preview-09-2025',
+      'x-ai/grok-code-fast-1',
+      'meta-llama/llama-3-70b-instruct',
+      'mistralai/mistral-large',
+      'mistralai/mistral-small-24b-instruct-2501:free',
+      'mistralai/mistral-small-3.2-24b-instruct:free',
+      'deepseek/deepseek-chat-v3.1:free',
+      'deepseek/deepseek-r1-0528:free',
+    ],
+    color: 'bg-orange-100 text-orange-700',
+    borderColor: 'border-orange-200',
+    description: 'OpenRouter unified API for multiple AI models',
+  },
 } as const;
 
 type ProviderType = keyof typeof PROVIDER_INFO;
@@ -127,6 +162,15 @@ export function AIProvidersTab() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
   const [testMessage, setTestMessage] = useState('');
+  const [detailedModels, setDetailedModels] = useState<
+    Array<{
+      id: string;
+      name: string;
+      pricing: { prompt: string; completion: string };
+      contextLength: number;
+      isFree: boolean;
+    }>
+  >([]);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -180,15 +224,6 @@ export function AIProvidersTab() {
       refetch();
     },
   });
-  const setDefaultMutation = trpc.aiProviders.setDefault.useMutation({
-    onSuccess: () => {
-      toast.success('Default AI provider updated');
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message);
-    },
-  });
   const testConnectionMutation = trpc.aiProviders.testConnection.useMutation({
     onSuccess: (result) => {
       if (result.success) {
@@ -207,6 +242,44 @@ export function AIProvidersTab() {
       toast.error(`Connection test failed: ${error.message}`);
     },
   });
+  const setDefaultMutation = trpc.aiProviders.setDefault.useMutation({
+    onSuccess: () => {
+      toast.success('Default AI provider updated');
+      refetch();
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+  const { data: detailedModelsData } = trpc.aiProviders.getDetailedModels.useQuery(
+    { provider: formData.provider, apiKey: formData.apiKey || undefined },
+    {
+      enabled:
+        formData.provider === 'openrouter' &&
+        (!!formData.apiKey || providers.some((p) => p.provider === 'openrouter')),
+    }
+  );
+
+  // Update detailed models when data changes
+  useEffect(() => {
+    if (detailedModelsData) {
+      setDetailedModels(detailedModelsData);
+    }
+  }, [detailedModelsData]);
+
+  // Fetch detailed models when provider changes to OpenRouter
+  const handleProviderChange = (value: string) => {
+    setFormData({ ...formData, provider: value as ProviderType, model: '' });
+
+    // If changing to OpenRouter, fetch detailed models
+    if (value === 'openrouter') {
+      // Trigger refetch of detailed models
+      refetch();
+    } else {
+      // Clear detailed models for other providers
+      setDetailedModels([]);
+    }
+  };
 
   const handleEdit = (provider: AIProvider) => {
     setSelectedProvider(provider);
@@ -603,12 +676,7 @@ export function AIProvidersTab() {
             {/* Provider Selection */}
             <div className="space-y-2">
               <Label htmlFor="provider-type">Provider</Label>
-              <Select
-                value={formData.provider}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, provider: value as ProviderType })
-                }
-              >
+              <Select value={formData.provider} onValueChange={handleProviderChange}>
                 <SelectTrigger id="provider-type">
                   <SelectValue />
                 </SelectTrigger>
@@ -692,11 +760,26 @@ export function AIProvidersTab() {
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVIDER_INFO[formData.provider].models.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
+                  {/* Use detailed models for OpenRouter, otherwise use default models */}
+                  {formData.provider === 'openrouter' && detailedModels.length > 0
+                    ? detailedModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{model.name}</span>
+                            <Badge
+                              variant="secondary"
+                              className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                            >
+                              {model.isFree ? 'Free' : 'Paid'}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))
+                    : PROVIDER_INFO[formData.provider].models.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
                 </SelectContent>
               </Select>
             </div>
@@ -873,11 +956,26 @@ export function AIProvidersTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {PROVIDER_INFO[formData.provider].models.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
+                  {/* Use detailed models for OpenRouter, otherwise use default models */}
+                  {formData.provider === 'openrouter' && detailedModels.length > 0
+                    ? detailedModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center justify-between w-full">
+                            <span>{model.name}</span>
+                            <Badge
+                              variant="secondary"
+                              className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                            >
+                              {model.isFree ? 'Free' : 'Paid'}
+                            </Badge>
+                          </div>
+                        </SelectItem>
+                      ))
+                    : PROVIDER_INFO[formData.provider].models.map((model) => (
+                        <SelectItem key={model} value={model}>
+                          {model}
+                        </SelectItem>
+                      ))}
                 </SelectContent>
               </Select>
             </div>

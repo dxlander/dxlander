@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
+import { Header, PageLayout, Section } from '@/components/layouts';
+import {
+  DeleteProjectDialog,
+  type DeleteProjectDialogProps,
+} from '@/components/projects/delete-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,35 +16,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Plus,
-  Search,
-  FolderOpen,
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  MoreHorizontal,
-  Settings,
-  Key,
-  FileText,
-  Trash2,
-  ExternalLink,
-  Eye,
-  Code,
-  Rocket,
-  Download,
-  GitBranch,
-  Archive,
-  Link2,
-  Loader2,
-  FileCode,
-} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+  AlertCircle,
+  Archive,
+  CheckCircle2,
+  Clock,
+  Code,
+  Download,
+  ExternalLink,
+  Eye,
+  FileCode,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  Key,
+  Link2,
+  Loader2,
+  MoreHorizontal,
+  Plus,
+  Rocket,
+  Search,
+  Settings,
+  Trash2,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 // Extended project type to include all properties used in the dashboard
 type Project = DeleteProjectDialogProps['project'] & {
@@ -64,6 +65,7 @@ type Project = DeleteProjectDialogProps['project'] & {
 };
 
 export default function Dashboard() {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -296,209 +298,204 @@ export default function Dashboard() {
                       const statusConfig = getStatusConfig(project.status);
 
                       return (
-                        <Link key={project.id} href={`/project/${project.id}`}>
-                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group">
-                            <CardContent className="p-6">
-                              <div className="flex items-start justify-between gap-6">
-                                {/* Project Info */}
-                                <div className="flex items-start space-x-4 flex-1 min-w-0">
-                                  <IconWrapper
-                                    variant="default"
-                                    size="md"
-                                    className="flex-shrink-0"
-                                  >
-                                    <Zap className="h-5 w-5" />
-                                  </IconWrapper>
+                        <Card
+                          key={project.id}
+                          className="hover:shadow-elegant transition-all hover:border-ocean-300 group cursor-pointer"
+                          onClick={() => router.push(`/project/${project.id}`)}
+                        >
+                          <CardContent className="p-6">
+                            <div className="flex items-start justify-between gap-6">
+                              {/* Project Info */}
+                              <div className="flex items-start space-x-4 flex-1 min-w-0">
+                                <IconWrapper variant="default" size="md" className="flex-shrink-0">
+                                  <Zap className="h-5 w-5" />
+                                </IconWrapper>
 
-                                  <div className="flex-1 min-w-0 space-y-3">
-                                    {/* Title & Status */}
-                                    <div className="flex items-center gap-3 flex-wrap">
-                                      <h4 className="font-semibold text-gray-900 text-lg">
-                                        {project.name}
-                                      </h4>
-                                      <Badge
-                                        variant={statusConfig.variant}
-                                        className={`${statusConfig.color} flex items-center gap-1.5`}
-                                      >
-                                        {statusConfig.icon}
-                                        {statusConfig.label}
-                                      </Badge>
-                                    </div>
-
-                                    {/* Framework & Source */}
-                                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                                      <span className="flex items-center gap-1.5">
-                                        <Code className="h-3.5 w-3.5" />
-                                        {project.language || 'Unknown'}
-                                      </span>
-                                      {project.sourceType && (
-                                        <span className="flex items-center gap-1.5">
-                                          {project.sourceType === 'github' && (
-                                            <GitBranch className="h-3.5 w-3.5" />
-                                          )}
-                                          {project.sourceType === 'zip' && (
-                                            <Archive className="h-3.5 w-3.5" />
-                                          )}
-                                          {project.sourceType === 'git' && (
-                                            <Link2 className="h-3.5 w-3.5" />
-                                          )}
-                                          {project.sourceType.charAt(0).toUpperCase() +
-                                            project.sourceType.slice(1)}
-                                        </span>
-                                      )}
-                                      <span className="text-gray-400">•</span>
-                                      <span>
-                                        {formatDate(project.updatedAt || project.createdAt)}
-                                      </span>
-                                    </div>
-
-                                    {/* Source URL - Conditional rendering based on source type */}
-                                    {project.sourceUrl && (
-                                      <div className="flex items-center gap-2 text-sm">
-                                        {project.sourceType === 'zip' ? (
-                                          <>
-                                            <Archive className="h-3.5 w-3.5 text-gray-400" />
-                                            <span className="text-gray-600 truncate">
-                                              {project.sourceUrl}
-                                            </span>
-                                          </>
-                                        ) : (
-                                          <>
-                                            <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                            <a
-                                              href={project.sourceUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate"
-                                              onClick={(e) => e.stopPropagation()}
-                                            >
-                                              {project.sourceUrl}
-                                            </a>
-                                          </>
-                                        )}
-                                        {project.sourceBranch && (
-                                          <Badge variant="secondary" className="text-xs">
-                                            {project.sourceBranch}
-                                          </Badge>
-                                        )}
-                                      </div>
-                                    )}
-
-                                    {/* Generated Configs */}
-                                    {(project as Project).generatedConfigs &&
-                                      Object.keys((project as Project).generatedConfigs || {})
-                                        .length > 0 && (
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                          {Object.keys(
-                                            (project as Project).generatedConfigs || {}
-                                          ).map((file: string, idx: number) => (
-                                            <Badge
-                                              key={idx}
-                                              variant="secondary"
-                                              className="text-xs bg-gray-100 text-gray-700"
-                                            >
-                                              {file}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      )}
-
-                                    {/* Deploy URL */}
-                                    {project.deployUrl && (
-                                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                        <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                        <a
-                                          href={project.deployUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate"
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          {project.deployUrl}
-                                        </a>
-                                      </div>
-                                    )}
+                                <div className="flex-1 min-w-0 space-y-3">
+                                  {/* Title & Status */}
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    <h4 className="font-semibold text-gray-900 text-lg">
+                                      {project.name}
+                                    </h4>
+                                    <Badge
+                                      variant={statusConfig.variant}
+                                      className={`${statusConfig.color} flex items-center gap-1.5`}
+                                    >
+                                      {statusConfig.icon}
+                                      {statusConfig.label}
+                                    </Badge>
                                   </div>
-                                </div>
 
-                                {/* Actions */}
-                                <div
-                                  className="flex items-center gap-2 flex-shrink-0"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {project.status === 'imported' && (
+                                  {/* Framework & Source */}
+                                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                                    <span className="flex items-center gap-1.5">
+                                      <Code className="h-3.5 w-3.5" />
+                                      {project.language || 'Unknown'}
+                                    </span>
+                                    {project.sourceType && (
+                                      <span className="flex items-center gap-1.5">
+                                        {project.sourceType === 'github' && (
+                                          <GitBranch className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType === 'zip' && (
+                                          <Archive className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType === 'git' && (
+                                          <Link2 className="h-3.5 w-3.5" />
+                                        )}
+                                        {project.sourceType.charAt(0).toUpperCase() +
+                                          project.sourceType.slice(1)}
+                                      </span>
+                                    )}
+                                    <span className="text-gray-400">•</span>
+                                    <span>
+                                      {formatDate(project.updatedAt || project.createdAt)}
+                                    </span>
+                                  </div>
+
+                                  {/* Source URL - Conditional rendering based on source type */}
+                                  {project.sourceUrl && (
+                                    <div className="flex items-center gap-2 text-sm">
+                                      {project.sourceType === 'zip' ? (
+                                        <>
+                                          <Archive className="h-3.5 w-3.5 text-gray-400" />
+                                          <span className="text-gray-600 truncate">
+                                            {project.sourceUrl}
+                                          </span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
+                                          <span
+                                            className="text-ocean-600 hover:text-ocean-700 hover:underline truncate cursor-pointer"
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              window.open(project.sourceUrl!, '_blank');
+                                            }}
+                                          >
+                                            {project.sourceUrl}
+                                          </span>
+                                        </>
+                                      )}
+                                      {project.sourceBranch && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          {project.sourceBranch}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Generated Configs */}
+                                  {(project as Project).generatedConfigs &&
+                                    Object.keys((project as Project).generatedConfigs || {})
+                                      .length > 0 && (
+                                      <div className="flex items-center gap-2 flex-wrap">
+                                        <FileText className="h-3.5 w-3.5 text-gray-400" />
+                                        {Object.keys(
+                                          (project as Project).generatedConfigs || {}
+                                        ).map((file: string, idx: number) => (
+                                          <Badge
+                                            key={idx}
+                                            variant="secondary"
+                                            className="text-xs bg-gray-100 text-gray-700"
+                                          >
+                                            {file}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                  {/* Deploy URL */}
+                                  {project.deployUrl && (
+                                    <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                      <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
+                                      <span
+                                        className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate cursor-pointer"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          window.open(project.deployUrl!, '_blank');
+                                        }}
+                                      >
+                                        {project.deployUrl}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Actions */}
+                              <div
+                                className="flex items-center gap-2 flex-shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {project.status === 'imported' && (
+                                  <Button size="sm" variant="outline">
+                                    <Eye className="h-4 w-4 mr-1.5" />
+                                    View
+                                  </Button>
+                                )}
+                                {project.status === 'configured' && (
+                                  <>
+                                    <Button size="sm" variant="outline">
+                                      <FileCode className="h-4 w-4 mr-1.5" />
+                                      Configurations
+                                    </Button>
+                                    <Button size="sm" className="bg-purple-600 hover:bg-purple-700">
+                                      <Rocket className="h-4 w-4 mr-1.5" />
+                                      Deploy
+                                    </Button>
+                                  </>
+                                )}
+                                {project.status === 'deployed' && (
+                                  <>
                                     <Button size="sm" variant="outline">
                                       <Eye className="h-4 w-4 mr-1.5" />
                                       View
                                     </Button>
-                                  )}
-                                  {project.status === 'configured' && (
-                                    <>
-                                      <Button size="sm" variant="outline">
-                                        <FileCode className="h-4 w-4 mr-1.5" />
-                                        Configurations
-                                      </Button>
-                                      <Button
-                                        size="sm"
-                                        className="bg-purple-600 hover:bg-purple-700"
-                                      >
-                                        <Rocket className="h-4 w-4 mr-1.5" />
-                                        Deploy
-                                      </Button>
-                                    </>
-                                  )}
-                                  {project.status === 'deployed' && (
-                                    <>
-                                      <Button size="sm" variant="outline">
-                                        <Eye className="h-4 w-4 mr-1.5" />
-                                        View
-                                      </Button>
-                                      <Button size="sm" variant="outline">
-                                        <Download className="h-4 w-4 mr-1.5" />
-                                        Config
-                                      </Button>
-                                    </>
-                                  )}
+                                    <Button size="sm" variant="outline">
+                                      <Download className="h-4 w-4 mr-1.5" />
+                                      Config
+                                    </Button>
+                                  </>
+                                )}
 
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <Button variant="ghost" size="sm">
-                                        <MoreHorizontal className="h-4 w-4" />
-                                      </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="w-48">
-                                      <DropdownMenuItem>
-                                        <Eye className="h-4 w-4 mr-2" />
-                                        View Details
-                                      </DropdownMenuItem>
-                                      {project.status === 'configured' && (
-                                        <>
-                                          <DropdownMenuItem>
-                                            <FileCode className="h-4 w-4 mr-2" />
-                                            Configurations
-                                          </DropdownMenuItem>
-                                          <DropdownMenuItem>
-                                            <Download className="h-4 w-4 mr-2" />
-                                            Download Configs
-                                          </DropdownMenuItem>
-                                        </>
-                                      )}
-                                      <DropdownMenuSeparator />
-                                      <DropdownMenuItem
-                                        className="text-red-600"
-                                        onClick={() => handleDeleteClick(project)}
-                                      >
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete Project
-                                      </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-48">
+                                    <DropdownMenuItem>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    {project.status === 'configured' && (
+                                      <>
+                                        <DropdownMenuItem>
+                                          <FileCode className="h-4 w-4 mr-2" />
+                                          Configurations
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem>
+                                          <Download className="h-4 w-4 mr-2" />
+                                          Download Configs
+                                        </DropdownMenuItem>
+                                      </>
+                                    )}
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="text-red-600"
+                                      onClick={() => handleDeleteClick(project)}
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete Project
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            </CardContent>
-                          </Card>
-                        </Link>
+                            </div>
+                          </CardContent>
+                        </Card>
                       );
                     })}
                   </div>

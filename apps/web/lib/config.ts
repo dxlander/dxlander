@@ -32,7 +32,9 @@ export const config = {
  * Throws an error if any required variables are missing
  */
 export function validateConfig() {
-  const required = ['NEXT_PUBLIC_API_URL'];
+  // NEXT_PUBLIC_API_URL has a default value, so it's not actually required
+  // Only validate variables that don't have defaults and are truly required
+  const required: string[] = [];
   const missing = required.filter((key) => !process.env[key]);
 
   if (missing.length > 0) {

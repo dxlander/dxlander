@@ -6,8 +6,13 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and } from 'drizzle-orm';
-import { encryptionService, ClaudeAgentProvider, type IAIProvider } from '@dxlander/shared';
+import {
+  ClaudeAgentProvider,
+  encryptionService,
+  OpenRouterProvider,
+  type IAIProvider,
+} from '@dxlander/shared';
+import { and, eq } from 'drizzle-orm';
 
 interface GetProviderOptions {
   userId: string;
@@ -15,7 +20,7 @@ interface GetProviderOptions {
 }
 
 interface ProviderConfig {
-  provider: 'claude-code' | 'openai' | 'anthropic' | 'ollama' | 'lmstudio';
+  provider: 'claude-code' | 'openai' | 'anthropic' | 'ollama' | 'lmstudio' | 'openrouter';
   apiKey?: string;
   model: string;
   settings?: {
@@ -65,8 +70,12 @@ export class AIProviderService {
     // Create provider configuration
     const config: ProviderConfig = {
       provider: providerRecord.provider as any,
-      apiKey: apiKey || process.env.ANTHROPIC_API_KEY, // Fallback to env var for Claude Code
-      model: settings.model || 'claude-sonnet-4-5-20250929',
+      apiKey: apiKey,
+      model:
+        settings.model ||
+        (providerRecord.provider === 'openrouter'
+          ? 'openrouter/auto'
+          : 'claude-sonnet-4-5-20250929'),
       settings: {
         temperature: settings.temperature || 0.7,
         maxTokens: settings.maxTokens || 4096,
@@ -74,8 +83,21 @@ export class AIProviderService {
       },
     };
 
-    // Instantiate provider
-    return await this.instantiateProvider(config, providerRecord.id);
+    // Instantiate provider with timeout
+    try {
+      const provider = await Promise.race([
+        this.instantiateProvider(config, providerRecord.id),
+        new Promise<IAIProvider>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Provider initialization timed out after 15 seconds')),
+            15000
+          )
+        ),
+      ]);
+      return provider;
+    } catch (error: any) {
+      throw new Error(`Failed to initialize ${providerRecord.provider} provider: ${error.message}`);
+    }
   }
 
   /**
@@ -104,6 +126,20 @@ export class AIProviderService {
       case 'openai': {
         // TODO: Implement OpenAI provider
         throw new Error('OpenAI provider not yet implemented');
+      }
+
+      case 'openrouter': {
+        const provider = new OpenRouterProvider();
+        await provider.initialize({
+          apiKey: config.apiKey || '',
+          model: config.model || 'openrouter/auto',
+          provider: config.provider,
+        });
+
+        // Update last used timestamp
+        await this.updateLastUsed(providerId);
+
+        return provider;
       }
 
       case 'ollama':

@@ -6,16 +6,16 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import {
-  ClaudeAgentProvider,
   encryptionService,
   type ProjectAnalysisResult,
   type ProjectContext,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
+import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AIProviderService } from './ai-provider.service';
 
 interface ProjectFile {
   path: string;
@@ -113,7 +113,7 @@ export class AIAnalysisService {
     analysisId: string,
     project: any,
     aiProvider: any,
-    apiKey: string | undefined
+    _apiKey: string | undefined
   ): Promise<void> {
     try {
       // Log: Reading project files
@@ -185,16 +185,16 @@ export class AIAnalysisService {
         `Initializing ${aiProvider.provider}`
       );
 
-      // Initialize AI provider
-      const provider = new ClaudeAgentProvider();
-      const settings = aiProvider.settings ? JSON.parse(aiProvider.settings) : {};
-
-      await provider.initialize({
-        provider: aiProvider.provider,
-        apiKey,
-        model: settings.model || 'claude-sonnet-4-5-20250929',
-        settings,
-      });
+      // Initialize AI provider using the AIProviderService
+      let provider;
+      try {
+        provider = await AIProviderService.getProvider({
+          userId: project.userId,
+          providerId: aiProvider.id,
+        });
+      } catch (error: any) {
+        throw new Error(`Failed to initialize AI provider: ${error.message}`);
+      }
 
       await this.logActivity(
         analysisId,
