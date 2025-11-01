@@ -45,49 +45,60 @@ app.get('/health', async (c) => {
   const startTime = Date.now();
 
   try {
-    const { isSetupComplete } = await import('@dxlander/database');
+    const { db, isSetupComplete } = await import('@dxlander/database');
+    const { sql } = await import('drizzle-orm');
 
-    // Check DB connectivity
-    const dbOk = await isSetupComplete();
+    let dbOk = true;
+    try {
+      await db.run(sql`SELECT 1`);
+    } catch {
+      dbOk = false;
+    }
 
-    // System info
-    const memoryUsage = process.memoryUsage().rss / 1024 / 1024; // MB
+    const setupComplete = dbOk ? await isSetupComplete() : false;
+
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
     const uptime = process.uptime();
     const responseTime = Date.now() - startTime;
 
-    const health = {
-      status: dbOk ? 'ok' : 'error',
-      checks: {
-        api: 'ok', // if /health responds, API is alive
-        database: dbOk ? 'ok' : 'error',
+    return c.json(
+      {
+        status: dbOk ? 'ok' : 'error',
+        checks: {
+          api: 'ok',
+          database: dbOk ? 'ok' : 'error',
+          setupComplete,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${responseTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
       },
-      system: {
-        uptime: `${uptime.toFixed(0)}s`,
-        memory: `${memoryUsage.toFixed(2)} MB`,
-        responseTime: `${responseTime}ms`,
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    return c.json(health, dbOk ? 200 : 503);
+      dbOk ? 200 : 503
+    );
   } catch (error) {
     console.error('Health check failed:', error);
-
-    const health = {
-      status: 'error',
-      checks: {
-        api: 'ok',
-        database: 'error',
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
+    const uptime = process.uptime();
+    return c.json(
+      {
+        status: 'error',
+        checks: {
+          api: 'ok',
+          database: 'error',
+          setupComplete: false,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${Date.now() - startTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
       },
-      system: {
-        uptime: `${process.uptime().toFixed(0)}s`,
-        memory: `${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`,
-        responseTime: `${Date.now() - startTime}ms`,
-      },
-      timestamp: new Date().toISOString(),
-    };
-
-    return c.json(health, 503);
+      503
+    );
   }
 });
 
