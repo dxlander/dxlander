@@ -221,17 +221,10 @@ export const settingsRouter = router({
    */
   getDatabaseStats: protectedProcedure.query(async () => {
     try {
-      const stats = await getDatabaseStats();
-      return stats;
+      return await getDatabaseStats();
     } catch (error) {
       console.error('Failed to fetch database stats:', error);
-      return {
-        dbPath: '',
-        fileSizeBytes: 0,
-        tablesCount: 0,
-        totalRecords: 0,
-        perTable: [],
-      };
+      throw new Error('Failed to fetch database stats');
     }
   }),
 });

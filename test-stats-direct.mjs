@@ -1,26 +1,24 @@
-// Direct test of getDatabaseStats function
-import { db } from '@dxlander/database';
+import Database from 'better-sqlite3';
+import { getDatabaseFilePath, getDatabaseStats } from '@dxlander/database';
 import * as fs from 'fs';
-import { homedir } from 'os';
-import * as path from 'path';
 
-// Manually get database path
-const dataDir = process.env.DXLANDER_HOME 
-  ? path.join(process.env.DXLANDER_HOME, 'data')
-  : path.join(homedir(), '.dxlander', 'data');
-const dbPath = path.join(dataDir, 'dxlander.db');
+const dbPath = getDatabaseFilePath();
+let sqlite;
 
 console.log('🔍 Testing Database Stats Function\n');
 console.log('📁 Database Path:', dbPath);
 console.log('─'.repeat(60));
 
 try {
+  sqlite = new Database(dbPath);
   // Get file stats
   const fileStats = fs.statSync(dbPath);
   console.log(`💾 File Size: ${fileStats.size} bytes (${(fileStats.size / 1024).toFixed(2)} KB)`);
 
   // Query database for table information
-  const tables = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';").all();
+  const tables = sqlite
+    .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+    .all();
   console.log(`📊 Tables Count: ${tables.length}`);
 
   let totalRecords = 0;
@@ -31,7 +29,7 @@ try {
 
   for (const table of tables) {
     try {
-      const result = db.prepare(`SELECT COUNT(*) as cnt FROM "${table.name}";`).get();
+      const result = sqlite.prepare(`SELECT COUNT(*) as cnt FROM "${table.name}";`).get();
       const count = result?.cnt || 0;
       totalRecords += count;
       perTable.push({ name: table.name, count });
@@ -47,9 +45,8 @@ try {
 
   // Test the actual function
   console.log('\n\n🧪 Testing getDatabaseStats() function...\n');
-  const { getDatabaseStats } = await import('@dxlander/database');
   const stats = await getDatabaseStats();
-  
+
   console.log('Result from getDatabaseStats():');
   console.log(JSON.stringify(stats, null, 2));
 
@@ -57,4 +54,8 @@ try {
   console.error('❌ Error:', error.message);
   console.error(error.stack);
   process.exit(1);
+} finally {
+  if (sqlite) {
+    sqlite.close();
+  }
 }

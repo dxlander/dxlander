@@ -26,19 +26,26 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { formatBytes } from '@dxlander/shared';
+
+type PerTableStat = { name: string; count: number };
+
+const STORAGE_ENTITIES = [
+  { label: 'Projects', table: 'projects', color: 'bg-blue-500' },
+  { label: 'Configurations', table: 'config_files', color: 'bg-purple-500' },
+  { label: 'Integrations', table: 'integrations', color: 'bg-green-500' },
+  { label: 'Deployment Credentials', table: 'deployment_credentials', color: 'bg-ocean-500' },
+  { label: 'Analysis Results', table: 'analysis_runs', color: 'bg-amber-500' },
+] as const;
 
 function DatabaseContent() {
   const [databaseType, setDatabaseType] = useState('sqlite');
-  const { data, isLoading } = trpc.settings.getDatabaseStats.useQuery(undefined, {
-    refetchOnWindowFocus: false,
-  });
-
-  function formatBytes(bytes: number) {
-    if (!bytes) return '0 B';
-    const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(1024));
-    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
-  }
+  const { data, isLoading, isError, error, refetch } = trpc.settings.getDatabaseStats.useQuery(
+    undefined,
+    {
+      refetchOnWindowFocus: false,
+    }
+  );
 
   const fileSizeLabel = data ? formatBytes(data.fileSizeBytes) : '—';
   const tablesCountLabel = data ? String(data.tablesCount) : '—';
@@ -46,7 +53,7 @@ function DatabaseContent() {
 
   // helper to get per-table count
   const tableCount = (name: string) =>
-    data?.perTable.find((p: { name: string; count: number }) => p.name === name)?.count ?? 0;
+    data?.perTable.find((p: PerTableStat) => p.name === name)?.count ?? 0;
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -109,6 +116,24 @@ function DatabaseContent() {
             </CardContent>
           </Card>
 
+          {isError && (
+            <Card className="border-red-200">
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-red-700">
+                      Failed to load database statistics: {String(error?.message)}
+                    </p>
+                  </div>
+                  <Button onClick={() => refetch()}>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Retry
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Database Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
@@ -167,7 +192,9 @@ function DatabaseContent() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-1">Last Query</p>
-                    <p className="text-sm font-semibold text-gray-900">2 min ago</p>
+                    <p className="text-sm font-semibold text-gray-900">
+                      <Badge variant="secondary">Coming soon</Badge>
+                    </p>
                   </div>
                 </div>
               </CardContent>
@@ -313,29 +340,13 @@ function DatabaseContent() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {(
-                  [
-                    { label: 'Projects', table: 'projects', color: 'bg-blue-500' },
-                    { label: 'Configurations', table: 'config_files', color: 'bg-purple-500' },
-                    { label: 'Integrations', table: 'integrations', color: 'bg-green-500' },
-                    {
-                      label: 'Deployment Credentials',
-                      table: 'deployment_credentials',
-                      color: 'bg-ocean-500',
-                    },
-                    { label: 'Analysis Results', table: 'analysis_runs', color: 'bg-amber-500' },
-                  ] as Array<{ label: string; table: string; color: string }>
-                ).map((item, idx) => {
+                {STORAGE_ENTITIES.map((item, idx) => {
                   const count = data ? tableCount(item.table) : undefined;
                   const estimatedBytes =
                     data && data.totalRecords > 0 && count !== undefined
                       ? Math.round((count / Math.max(1, data.totalRecords)) * data.fileSizeBytes)
                       : 0;
-                  const sizeLabel = data
-                    ? formatBytes(estimatedBytes)
-                    : item.label === 'Projects'
-                      ? '—'
-                      : '—';
+                  const sizeLabel = data ? formatBytes(estimatedBytes) : '—';
                   const pct =
                     data && data.fileSizeBytes > 0
                       ? (estimatedBytes / data.fileSizeBytes) * 100
