@@ -42,44 +42,47 @@ app.use('/upload/*', authMiddleware);
 
 // Health check
 app.get('/health', async (c) => {
+  const startTime = Date.now();
+
   try {
-    const { initializeDatabase } = await import('@dxlander/database'); // database initializing
+    const { isSetupComplete } = await import('@dxlander/database');
 
-    // Try database connection
-    await initializeDatabase();
-    const dbStatus = 'ok';
+    // Check DB connectivity
+    const dbOk = await isSetupComplete();
 
-    // Collect basic system info
+    // System info
     const memoryUsage = process.memoryUsage().rss / 1024 / 1024; // MB
     const uptime = process.uptime();
+    const responseTime = Date.now() - startTime;
 
     const health = {
-      // if db status ok, then system status is ok
-      status: 'ok',
+      status: dbOk ? 'ok' : 'error',
       checks: {
-        api: 'ok',
-        database: dbStatus,
+        api: 'ok', // if /health responds, API is alive
+        database: dbOk ? 'ok' : 'error',
       },
       system: {
         uptime: `${uptime.toFixed(0)}s`,
         memory: `${memoryUsage.toFixed(2)} MB`,
+        responseTime: `${responseTime}ms`,
       },
+      timestamp: new Date().toISOString(),
     };
 
-    return c.json(health, 200);
+    return c.json(health, dbOk ? 200 : 503);
   } catch (error) {
-    // if db status error, then system status error
     console.error('Health check failed:', error);
 
     const health = {
       status: 'error',
       checks: {
-        api: 'ok', // api always ok, because /health is also an api, so if /health works, api endpoints work
+        api: 'ok',
         database: 'error',
       },
       system: {
         uptime: `${process.uptime().toFixed(0)}s`,
         memory: `${(process.memoryUsage().rss / 1024 / 1024).toFixed(2)} MB`,
+        responseTime: `${Date.now() - startTime}ms`,
       },
       timestamp: new Date().toISOString(),
     };
