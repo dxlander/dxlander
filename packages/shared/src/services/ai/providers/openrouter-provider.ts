@@ -55,37 +55,64 @@ export class OpenRouterProvider implements IAIProvider {
   /**
    * Test connection by sending a simple query
    */
-  async testConnection(): Promise<boolean> {
-    if (!this.config) {
-      return false;
+  private validateApiKey(apiKey: string): void {
+    if (!apiKey) {
+      throw new Error('API key is required for OpenRouter');
     }
 
-    // Use retry mechanism to handle rate limiting
-    return this.withRetry(async () => {
-      try {
-        // Make a lightweight request to test the API key
-        // Using a simple models endpoint with minimal data
-        const response = await Promise.race([
-          axios.get('https://openrouter.ai/api/v1/models', {
-            headers: {
-              Authorization: `Bearer ${this.config!.apiKey}`,
-            },
-            timeout: 5000, // 5 second timeout
-            params: {
-              limit: 1, // Only fetch one model to minimize data transfer
-            },
-          }),
-          new Promise<any>((_, reject) =>
-            setTimeout(() => reject(new Error('Request timeout')), 6000)
-          ),
-        ]);
+    // Basic validation - just check for minimum length and basic characters
+    // This is more lenient to accommodate different key formats
+    if (apiKey.length < 16) {
+      throw new Error('API key is too short. Please check your OpenRouter API key.');
+    }
 
-        return response.status === 200;
-      } catch (error: any) {
-        console.error('OpenRouter connection test failed:', error.message || error);
-        return false;
+    // Check for common issues like spaces or obviously invalid patterns
+    if (/\s/.test(apiKey)) {
+      throw new Error('API key should not contain spaces');
+    }
+  }
+
+  async testConnection(): Promise<boolean> {
+    if (!this.config?.apiKey) {
+      throw new Error('API key is required');
+    }
+
+    try {
+      // First validate the API key format
+      this.validateApiKey(this.config.apiKey);
+
+      const response = await Promise.race([
+        axios.get('https://openrouter.ai/api/v1/auth/key', {
+          headers: {
+            Authorization: `Bearer ${this.config.apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://dxlander.com',
+            'X-Title': 'DXLander',
+          },
+          timeout: 10000, // 10 second timeout
+          validateStatus: (status) => status < 500, // Don't throw for 4xx errors
+        }),
+        new Promise<any>((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout')), 11000)
+        ),
+      ]);
+
+      // Check if the response indicates an invalid key
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Invalid API key. Please check your OpenRouter API key.');
       }
-    }, 3); // Use fewer retries for connection test
+
+      // For any other non-200 status, consider it a failure
+      if (response.status !== 200) {
+        throw new Error(`API returned status ${response.status}: ${response.statusText}`);
+      }
+
+      // If we got here, the key is valid
+      return true;
+    } catch (error: any) {
+      console.error('OpenRouter connection test failed:', error.message || error);
+      return false;
+    }
   }
 
   /**
