@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Monochrome SVG for Safari pinned tab. Single-color shapes (black) so Safari will apply the color from the mask-icon `color` attribute. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="512" height="512" role="img">
+  <!-- Simple, bold monogram 'D' — single solid shape -->
+  <title>DXLander</title>
+  <rect width="24" height="24" fill="none"/>
+  <path fill="#000" d="M6 4h6c3.314 0 6 2.686 6 6s-2.686 6-6 6H6V4zm7.5 10c1.93 0 3.5-1.57 3.5-3.5S15.43 7 13.5 7H8v7h5.5z"/>
+</svg>

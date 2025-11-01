@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index } from 'drizzle-orm/sqlite-core';
+import { index, integer, sqliteTable, text } from 'drizzle-orm/sqlite-core';
 
 // Users table - admin accounts and team members
 export const users = sqliteTable(
@@ -389,7 +389,7 @@ export const aiProviders = sqliteTable(
 
     // Provider information
     name: text('name').notNull(), // User-friendly name: "Production Claude", "Dev OpenAI"
-    provider: text('provider').notNull(), // 'claude-code', 'openai', 'anthropic', 'ollama', 'lmstudio'
+    provider: text('provider').notNull(), // 'claude-code', 'openai', 'anthropic', 'ollama', 'lmstudio', 'openrouter'
 
     // Encrypted credentials (encrypted with master key)
     encryptedApiKey: text('encrypted_api_key'), // For cloud providers

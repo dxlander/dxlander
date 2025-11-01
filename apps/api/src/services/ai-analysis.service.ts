@@ -6,16 +6,16 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import {
-  ClaudeAgentProvider,
-  encryptionService,
+  getProjectFilesDir,
   type ProjectAnalysisResult,
   type ProjectContext,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
+import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AIProviderService } from './ai-provider.service';
 
 interface ProjectFile {
   path: string;
@@ -54,12 +54,6 @@ export class AIAnalysisService {
         );
       }
 
-      // Decrypt API key (encryption service already initialized)
-      let apiKey: string | undefined;
-      if (aiProvider.encryptedApiKey) {
-        apiKey = encryptionService.decryptFromStorage(aiProvider.encryptedApiKey);
-      }
-
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.projectId, projectId),
@@ -95,7 +89,7 @@ export class AIAnalysisService {
         .where(eq(schema.projects.id, projectId));
 
       // Run analysis in background (don't await)
-      this.runAnalysis(analysisId, project, aiProvider, apiKey).catch((error) => {
+      this.runAnalysis(analysisId, project, aiProvider).catch((error) => {
         console.error('Background analysis failed:', error);
       });
 
@@ -112,8 +106,7 @@ export class AIAnalysisService {
   private static async runAnalysis(
     analysisId: string,
     project: any,
-    aiProvider: any,
-    apiKey: string | undefined
+    aiProvider: any
   ): Promise<void> {
     try {
       // Log: Reading project files
@@ -124,8 +117,10 @@ export class AIAnalysisService {
         'Reading project files from disk'
       );
 
-      // Read project files from local storage
-      const projectFiles = await this.readProjectFiles(project.localPath);
+      // Read project files from files directory (not configs)
+      // project.localPath is the project root, we need to read from /files subdirectory
+      const filesDirectory = getProjectFilesDir(project.id);
+      const projectFiles = await this.readProjectFiles(filesDirectory);
 
       await this.logActivity(
         analysisId,
@@ -143,7 +138,7 @@ export class AIAnalysisService {
       // Prepare project context with progress callback
       const context: ProjectContext = {
         files: projectFiles,
-        projectPath: project.localPath, // Add absolute path to project root
+        projectPath: filesDirectory, // Path to files directory for AI to read source code
         readme: projectFiles.find((f) => f.path.toLowerCase().includes('readme'))?.content,
         packageJson: projectFiles.find((f) => f.path === 'package.json')
           ? JSON.parse(projectFiles.find((f) => f.path === 'package.json')!.content)
@@ -185,16 +180,16 @@ export class AIAnalysisService {
         `Initializing ${aiProvider.provider}`
       );
 
-      // Initialize AI provider
-      const provider = new ClaudeAgentProvider();
-      const settings = aiProvider.settings ? JSON.parse(aiProvider.settings) : {};
-
-      await provider.initialize({
-        provider: aiProvider.provider,
-        apiKey,
-        model: settings.model || 'claude-sonnet-4-5-20250929',
-        settings,
-      });
+      // Initialize AI provider using the AIProviderService
+      let provider;
+      try {
+        provider = await AIProviderService.getProvider({
+          userId: project.userId,
+          providerId: aiProvider.id,
+        });
+      } catch (error: any) {
+        throw new Error(`Failed to initialize AI provider: ${error.message}`);
+      }
 
       await this.logActivity(
         analysisId,
@@ -294,6 +289,9 @@ export class AIAnalysisService {
 
   /**
    * Read project files from disk
+   *
+   * IMPORTANT: This should be called with the files directory path,
+   * not the project root. This ensures AI only reads source files.
    */
   private static async readProjectFiles(localPath: string): Promise<ProjectFile[]> {
     const files: ProjectFile[] = [];
@@ -314,6 +312,7 @@ export class AIAnalysisService {
           'build',
           '.turbo',
           'coverage',
+          'configs', // Safety: Skip configs directory if it somehow exists in files
         ];
         if (entry.isDirectory() && ignorePatterns.some((p) => entry.name === p)) {
           continue;

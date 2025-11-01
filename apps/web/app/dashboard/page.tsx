@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
+import { Header, PageLayout, Section } from '@/components/layouts';
+import {
+  DeleteProjectDialog,
+  type DeleteProjectDialogProps,
+} from '@/components/projects/delete-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,36 +16,36 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Plus,
-  Search,
-  FolderOpen,
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  MoreHorizontal,
-  Settings,
-  Key,
-  FileText,
-  Trash2,
-  ExternalLink,
-  Eye,
-  Code,
-  Rocket,
-  Download,
-  GitBranch,
-  Archive,
-  Link2,
-  Loader2,
-  FileCode,
-} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import { formatRelativeTimeFull } from '@dxlander/shared/utils';
 import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+  AlertCircle,
+  Archive,
+  CheckCircle2,
+  Clock,
+  Code,
+  Download,
+  ExternalLink,
+  Eye,
+  FileCode,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  Key,
+  Link2,
+  MoreHorizontal,
+  Plus,
+  Rocket,
+  Search,
+  Settings,
+  Trash2,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 // Extended project type to include all properties used in the dashboard
 type Project = DeleteProjectDialogProps['project'] & {
@@ -70,7 +70,7 @@ export default function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  // Fetch real projects from API
+  // Fetch real projects from API (skeleton shown while isLoading is true)
   const { data, isLoading } = trpc.projects.list.useQuery({
     page: 1,
     limit: 50,
@@ -249,12 +249,40 @@ export default function Dashboard() {
 
               <TabsContent value={activeTab} className="space-y-4">
                 {isLoading ? (
-                  <Card>
-                    <CardContent className="p-16 text-center">
-                      <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-                      <p className="text-gray-600">Loading projects...</p>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-6">
+                    {/* Top bar skeleton */}
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-10 w-40" /> {/* Import Project button */}
+                      <Skeleton className="h-10 w-96" /> {/* Search bar */}
+                    </div>
+
+                    {/* Tabs skeleton */}
+                    <div className="flex space-x-4">
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                    </div>
+
+                    {/* Project cards skeleton */}
+                    <div className="grid grid-cols-1 gap-4">
+                      {[...Array(3)].map((_, i) => (
+                        <Card key={i} className="border shadow-sm">
+                          <CardContent className="p-6 space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-3 flex-1">
+                                <Skeleton className="h-5 w-1/3" /> {/* Project title */}
+                                <Skeleton className="h-4 w-1/4" /> {/* Status */}
+                                <Skeleton className="h-4 w-1/2" /> {/* Framework info */}
+                                <Skeleton className="h-4 w-2/3" /> {/* URL or source */}
+                              </div>
+                              <Skeleton className="h-8 w-20" /> {/* Button */}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 ) : filteredProjects.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-16 text-center">
@@ -284,7 +312,7 @@ export default function Dashboard() {
 
                       return (
                         <Link key={project.id} href={`/project/${project.id}`}>
-                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group">
+                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group cursor-pointer">
                             <CardContent className="p-6">
                               <div className="flex items-start justify-between gap-6">
                                 {/* Project Info */}
@@ -354,15 +382,15 @@ export default function Dashboard() {
                                         ) : (
                                           <>
                                             <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                            <a
-                                              href={project.sourceUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate"
-                                              onClick={(e) => e.stopPropagation()}
+                                            <span
+                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(project.sourceUrl!, '_blank');
+                                              }}
                                             >
                                               {project.sourceUrl}
-                                            </a>
+                                            </span>
                                           </>
                                         )}
                                         {project.sourceBranch && (
@@ -397,15 +425,15 @@ export default function Dashboard() {
                                     {project.deployUrl && (
                                       <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                                         <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                        <a
-                                          href={project.deployUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate"
-                                          onClick={(e) => e.stopPropagation()}
+                                        <span
+                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(project.deployUrl!, '_blank');
+                                          }}
                                         >
                                           {project.deployUrl}
-                                        </a>
+                                        </span>
                                       </div>
                                     )}
                                   </div>

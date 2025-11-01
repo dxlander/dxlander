@@ -12,6 +12,8 @@ import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
   getConfigDir,
+  getProjectConfigsDir,
+  isPathSafe,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
 
@@ -83,6 +85,13 @@ export class ConfigGenerationService {
 
       // Use helper function to get config directory
       const configPath = getConfigDir(projectId, configSetId);
+
+      // SECURITY: Validate that config path is in the correct location
+      // This prevents path traversal attacks where configPath might escape the configs directory
+      const configsDir = getProjectConfigsDir(projectId);
+      if (!isPathSafe(configsDir, configPath)) {
+        throw new Error('Invalid config path detected. Configs must be in the configs directory.');
+      }
 
       // Ensure config directory exists
       await fs.mkdir(configPath, { recursive: true });
@@ -229,6 +238,15 @@ export class ConfigGenerationService {
 
           const fileExtension = fileName.split('.').pop() || 'txt';
           const fileType = fileExtension || 'text';
+
+          // Security: Validate path to prevent traversal attacks
+          if (!isPathSafe(configSet.localPath, fileName)) {
+            await this.logConfigActivity(configSetId, 'read_file', 'failed', fileName, {
+              error: 'Path traversal detected',
+            });
+            console.warn(`[Security] Blocked suspicious path: ${fileName}`);
+            continue;
+          }
 
           // Read file content from disk (AI wrote it in config folder)
           const filePath = path.join(configSet.localPath, fileName);

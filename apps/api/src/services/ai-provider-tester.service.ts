@@ -179,6 +179,74 @@ class LMStudioTester implements IProviderTester {
 }
 
 /**
+ * OpenRouter Provider Tester
+ */
+class OpenRouterTester implements IProviderTester {
+  validateConfig(config: ProviderTestConfig): void {
+    if (!config.apiKey) {
+      throw new Error('API key is required for OpenRouter');
+    }
+
+    if (!config.settings?.model) {
+      throw new Error('Model selection is required for OpenRouter');
+    }
+  }
+
+  async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
+    this.validateConfig(config);
+
+    const model = config.settings!.model!;
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { OpenRouterProvider, AI_PROVIDER_TIMEOUTS } = await import('@dxlander/shared');
+      const provider = new OpenRouterProvider();
+
+      // Initialize with a timeout to prevent hanging
+      await Promise.race([
+        provider.initialize({
+          provider: 'openrouter',
+          apiKey: config.apiKey!,
+          model,
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('OpenRouter initialization timed out')),
+            AI_PROVIDER_TIMEOUTS.CONNECTION_TEST
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        message: 'Successfully connected to OpenRouter API',
+        model,
+        details: {
+          provider: 'openrouter',
+          model,
+          note: 'API key validated and connection successful',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `OpenRouter connection failed: ${error.message}`,
+        model,
+        details: {
+          error: error.message,
+          errorStack: error.stack,
+          provider: 'openrouter',
+          model,
+          timestamp: new Date().toISOString(),
+          isTimeout: error.message.includes('timed out'),
+        },
+      };
+    }
+  }
+}
+
+/**
  * Provider Registry
  *
  * Central registry for all provider testers.
@@ -193,6 +261,7 @@ class ProviderTesterRegistry {
     this.register('openai', new OpenAITester());
     this.register('ollama', new OllamaTester());
     this.register('lmstudio', new LMStudioTester());
+    this.register('openrouter', new OpenRouterTester());
   }
 
   /**

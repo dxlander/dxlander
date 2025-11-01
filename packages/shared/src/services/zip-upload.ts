@@ -1,15 +1,25 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import AdmZip from 'adm-zip';
-import { getProjectFilesDir, ensureDir, getDirSize, countFiles } from './file-storage';
+import {
+  getProjectFilesDir,
+  getProjectDir,
+  ensureDir,
+  getDirSize,
+  countFiles,
+} from './file-storage';
 
 /**
  * Extract all files from uploaded ZIP
+ *
+ * IMPORTANT: Files are extracted to ~/.dxlander/projects/{projectId}/files/
+ * This ensures separation from configs directory.
  */
 export interface ExtractZipResult {
   files: Map<string, string>;
   filesCount: number;
   totalSize: number;
+  /** Path to project root directory (not files directory) */
   localPath: string;
 }
 
@@ -21,7 +31,13 @@ export async function extractZipFile(
   const zipEntries = zip.getEntries();
 
   const files = new Map<string, string>();
+
+  // Get project paths
+  const projectRoot = getProjectDir(projectId);
   const projectFilesDir = getProjectFilesDir(projectId);
+
+  // Ensure both directories exist
+  ensureDir(projectRoot);
   ensureDir(projectFilesDir);
 
   for (const entry of zipEntries) {
@@ -64,7 +80,7 @@ export async function extractZipFile(
     files,
     filesCount,
     totalSize,
-    localPath: projectFilesDir,
+    localPath: projectRoot, // Return project root, not files dir
   };
 }
 

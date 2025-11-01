@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import { router, protectedProcedure, encryptionService } from '@dxlander/shared';
-import { db, schema } from '@dxlander/database';
-import { eq, and } from 'drizzle-orm';
+import { db, getDatabaseStats, schema } from '@dxlander/database';
+import { encryptionService, protectedProcedure, router } from '@dxlander/shared';
 import { randomUUID } from 'crypto';
+import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 const AIProviderSchema = z.object({
   name: z.string().min(1, 'Provider name is required'),
-  provider: z.enum(['claude-agent-sdk', 'openai', 'anthropic', 'ollama', 'lmstudio']),
+  provider: z.enum(['claude-agent-sdk', 'openai', 'anthropic', 'ollama', 'lmstudio', 'openrouter']),
   apiKey: z.string().optional(),
   settings: z
     .object({
@@ -215,4 +215,16 @@ export const settingsRouter = router({
         throw new Error('Failed to delete AI provider');
       }
     }),
+
+  /**
+   * Get basic database statistics (file size, tables, record counts)
+   */
+  getDatabaseStats: protectedProcedure.query(async () => {
+    try {
+      return await getDatabaseStats();
+    } catch (error) {
+      console.error('Failed to fetch database stats:', error);
+      throw new Error('Failed to fetch database stats');
+    }
+  }),
 });

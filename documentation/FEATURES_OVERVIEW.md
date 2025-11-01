@@ -43,6 +43,9 @@ This document provides a comprehensive overview of DXLander's current features a
 - **Project metadata:** Name, source type, import date, status tracking
 - **Status indicators:** Imported, Analyzing, Configured, Deployed states
 - **Project details:** Comprehensive project information and file browser
+- **Organized storage:** Consistent directory structure for all import sources
+  - Source files: `~/.dxlander/projects/{projectId}/files/`
+  - Generated configs: `~/.dxlander/projects/{projectId}/configs/{configId}/`
 
 ### 3. Security & Encryption
 
@@ -67,6 +70,7 @@ This document provides a comprehensive overview of DXLander's current features a
 #### AI Providers
 
 - **Anthropic Claude Agent SDK:** Claude-3 family models with API integration
+- **OpenRouter:** Unified API for accessing multiple AI models
 - **Custom providers:** Extensible system for additional AI services
 
 #### Provider Configuration
@@ -122,8 +126,12 @@ This document provides a comprehensive overview of DXLander's current features a
 
 - **SQLite default:** Single-user deployment with local database
 - **PostgreSQL ready:** Multi-user and production deployment support
-- **File storage:** Local filesystem at `~/.dxlander/projects/`
+- **File storage:** Organized local filesystem structure
+  - Project root: `~/.dxlander/projects/{projectId}/`
+  - Source files: `{projectId}/files/` (imported code)
+  - Configurations: `{projectId}/configs/{configId}/` (generated configs)
 - **Migration system:** Drizzle ORM with version management
+- **Consistent imports:** All import methods (GitHub, GitLab, Bitbucket, ZIP) use the same directory structure
 
 #### Data Models
 
