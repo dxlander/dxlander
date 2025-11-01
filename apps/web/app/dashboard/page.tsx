@@ -21,10 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
-  AlertCircle,
   Archive,
-  CheckCircle2,
-  Clock,
   Code,
   Download,
   ExternalLink,
@@ -90,32 +87,6 @@ export default function Dashboard() {
         label: 'Imported',
         color: 'text-blue-600 bg-blue-100',
       },
-      discovering: {
-        icon: <Clock className="h-4 w-4 animate-pulse" />,
-        variant: 'secondary' as const,
-        label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100',
-      },
-      // Support both 'analyzing' and 'discovering' for backward compatibility
-      analyzing: {
-        icon: <Clock className="h-4 w-4 animate-pulse" />,
-        variant: 'secondary' as const,
-        label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100',
-      },
-      discovered: {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        variant: 'secondary' as const,
-        label: 'Discovered',
-        color: 'text-green-600 bg-green-100',
-      },
-      // Support both 'analyzed' and 'discovered' for backward compatibility
-      analyzed: {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        variant: 'secondary' as const,
-        label: 'Discovered',
-        color: 'text-green-600 bg-green-100',
-      },
       configured: {
         icon: <FileText className="h-4 w-4" />,
         variant: 'secondary' as const,
@@ -127,12 +98,6 @@ export default function Dashboard() {
         variant: 'default' as const,
         label: 'Deployed',
         color: 'text-indigo-600 bg-indigo-100',
-      },
-      failed: {
-        icon: <AlertCircle className="h-4 w-4" />,
-        variant: 'destructive' as const,
-        label: 'Failed',
-        color: 'text-red-600 bg-red-100',
       },
     };
     return configs[status as keyof typeof configs] || configs.imported;

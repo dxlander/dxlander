@@ -79,15 +79,6 @@ export class AIAnalysisService {
         createdAt: new Date(),
       });
 
-      // Update project status
-      await db
-        .update(schema.projects)
-        .set({
-          status: 'analyzing',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.projects.id, projectId));
-
       // Run analysis in background (don't await)
       this.runAnalysis(analysisId, project, aiProvider).catch((error) => {
         console.error('Background analysis failed:', error);
@@ -235,11 +226,10 @@ export class AIAnalysisService {
         })
         .where(eq(schema.analysisRuns.id, analysisId));
 
-      // Update project status
+      // Update project metadata
       await db
         .update(schema.projects)
         .set({
-          status: 'analyzed',
           language: analysisResult.language.primary,
           updatedAt: new Date(),
         })
@@ -275,15 +265,6 @@ export class AIAnalysisService {
           completedAt: new Date(),
         })
         .where(eq(schema.analysisRuns.id, analysisId));
-
-      // Update project status
-      await db
-        .update(schema.projects)
-        .set({
-          status: 'failed',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.projects.id, project.id));
     }
   }
 

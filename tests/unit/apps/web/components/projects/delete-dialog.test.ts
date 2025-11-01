@@ -30,18 +30,10 @@ describe('DeleteProjectDialog Component Logic', () => {
         switch (projectStatus) {
           case 'imported':
             return 'text-blue-600 bg-blue-100';
-          case 'discovering':
-          case 'analyzing':
-            return 'text-ocean-600 bg-ocean-100';
-          case 'discovered':
-          case 'analyzed':
-            return 'text-green-600 bg-green-100';
           case 'configured':
             return 'text-purple-600 bg-purple-100';
           case 'deployed':
             return 'text-indigo-600 bg-indigo-100';
-          case 'failed':
-            return 'text-red-600 bg-red-100';
           default:
             return 'text-gray-600 bg-gray-100';
         }
@@ -50,26 +42,18 @@ describe('DeleteProjectDialog Component Logic', () => {
       expect(getBadgeClass(status)).toBe(expectedClass);
     });
 
-    it('should return correct badge class for analyzing status', () => {
-      const status = 'analyzing';
-      const expectedClass = 'text-ocean-600 bg-ocean-100';
+    it('should return correct badge class for configured status', () => {
+      const status = 'configured';
+      const expectedClass = 'text-purple-600 bg-purple-100';
 
       const getBadgeClass = (projectStatus: string) => {
         switch (projectStatus) {
           case 'imported':
             return 'text-blue-600 bg-blue-100';
-          case 'discovering':
-          case 'analyzing':
-            return 'text-ocean-600 bg-ocean-100';
-          case 'discovered':
-          case 'analyzed':
-            return 'text-green-600 bg-green-100';
           case 'configured':
             return 'text-purple-600 bg-purple-100';
           case 'deployed':
             return 'text-indigo-600 bg-indigo-100';
-          case 'failed':
-            return 'text-red-600 bg-red-100';
           default:
             return 'text-gray-600 bg-gray-100';
         }
@@ -86,18 +70,10 @@ describe('DeleteProjectDialog Component Logic', () => {
         switch (projectStatus) {
           case 'imported':
             return 'text-blue-600 bg-blue-100';
-          case 'discovering':
-          case 'analyzing':
-            return 'text-ocean-600 bg-ocean-100';
-          case 'discovered':
-          case 'analyzed':
-            return 'text-green-600 bg-green-100';
           case 'configured':
             return 'text-purple-600 bg-purple-100';
           case 'deployed':
             return 'text-indigo-600 bg-indigo-100';
-          case 'failed':
-            return 'text-red-600 bg-red-100';
           default:
             return 'text-gray-600 bg-gray-100';
         }
@@ -114,18 +90,10 @@ describe('DeleteProjectDialog Component Logic', () => {
         switch (projectStatus) {
           case 'imported':
             return 'text-blue-600 bg-blue-100';
-          case 'discovering':
-          case 'analyzing':
-            return 'text-ocean-600 bg-ocean-100';
-          case 'discovered':
-          case 'analyzed':
-            return 'text-green-600 bg-green-100';
           case 'configured':
             return 'text-purple-600 bg-purple-100';
           case 'deployed':
             return 'text-indigo-600 bg-indigo-100';
-          case 'failed':
-            return 'text-red-600 bg-red-100';
           default:
             return 'text-gray-600 bg-gray-100';
         }
@@ -171,16 +139,7 @@ describe('DeleteProjectDialog Component Logic', () => {
     });
 
     it('should have valid status values', () => {
-      const validStatuses = [
-        'imported',
-        'discovering',
-        'analyzing',
-        'discovered',
-        'analyzed',
-        'configured',
-        'deployed',
-        'failed',
-      ];
+      const validStatuses = ['imported', 'configured', 'deployed'];
       expect(validStatuses).toContain(mockProject.status);
     });
   });

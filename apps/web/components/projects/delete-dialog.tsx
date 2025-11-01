@@ -119,17 +119,11 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
                       ${
                         project.status === 'imported'
                           ? 'text-blue-600 bg-blue-100'
-                          : project.status === 'discovering' || project.status === 'analyzing'
-                            ? 'text-ocean-600 bg-ocean-100'
-                            : project.status === 'discovered' || project.status === 'analyzed'
-                              ? 'text-green-600 bg-green-100'
-                              : project.status === 'configured'
-                                ? 'text-purple-600 bg-purple-100'
-                                : project.status === 'deployed'
-                                  ? 'text-indigo-600 bg-indigo-100'
-                                  : project.status === 'failed'
-                                    ? 'text-red-600 bg-red-100'
-                                    : 'text-gray-600 bg-gray-100'
+                          : project.status === 'configured'
+                            ? 'text-purple-600 bg-purple-100'
+                            : project.status === 'deployed'
+                              ? 'text-indigo-600 bg-indigo-100'
+                              : 'text-gray-600 bg-gray-100'
                       }
                     `}
                   >

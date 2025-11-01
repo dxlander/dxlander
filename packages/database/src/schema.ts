@@ -52,7 +52,7 @@ export const projects = sqliteTable(
     language: text('language'),
 
     // Status tracking
-    status: text('status').notNull().default('imported'), // imported, analyzing, analyzed, configured, deployed, failed
+    status: text('status').notNull().default('imported'), // imported, configured, deployed
 
     // References to latest versions (for quick access)
     latestAnalysisId: text('latest_analysis_id'), // FK to analysis_runs
