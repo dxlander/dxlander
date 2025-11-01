@@ -118,31 +118,12 @@ export class OpenRouterProvider implements IAIProvider {
 
   /**
    * Get available models
+   * Fetches dynamically from OpenRouter API instead of using hardcoded list
    */
   async getAvailableModels(): Promise<string[]> {
-    // Return a selection of models that are useful for code-related tasks
-    return [
-      'openrouter/auto',
-      'anthropic/claude-3.5-sonnet',
-      'anthropic/claude-3.7-sonnet:thinking',
-      'anthropic/claude-opus-4.1',
-      'anthropic/claude-haiku-4.5',
-      'openai/gpt-4o',
-      'openai/gpt-4.1',
-      'openai/gpt-5',
-      'openai/gpt-5-mini',
-      'openai/gpt-5-pro',
-      'google/gemini-2.5-pro',
-      'google/gemini-2.5-flash',
-      'google/gemini-2.5-flash-lite-preview-09-2025',
-      'x-ai/grok-code-fast-1',
-      'meta-llama/llama-3-70b-instruct',
-      'mistralai/mistral-large',
-      'mistralai/mistral-small-24b-instruct-2501:free',
-      'mistralai/mistral-small-3.2-24b-instruct:free',
-      'deepseek/deepseek-chat-v3.1:free',
-      'deepseek/deepseek-r1-0528:free',
-    ];
+    // Delegate to getDetailedModels and return just the IDs
+    const detailedModels = await this.getDetailedModels();
+    return detailedModels.map((model) => model.id);
   }
 
   /**
@@ -309,7 +290,7 @@ export class OpenRouterProvider implements IAIProvider {
         axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: request.model || this.config!.model || 'openrouter/auto',
+            model: request.model || this.config!.model,
             messages: messages,
             temperature: request.temperature || 0.7,
             max_tokens: request.maxTokens || 1000,
@@ -374,7 +355,7 @@ export class OpenRouterProvider implements IAIProvider {
         axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: this.config!.model || 'anthropic/claude-3.5-sonnet',
+            model: this.config!.model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: analysisPrompt },
@@ -458,7 +439,7 @@ export class OpenRouterProvider implements IAIProvider {
         axios.post(
           'https://openrouter.ai/api/v1/chat/completions',
           {
-            model: this.config!.model || 'anthropic/claude-3.5-sonnet',
+            model: this.config!.model,
             messages: [
               { role: 'system', content: systemPrompt },
               { role: 'user', content: configPrompt },

@@ -7,7 +7,6 @@
 
 import { db, schema } from '@dxlander/database';
 import {
-  encryptionService,
   getProjectFilesDir,
   type ProjectAnalysisResult,
   type ProjectContext,
@@ -55,12 +54,6 @@ export class AIAnalysisService {
         );
       }
 
-      // Decrypt API key (encryption service already initialized)
-      let apiKey: string | undefined;
-      if (aiProvider.encryptedApiKey) {
-        apiKey = encryptionService.decryptFromStorage(aiProvider.encryptedApiKey);
-      }
-
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.projectId, projectId),
@@ -96,7 +89,7 @@ export class AIAnalysisService {
         .where(eq(schema.projects.id, projectId));
 
       // Run analysis in background (don't await)
-      this.runAnalysis(analysisId, project, aiProvider, apiKey).catch((error) => {
+      this.runAnalysis(analysisId, project, aiProvider).catch((error) => {
         console.error('Background analysis failed:', error);
       });
 
@@ -113,8 +106,7 @@ export class AIAnalysisService {
   private static async runAnalysis(
     analysisId: string,
     project: any,
-    aiProvider: any,
-    _apiKey: string | undefined
+    aiProvider: any
   ): Promise<void> {
     try {
       // Log: Reading project files

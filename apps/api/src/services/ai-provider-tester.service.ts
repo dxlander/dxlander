@@ -186,14 +186,20 @@ class OpenRouterTester implements IProviderTester {
     if (!config.apiKey) {
       throw new Error('API key is required for OpenRouter');
     }
+
+    if (!config.settings?.model) {
+      throw new Error('Model selection is required for OpenRouter');
+    }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
     this.validateConfig(config);
 
+    const model = config.settings!.model!;
+
     try {
       // Dynamically import to avoid circular dependencies
-      const { OpenRouterProvider } = await import('@dxlander/shared');
+      const { OpenRouterProvider, AI_PROVIDER_TIMEOUTS } = await import('@dxlander/shared');
       const provider = new OpenRouterProvider();
 
       // Initialize with a timeout to prevent hanging
@@ -201,12 +207,12 @@ class OpenRouterTester implements IProviderTester {
         provider.initialize({
           provider: 'openrouter',
           apiKey: config.apiKey!,
-          model: config.settings?.model || 'openrouter/auto',
+          model,
         }),
         new Promise<void>((_, reject) =>
           setTimeout(
-            () => reject(new Error('OpenRouter initialization timed out after 10 seconds')),
-            10000
+            () => reject(new Error('OpenRouter initialization timed out')),
+            AI_PROVIDER_TIMEOUTS.CONNECTION_TEST
           )
         ),
       ]);
@@ -214,20 +220,26 @@ class OpenRouterTester implements IProviderTester {
       return {
         success: true,
         message: 'Successfully connected to OpenRouter API',
-        model: config.settings?.model || 'openrouter/auto',
+        model,
         details: {
           provider: 'openrouter',
+          model,
           note: 'API key validated and connection successful',
+          timestamp: new Date().toISOString(),
         },
       };
     } catch (error: any) {
       return {
         success: false,
         message: `OpenRouter connection failed: ${error.message}`,
-        model: config.settings?.model || 'openrouter/auto',
+        model,
         details: {
           error: error.message,
+          errorStack: error.stack,
           provider: 'openrouter',
+          model,
+          timestamp: new Date().toISOString(),
+          isTimeout: error.message.includes('timed out'),
         },
       };
     }

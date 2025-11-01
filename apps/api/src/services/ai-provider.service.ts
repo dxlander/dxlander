@@ -67,15 +67,16 @@ export class AIProviderService {
     // Parse settings
     const settings = providerRecord.settings ? JSON.parse(providerRecord.settings) : {};
 
+    // Validate that required settings exist
+    if (!settings.model) {
+      throw new Error(`Model is required for ${providerRecord.provider} provider`);
+    }
+
     // Create provider configuration
     const config: ProviderConfig = {
       provider: providerRecord.provider as any,
       apiKey: apiKey,
-      model:
-        settings.model ||
-        (providerRecord.provider === 'openrouter'
-          ? 'openrouter/auto'
-          : 'claude-sonnet-4-5-20250929'),
+      model: settings.model,
       settings: {
         temperature: settings.temperature || 0.7,
         maxTokens: settings.maxTokens || 4096,
@@ -132,7 +133,7 @@ export class AIProviderService {
         const provider = new OpenRouterProvider();
         await provider.initialize({
           apiKey: config.apiKey || '',
-          model: config.model || 'openrouter/auto',
+          model: config.model,
           provider: config.provider,
         });
 

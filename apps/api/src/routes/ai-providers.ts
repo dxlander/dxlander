@@ -1,5 +1,6 @@
 import { db, schema } from '@dxlander/database';
 import {
+  AI_PROVIDERS,
   ClaudeAgentProvider,
   encryptionService,
   IdSchema,
@@ -14,7 +15,7 @@ import { AIProviderTesterService } from '../services/ai-provider-tester.service'
 
 const CreateAIProviderSchema = z.object({
   name: z.string().min(1, 'Name is required'),
-  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic', 'openrouter']),
+  provider: z.enum(AI_PROVIDERS),
   apiKey: z.string().optional(),
   settings: z.record(z.unknown()).optional(),
   isDefault: z.boolean().optional(),
@@ -34,7 +35,7 @@ const TestAIProviderSchema = z.object({
 });
 
 const TestConnectionSchema = z.object({
-  provider: z.enum(['claude-code', 'openai', 'ollama', 'lmstudio', 'anthropic', 'openrouter']),
+  provider: z.enum(AI_PROVIDERS),
   apiKey: z.string().optional(),
   settings: z.record(z.unknown()).optional(), // Flexible settings - each provider has different requirements
 });
