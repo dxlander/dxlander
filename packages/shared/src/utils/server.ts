@@ -1,9 +1,13 @@
 // Server-only utility functions (uses Node.js crypto)
-import { createHash, randomBytes } from 'crypto';
+import { createHash } from 'crypto';
+import { nanoid } from 'nanoid';
 
+/**
+ * Generate a cryptographically secure unique ID
+ * Uses nanoid which is more efficient and collision-resistant than custom implementations
+ */
 export function generateId(): string {
-  // Use cryptographically secure random bytes for collision resistance
-  return createHash('sha256').update(randomBytes(32)).digest('hex').substring(0, 16);
+  return nanoid();
 }
 
 export function createContentHash(content: string): string {

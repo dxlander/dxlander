@@ -44,16 +44,25 @@ function DatabaseContent() {
     undefined,
     {
       refetchOnWindowFocus: false,
+      staleTime: 60_000, // Consider data fresh for 1 minute
+      gcTime: 300_000, // Keep in cache for 5 minutes
     }
   );
 
-  const fileSizeLabel = data ? formatBytes(data.fileSizeBytes) : '—';
-  const tablesCountLabel = data ? String(data.tablesCount) : '—';
-  const recordsLabel = data ? String(data.totalRecords) : '—';
+  // Runtime validation and safe access with null checks
+  const fileSizeLabel =
+    data && typeof data.fileSizeBytes === 'number' ? formatBytes(data.fileSizeBytes) : '—';
+  const tablesCountLabel =
+    data && typeof data.tablesCount === 'number' ? String(data.tablesCount) : '—';
+  const recordsLabel =
+    data && typeof data.totalRecords === 'number' ? String(data.totalRecords) : '—';
 
-  // helper to get per-table count
-  const tableCount = (name: string) =>
-    data?.perTable.find((p: PerTableStat) => p.name === name)?.count ?? 0;
+  // Helper to get per-table count with validation
+  const tableCount = (name: string) => {
+    if (!data?.perTable || !Array.isArray(data.perTable)) return 0;
+    const table = data.perTable.find((p: PerTableStat) => p.name === name);
+    return typeof table?.count === 'number' ? table.count : 0;
+  };
 
   const headerActions = (
     <div className="flex items-center gap-2">
@@ -346,7 +355,8 @@ function DatabaseContent() {
                     data && data.totalRecords > 0 && count !== undefined
                       ? Math.round((count / Math.max(1, data.totalRecords)) * data.fileSizeBytes)
                       : 0;
-                  const sizeLabel = data ? formatBytes(estimatedBytes) : '—';
+                  // Add "~" prefix to indicate this is an estimated value
+                  const sizeLabel = data ? `~${formatBytes(estimatedBytes)}` : '—';
                   const pct =
                     data && data.fileSizeBytes > 0
                       ? (estimatedBytes / data.fileSizeBytes) * 100
@@ -362,7 +372,12 @@ function DatabaseContent() {
                             {isLoading ? '—' : `${count ?? 0} records`}
                           </Badge>
                         </div>
-                        <span className="text-sm text-gray-600">{isLoading ? '—' : sizeLabel}</span>
+                        <span
+                          className="text-sm text-gray-600"
+                          title="Estimated size based on record distribution"
+                        >
+                          {isLoading ? '—' : sizeLabel}
+                        </span>
                       </div>
                       <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
                         <div

@@ -493,16 +493,35 @@ export function getDatabaseFilePath(): string {
   return dbPath;
 }
 
+// Whitelist of valid table names for security (prevents SQL injection)
+const VALID_TABLE_NAMES = new Set([
+  'users',
+  'projects',
+  'analysis_runs',
+  'analysis_activity_logs',
+  'config_sets',
+  'config_files',
+  'config_optimizations',
+  'config_activity_logs',
+  'build_runs',
+  'deployments',
+  'settings',
+  'encryption_keys',
+  'ai_providers',
+  'integrations',
+  'deployment_credentials',
+  'audit_logs',
+]);
+
 /**
- * Gather simple database statistics:
- * - fileSizeBytes: size of the sqlite file on disk
- * - tablesCount: number of user tables
- * - totalRecords: sum of row counts across user tables
- * - perTable: array of { name, count }
+ * Gather database statistics including file size, table counts, and per-table record counts.
  *
- * This uses the same sqlite connection (better-sqlite3) and is intentionally
- * synchronous/simple so it can be called from server code without extra
- * dependencies.
+ * @returns Promise resolving to database statistics object containing:
+ *   - dbPath: absolute path to the database file
+ *   - fileSizeBytes: size of the SQLite file on disk
+ *   - tablesCount: number of user tables (excluding SQLite internal tables)
+ *   - totalRecords: sum of row counts across all user tables
+ *   - perTable: array of { name, count } for each table
  */
 export async function getDatabaseStats(): Promise<{
   dbPath: string;
@@ -512,7 +531,9 @@ export async function getDatabaseStats(): Promise<{
   perTable: Array<{ name: string; count: number }>;
 }> {
   try {
-    const stats = fs.statSync(dbPath);
+    // Use async file stat to avoid blocking event loop
+    const stats = await fs.promises.stat(dbPath);
+
     // Get user tables (exclude sqlite internal tables)
     const tables = sqlite
       .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
@@ -522,7 +543,14 @@ export async function getDatabaseStats(): Promise<{
     const perTable: Array<{ name: string; count: number }> = [];
 
     for (const t of tables) {
+      // Security: Validate table name against whitelist to prevent SQL injection
+      if (!VALID_TABLE_NAMES.has(t.name)) {
+        console.warn(`Skipping unknown table: ${t.name}`);
+        continue;
+      }
+
       try {
+        // Safe to use template literal here since table name is validated against whitelist
         const row = sqlite.prepare(`SELECT COUNT(*) as cnt FROM "${t.name}";`).get() as
           | { cnt: number }
           | undefined;

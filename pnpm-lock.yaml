@@ -14,6 +14,9 @@ importers:
       '@gitbeaker/rest':
         specifier: ^43.7.0
         version: 43.7.0
+      nanoid:
+        specifier: ^5.0.0
+        version: 5.1.5
       simple-git:
         specifier: ^3.28.0
         version: 3.28.0
