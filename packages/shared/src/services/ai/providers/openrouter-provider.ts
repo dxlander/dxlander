@@ -74,7 +74,8 @@ export class OpenRouterProvider implements IAIProvider {
 
   async testConnection(): Promise<boolean> {
     if (!this.config?.apiKey) {
-      throw new Error('API key is required');
+      console.error('API key is required');
+      return false;
     }
 
     try {
@@ -131,7 +132,6 @@ export class OpenRouterProvider implements IAIProvider {
       'openai/gpt-5',
       'openai/gpt-5-mini',
       'openai/gpt-5-pro',
-      'google/gemini-pro',
       'google/gemini-2.5-pro',
       'google/gemini-2.5-flash',
       'google/gemini-2.5-flash-lite-preview-09-2025',
