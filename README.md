@@ -14,7 +14,7 @@ Skip the configuration hassle. Import any project, get deployment-ready instantl
 
 > ⚠️ **HEAVY DEVELOPMENT** - This project is in active development. Expect breaking changes, incomplete features, and evolving APIs. Contributions welcome but use in production at your own risk.
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Sustainable Use](https://img.shields.io/badge/License-Sustainable%20Use-blue.svg)](LICENSE)
 [![CI](https://github.com/dxlander/dxlander/actions/workflows/ci.yml/badge.svg)](https://github.com/dxlander/dxlander/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
@@ -334,15 +334,16 @@ See our [Development Workflow Guide](documentation/DEVELOPMENT_WORKFLOW.md) for 
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+DXLander is source-available under the [Sustainable Use License](LICENSE).
 
-This means you can:
+**What this means:**
 
-- Use commercially
-- Modify
-- Distribute
-- Use privately
-- Sublicense
+- ✅ Free to use and self-host
+- ✅ Free for internal business use
+- ✅ Contributions welcome
+- ❌ Cannot offer as a paid service without permission
+
+Questions about licensing? Open an issue or reach out to the maintainers.
 
 ---
 
@@ -440,12 +441,6 @@ Check the [Features Overview](documentation/FEATURES_OVERVIEW.md) for what's com
 ### Code of Conduct
 
 Please be respectful and constructive in all interactions
-
----
-
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
