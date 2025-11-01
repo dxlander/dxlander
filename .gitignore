@@ -151,3 +151,6 @@ temp/
 test-results/
 playwright-report/
 test-results.xml
+
+# Playwright auth storage (contains session tokens)
+tests/e2e/.auth/

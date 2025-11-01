@@ -9,6 +9,11 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +47,7 @@ import {
   Settings,
   Trash2,
   Zap,
+  FileCode,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -71,7 +77,7 @@ export default function Dashboard() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
-  // Fetch real projects from API
+  // Fetch real projects from API (skeleton shown while isLoading is true)
   const { data, isLoading } = trpc.projects.list.useQuery({
     page: 1,
     limit: 50,
@@ -264,12 +270,40 @@ export default function Dashboard() {
 
               <TabsContent value={activeTab} className="space-y-4">
                 {isLoading ? (
-                  <Card>
-                    <CardContent className="p-16 text-center">
-                      <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-                      <p className="text-gray-600">Loading projects...</p>
-                    </CardContent>
-                  </Card>
+                  <div className="space-y-6">
+                    {/* Top bar skeleton */}
+                    <div className="flex items-center justify-between">
+                      <Skeleton className="h-10 w-40" /> {/* Import Project button */}
+                      <Skeleton className="h-10 w-96" /> {/* Search bar */}
+                    </div>
+
+                    {/* Tabs skeleton */}
+                    <div className="flex space-x-4">
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                      <Skeleton className="h-8 w-28" />
+                    </div>
+
+                    {/* Project cards skeleton */}
+                    <div className="grid grid-cols-1 gap-4">
+                      {[...Array(3)].map((_, i) => (
+                        <Card key={i} className="border shadow-sm">
+                          <CardContent className="p-6 space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div className="space-y-3 flex-1">
+                                <Skeleton className="h-5 w-1/3" /> {/* Project title */}
+                                <Skeleton className="h-4 w-1/4" /> {/* Status */}
+                                <Skeleton className="h-4 w-1/2" /> {/* Framework info */}
+                                <Skeleton className="h-4 w-2/3" /> {/* URL or source */}
+                              </div>
+                              <Skeleton className="h-8 w-20" /> {/* Button */}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 ) : filteredProjects.length === 0 ? (
                   <Card className="border-dashed border-2">
                     <CardContent className="p-16 text-center">

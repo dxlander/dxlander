@@ -8,6 +8,7 @@
 import { db, schema } from '@dxlander/database';
 import {
   encryptionService,
+  getProjectFilesDir,
   type ProjectAnalysisResult,
   type ProjectContext,
 } from '@dxlander/shared';
@@ -124,8 +125,10 @@ export class AIAnalysisService {
         'Reading project files from disk'
       );
 
-      // Read project files from local storage
-      const projectFiles = await this.readProjectFiles(project.localPath);
+      // Read project files from files directory (not configs)
+      // project.localPath is the project root, we need to read from /files subdirectory
+      const filesDirectory = getProjectFilesDir(project.id);
+      const projectFiles = await this.readProjectFiles(filesDirectory);
 
       await this.logActivity(
         analysisId,
@@ -143,7 +146,7 @@ export class AIAnalysisService {
       // Prepare project context with progress callback
       const context: ProjectContext = {
         files: projectFiles,
-        projectPath: project.localPath, // Add absolute path to project root
+        projectPath: filesDirectory, // Path to files directory for AI to read source code
         readme: projectFiles.find((f) => f.path.toLowerCase().includes('readme'))?.content,
         packageJson: projectFiles.find((f) => f.path === 'package.json')
           ? JSON.parse(projectFiles.find((f) => f.path === 'package.json')!.content)
@@ -294,6 +297,9 @@ export class AIAnalysisService {
 
   /**
    * Read project files from disk
+   *
+   * IMPORTANT: This should be called with the files directory path,
+   * not the project root. This ensures AI only reads source files.
    */
   private static async readProjectFiles(localPath: string): Promise<ProjectFile[]> {
     const files: ProjectFile[] = [];
@@ -314,6 +320,7 @@ export class AIAnalysisService {
           'build',
           '.turbo',
           'coverage',
+          'configs', // Safety: Skip configs directory if it somehow exists in files
         ];
         if (entry.isDirectory() && ignorePatterns.some((p) => entry.name === p)) {
           continue;
