@@ -351,7 +351,7 @@ export const aiProvidersRouter = router({
             settings: settings,
           };
 
-          const testResult = await AIProviderTesterService.testConnection(testConfig);
+          testResult = await AIProviderTesterService.testConnection(testConfig);
 
           if (!testResult.success) {
             throw new Error(testResult.message);

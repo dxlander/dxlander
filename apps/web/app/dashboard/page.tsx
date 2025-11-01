@@ -9,11 +9,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
@@ -39,7 +35,6 @@ import {
   GitBranch,
   Key,
   Link2,
-  Loader2,
   MoreHorizontal,
   Plus,
   Rocket,
@@ -47,7 +42,6 @@ import {
   Settings,
   Trash2,
   Zap,
-  FileCode,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';

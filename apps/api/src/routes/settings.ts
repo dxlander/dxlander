@@ -1,12 +1,12 @@
-import { z } from 'zod';
-import { router, protectedProcedure, encryptionService } from '@dxlander/shared';
 import { db, schema } from '@dxlander/database';
-import { eq, and } from 'drizzle-orm';
+import { encryptionService, protectedProcedure, router } from '@dxlander/shared';
 import { randomUUID } from 'crypto';
+import { and, eq } from 'drizzle-orm';
+import { z } from 'zod';
 
 const AIProviderSchema = z.object({
   name: z.string().min(1, 'Provider name is required'),
-  provider: z.enum(['claude-agent-sdk', 'openai', 'anthropic', 'ollama', 'lmstudio']),
+  provider: z.enum(['claude-agent-sdk', 'openai', 'anthropic', 'ollama', 'lmstudio', 'openrouter']),
   apiKey: z.string().optional(),
   settings: z
     .object({

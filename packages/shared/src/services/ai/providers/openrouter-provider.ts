@@ -56,7 +56,7 @@ export class OpenRouterProvider implements IAIProvider {
    * Test connection by sending a simple query
    */
   async testConnection(): Promise<boolean> {
-    if (!this.ready || !this.config) {
+    if (!this.config) {
       return false;
     }
 
