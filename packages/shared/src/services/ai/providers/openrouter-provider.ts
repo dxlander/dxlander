@@ -251,11 +251,6 @@ export class OpenRouterProvider implements IAIProvider {
             // Also include models that have "chat" in their name (as they're likely conversational)
             const isChatModel = model.id.includes('chat') || model.name.includes('Chat');
 
-            // Exclude models with very low context length even if they match other criteria
-            if (contextLength < 2048) {
-              return false;
-            }
-
             return isCodingModel || isChatModel;
           })
           .map((model: any) => {
