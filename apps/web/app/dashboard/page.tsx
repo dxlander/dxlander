@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
+import { Header, PageLayout, Section } from '@/components/layouts';
+import {
+  DeleteProjectDialog,
+  type DeleteProjectDialogProps,
+} from '@/components/projects/delete-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,34 +16,35 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import {
-  Plus,
-  Search,
-  FolderOpen,
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  MoreHorizontal,
-  Settings,
-  Key,
-  FileText,
-  Trash2,
-  ExternalLink,
-  Eye,
-  Code,
-  Rocket,
-  Download,
-  GitBranch,
-  Archive,
-  Link2,
-  FileCode,
-} from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
 import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+  AlertCircle,
+  Archive,
+  CheckCircle2,
+  Clock,
+  Code,
+  Download,
+  ExternalLink,
+  Eye,
+  FileCode,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  Key,
+  Link2,
+  MoreHorizontal,
+  Plus,
+  Rocket,
+  Search,
+  Settings,
+  Trash2,
+  Zap,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
 
 // Extended project type to include all properties used in the dashboard
 type Project = DeleteProjectDialogProps['project'] & {
@@ -326,7 +325,7 @@ export default function Dashboard() {
 
                       return (
                         <Link key={project.id} href={`/project/${project.id}`}>
-                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group">
+                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group cursor-pointer">
                             <CardContent className="p-6">
                               <div className="flex items-start justify-between gap-6">
                                 {/* Project Info */}
@@ -394,15 +393,15 @@ export default function Dashboard() {
                                         ) : (
                                           <>
                                             <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                            <a
-                                              href={project.sourceUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate"
-                                              onClick={(e) => e.stopPropagation()}
+                                            <span
+                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(project.sourceUrl!, '_blank');
+                                              }}
                                             >
                                               {project.sourceUrl}
-                                            </a>
+                                            </span>
                                           </>
                                         )}
                                         {project.sourceBranch && (
@@ -437,15 +436,15 @@ export default function Dashboard() {
                                     {project.deployUrl && (
                                       <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                                         <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                        <a
-                                          href={project.deployUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate"
-                                          onClick={(e) => e.stopPropagation()}
+                                        <span
+                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(project.deployUrl!, '_blank');
+                                          }}
                                         >
                                           {project.deployUrl}
-                                        </a>
+                                        </span>
                                       </div>
                                     )}
                                   </div>

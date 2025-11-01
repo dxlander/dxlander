@@ -16,7 +16,8 @@ export type AIProviderType =
   | 'openai'
   | 'anthropic'
   | 'ollama'
-  | 'lmstudio';
+  | 'lmstudio'
+  | 'openrouter';
 
 /**
  * AI model configuration
@@ -404,6 +405,18 @@ export interface IAIProvider {
    * Get available models
    */
   getAvailableModels(): Promise<string[]>;
+
+  /**
+   * Get detailed model information with pricing (optional method)
+   */
+  getDetailedModels?(): Promise<
+    Array<{
+      id: string;
+      name: string;
+      pricing: { prompt: string; completion: string };
+      contextLength: number;
+    }>
+  >;
 
   /**
    * Send chat completion request
