@@ -608,8 +608,8 @@ export class OpenRouterProvider implements IAIProvider {
 
           // Wait before retrying
           await new Promise((resolve) => setTimeout(resolve, delay + jitter));
-        } else if (error.response?.status === 400 || error.response?.status === 401) {
-          // For client errors (400, 401), don't retry as they won't succeed
+        } else if (error.response?.status >= 400 && error.response?.status < 500) {
+          // For client errors (4xx), don't retry as they won't succeed
           throw error;
         } else if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
           // Handle timeout errors with shorter delays
