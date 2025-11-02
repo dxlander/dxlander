@@ -1,9 +1,10 @@
 'use client';
 
-import { use } from 'react';
+import { Button } from '@/components/ui/button';
+import React, { use, useState } from 'react';
+import type { ConfigSet } from '@dxlander/shared';
 import Link from 'next/link';
 import { PageLayout, Header, Section } from '@/components/layouts';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -49,6 +50,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
   const { data: configSets = [] } = trpc.configs.list.useQuery({
     projectId: resolvedParams.id,
   });
+
+  const [isOpening, setIsOpening] = useState(false);
 
   // NOW we can do conditional returns
   if (isLoading) {
@@ -149,6 +152,37 @@ export default function ProjectDetailPage({ params }: PageProps) {
     return `${diffDays}d ago`;
   };
 
+  const openLocalFolder = async () => {
+    if (!project?.localPath) {
+      console.warn('No local path available for this project.');
+      return;
+    }
+
+    try {
+      setIsOpening(true);
+      const res = await fetch('/api/open-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: project.localPath }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        const err = data?.error || 'Failed to open folder';
+        console.error(err);
+      } else {
+        // feedback for users — keep it simple for now
+        // native open will be handled by the server process
+        console.log('Opened folder:', project.localPath);
+      }
+    } catch (err) {
+      console.error(err);
+      console.error('Something went wrong while opening the folder.');
+    } finally {
+      setIsOpening(false);
+    }
+  };
+
   return (
     <PageLayout background="default">
       <Header
@@ -184,8 +218,17 @@ export default function ProjectDetailPage({ params }: PageProps) {
             </div>
 
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm">
-                <FolderTree className="h-4 w-4 mr-2" />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={openLocalFolder}
+                disabled={!project.localPath || isOpening}
+              >
+                {isOpening ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <FolderTree className="h-4 w-4 mr-2" />
+                )}
                 Files
               </Button>
               <Button variant="ghost" size="sm">
@@ -250,7 +293,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                     </div>
                   ) : (
                     <div className="space-y-0">
-                      {configSets.map((config, index) => (
+                      {configSets.map((config: ConfigSet, index: number) => (
                         <Link
                           key={config.id}
                           href={`/project/${resolvedParams.id}/configs/${config.id}`}
@@ -279,9 +322,30 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                   <Eye className="h-3.5 w-3.5 mr-1.5" />
                                   View
                                 </Button>
-                                <Button variant="ghost" size="sm" className="flex-shrink-0">
-                                  <Rocket className="h-3.5 w-3.5 mr-1.5" />
-                                  Deploy
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async (e: React.MouseEvent) => {
+                                    // Prevent parent Link navigation
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    try {
+                                      const res = await fetch('/api/open-folder', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ path: project.localPath }),
+                                      });
+                                      const data = await res.json();
+                                      if (!data.success)
+                                        console.error(data.error || 'Failed to open folder.');
+                                    } catch (err) {
+                                      console.error(err);
+                                      console.error('Something went wrong.');
+                                    }
+                                  }}
+                                >
+                                  <FolderTree className="h-4 w-4 mr-2" />
+                                  Files
                                 </Button>
                               </div>
                             </div>
@@ -314,7 +378,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         </p>
                       </div>
                     </div>
-                    {configSets.slice(0, 5).map((config) => (
+                    {configSets.slice(0, 5).map((config: ConfigSet) => (
                       <div key={config.id} className="flex items-start gap-3">
                         <div className="p-1.5 rounded-md bg-purple-50 flex-shrink-0 mt-0.5">
                           <FileCode className="h-3.5 w-3.5 text-purple-600" />
