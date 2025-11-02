@@ -5,6 +5,8 @@ import { trpcServer } from '@hono/trpc-server';
 import { appRouter } from './routes';
 import { createContext } from './context';
 import { initializeEncryptionService } from '@dxlander/shared';
+import { db, isSetupComplete } from '@dxlander/database';
+import { sql } from 'drizzle-orm';
 
 // Import our custom middleware
 import { setupMiddleware } from './middleware/setup';
@@ -45,27 +47,30 @@ app.get('/health', async (c) => {
   const startTime = Date.now();
 
   try {
-    const { db, isSetupComplete } = await import('@dxlander/database');
-    const { sql } = await import('drizzle-orm');
-
+    // Check database connectivity
     let dbOk = true;
     try {
-      await db.run(sql`SELECT 1`);
-    } catch {
+      db.all(sql`SELECT 1`);
+    } catch (error) {
+      console.error('Database health check failed:', error);
       dbOk = false;
     }
 
     const setupComplete = dbOk ? await isSetupComplete() : false;
 
+    // Collect system metrics
     const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
     const uptime = process.uptime();
     const responseTime = Date.now() - startTime;
 
+    // Determine status code and overall status
+    const statusCode = dbOk ? 200 : 503;
+    const overallStatus = dbOk ? 'ok' : 'error';
+
     return c.json(
       {
-        status: dbOk ? 'ok' : 'error',
+        status: overallStatus,
         checks: {
-          api: 'ok',
           database: dbOk ? 'ok' : 'error',
           setupComplete,
         },
@@ -76,24 +81,25 @@ app.get('/health', async (c) => {
         },
         timestamp: new Date().toISOString(),
       },
-      dbOk ? 200 : 503
+      statusCode
     );
   } catch (error) {
     console.error('Health check failed:', error);
     const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
     const uptime = process.uptime();
+    const responseTime = Date.now() - startTime;
+
     return c.json(
       {
         status: 'error',
         checks: {
-          api: 'ok',
           database: 'error',
           setupComplete: false,
         },
         system: {
           uptime: `${uptime.toFixed(0)}s`,
           memory: `${memoryUsage.toFixed(2)} MB`,
-          responseTime: `${Date.now() - startTime}ms`,
+          responseTime: `${responseTime}ms`,
         },
         timestamp: new Date().toISOString(),
       },
