@@ -136,6 +136,7 @@ Thumbs.db
 # DXLander specific
 CLAUDE.md
 .claude/
+dxlander-original*
 
 # Local development files
 *.local

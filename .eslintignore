@@ -1,0 +1,8 @@
+node_modules
+dist
+.next
+*.config.ts
+*.config.js
+*.config.mjs
+dxlander-original*
+**/dxlander-original*/**

@@ -260,7 +260,7 @@ export async function importFromGitLab(
       strip: 1,
       preservePaths: false,
       strict: true,
-      filter: (_p, entry) => {
+      filter: (_p: string, entry: any) => {
         // Security: Limit file count to prevent resource exhaustion
         fileCount++;
         if (fileCount > MAX_FILES) {
@@ -355,7 +355,7 @@ export async function importFromBitbucket(
       strip: 1,
       preservePaths: false,
       strict: true,
-      filter: (_p, entry) => {
+      filter: (_p: string, entry: any) => {
         // Security: Limit file count to prevent resource exhaustion
         fileCount++;
         if (fileCount > MAX_FILES) {

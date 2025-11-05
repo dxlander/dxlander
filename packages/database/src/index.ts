@@ -5,6 +5,7 @@ export {
   isSetupComplete,
   markSetupComplete,
   completeSetup,
+  resetSetupState,
 } from './db';
 export {
   schema,

@@ -74,6 +74,22 @@ app.get('/setup/status', async (c) => {
   }
 });
 
+// Development helper: reset setup state
+app.post('/setup/reset', async (c) => {
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SETUP_RESET !== 'true') {
+    return c.json({ success: false, message: 'Setup reset is disabled in production' }, 403);
+  }
+
+  try {
+    const { resetSetupState } = await import('@dxlander/database');
+    await resetSetupState();
+    return c.json({ success: true, message: 'Setup has been reset' });
+  } catch (error) {
+    console.error('Setup reset failed:', error);
+    return c.json({ success: false, message: 'Failed to reset setup state' }, 500);
+  }
+});
+
 // Auth routes (login, logout, verify)
 app.route('/auth', authRoutes);
 

@@ -6,7 +6,12 @@ import {
   SetupStepValidationSchema,
 } from '@dxlander/shared';
 import jwt from 'jsonwebtoken';
-import { initializeDatabase, isSetupComplete, completeSetup } from '@dxlander/database';
+import {
+  initializeDatabase,
+  isSetupComplete,
+  completeSetup,
+  resetSetupState,
+} from '@dxlander/database';
 
 export const setupRouter = router({
   // Check if setup is already complete
@@ -283,12 +288,18 @@ export const setupRouter = router({
 
   // Reset setup (for development/testing)
   resetSetup: publicProcedure.mutation(async () => {
-    // TODO: Implement setup reset logic
-    // Clear database, remove instance config, etc.
+    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SETUP_RESET !== 'true') {
+      throw new Error('Setup reset is disabled in production');
+    }
 
-    return {
-      success: true,
-      message: 'Setup has been reset successfully',
-    };
+    try {
+      await resetSetupState();
+      return {
+        success: true,
+        message: 'Setup has been reset successfully',
+      };
+    } catch (error) {
+      throw new Error('Failed to reset setup state');
+    }
   }),
 });

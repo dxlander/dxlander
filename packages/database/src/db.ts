@@ -484,4 +484,34 @@ export async function markSetupComplete(): Promise<void> {
   }
 }
 
+// Reset setup state for development/testing
+export async function resetSetupState(): Promise<void> {
+  try {
+    // Clear runtime tables first to avoid foreign key issues
+    await db.delete(schema.auditLogs);
+    await db.delete(schema.deploymentCredentials);
+    await db.delete(schema.deployments);
+    await db.delete(schema.buildRuns);
+    await db.delete(schema.configActivityLogs);
+    await db.delete(schema.configOptimizations);
+    await db.delete(schema.configFiles);
+    await db.delete(schema.configSets);
+    await db.delete(schema.analysisActivityLogs);
+    await db.delete(schema.analysisRuns);
+    await db.delete(schema.integrations);
+    await db.delete(schema.aiProviders);
+    await db.delete(schema.projects);
+    await db.delete(schema.settings);
+    await db.delete(schema.users);
+
+    // Re-initialize database defaults (settings, etc.)
+    await initializeDatabase();
+
+    console.log('✅ Setup state has been reset');
+  } catch (error) {
+    console.error('Failed to reset setup state:', error);
+    throw error;
+  }
+}
+
 export default db;

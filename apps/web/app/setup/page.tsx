@@ -87,7 +87,9 @@ export default function SetupPage() {
     onSuccess: (data) => {
       if (typeof window !== 'undefined') {
         localStorage.setItem('dxlander-token', data.token);
-        document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
+        const isSecure = window.location.protocol === 'https:';
+        const secureFlag = isSecure ? '; Secure' : '';
+        document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict${secureFlag}`;
       }
       clearSensitiveFields();
       clearSubmitError();
@@ -202,13 +204,49 @@ export default function SetupPage() {
     clearSubmitError();
     setLoading(true);
     try {
-      await setupMutation.mutateAsync({
+      // Build the payload with full configuration
+      const payload: {
+        adminEmail: string;
+        adminPassword: string;
+        confirmPassword: string;
+        useDefaults: boolean;
+        dbType?: string;
+        sqlitePath?: string;
+        postgresHost?: string;
+        postgresPort?: number;
+        postgresDb?: string;
+        postgresUser?: string;
+        postgresPassword?: string;
+        aiEnabled?: boolean;
+        aiProvider?: string;
+        aiApiKey?: string;
+      } = {
         adminEmail: formData.adminEmail.trim(),
         adminPassword: formData.adminPassword,
         confirmPassword: formData.adminConfirmPassword,
-        aiApiKey: formData.aiEnabled ? formData.aiApiKey || undefined : undefined,
         useDefaults: false,
-      });
+      };
+
+      // Include database configuration
+      payload.dbType = formData.dbType;
+      if (formData.dbType === 'sqlite') {
+        payload.sqlitePath = formData.dbPath;
+      } else if (formData.dbType === 'postgresql') {
+        payload.postgresHost = formData.pgHost;
+        payload.postgresPort = parseInt(formData.pgPort, 10);
+        payload.postgresDb = formData.pgDatabase;
+        payload.postgresUser = formData.pgUser;
+        payload.postgresPassword = formData.pgPassword;
+      }
+
+      // Include AI configuration if enabled
+      payload.aiEnabled = formData.aiEnabled;
+      if (formData.aiEnabled) {
+        payload.aiProvider = formData.aiProvider;
+        payload.aiApiKey = formData.aiApiKey || undefined;
+      }
+
+      await setupMutation.mutateAsync(payload);
     } catch (error) {
       if (error instanceof Error) {
         setErrors((prev) => ({ ...prev, submit: error.message }));
@@ -275,7 +313,7 @@ export default function SetupPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-semibold">SQLite</div>
+                    <div className="font-semibold text-gray-900">SQLite</div>
                     <div className="text-sm text-gray-600">Recommended for most users</div>
                   </button>
                   <button
@@ -286,7 +324,7 @@ export default function SetupPage() {
                         : 'border-gray-200 hover:border-gray-300'
                     }`}
                   >
-                    <div className="font-semibold">PostgreSQL</div>
+                    <div className="font-semibold text-gray-900">PostgreSQL</div>
                     <div className="text-sm text-gray-600">For production deployments</div>
                   </button>
                 </div>
