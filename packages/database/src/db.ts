@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { schema } from './schema';
+import type { DatabaseStats } from './types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { homedir } from 'os';
@@ -481,6 +482,39 @@ export async function markSetupComplete(): Promise<void> {
   } catch (error) {
     console.error('Failed to mark setup as complete:', error);
     throw error;
+  }
+}
+
+export function getDatabaseFilePath(): string {
+  return dbPath;
+}
+
+export function getDatabaseStats(): DatabaseStats {
+  try {
+    if (!fs.existsSync(dbPath)) {
+      return {
+        filePath: dbPath,
+        sizeBytes: 0,
+        lastModified: null,
+        exists: false,
+      };
+    }
+
+    const stats = fs.statSync(dbPath);
+    return {
+      filePath: dbPath,
+      sizeBytes: stats.size,
+      lastModified: new Date(stats.mtimeMs),
+      exists: true,
+    };
+  } catch (error) {
+    console.error('Failed to read database stats:', error);
+    return {
+      filePath: dbPath,
+      sizeBytes: 0,
+      lastModified: null,
+      exists: false,
+    };
   }
 }
 

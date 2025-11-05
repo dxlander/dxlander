@@ -24,6 +24,7 @@ const PROTECTED_ROUTES = [
 
 const PREVIEW_COOKIE = 'dxlander-setup-preview';
 const PREVIEW_COOKIE_MAX_AGE = 60 * 30; // 30 minutes
+const RESET_ERROR_PARAM = 'resetSetupError';
 
 function applyPreviewCookie(
   response: NextResponse,
@@ -32,7 +33,8 @@ function applyPreviewCookie(
   if (options.persist) {
     response.cookies.set(PREVIEW_COOKIE, 'true', {
       path: '/',
-      httpOnly: false,
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge: PREVIEW_COOKIE_MAX_AGE,
     });
@@ -105,24 +107,40 @@ export async function middleware(request: NextRequest) {
   // Allow resetting setup state via query param in development
   const resetSetupRequested = isDev && request.nextUrl.searchParams.has('resetSetup');
   if (resetSetupRequested) {
+    let resetSucceeded = false;
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-      await fetch(`${apiUrl}/setup/reset`, {
+      const resetResponse = await fetch(`${apiUrl}/setup/reset`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
       });
+      if (!resetResponse.ok) {
+        throw new Error(`Reset endpoint responded with status ${resetResponse.status}`);
+      }
+      resetSucceeded = true;
     } catch (error) {
       console.error('Failed to reset setup state via middleware:', error);
     }
 
     const redirectUrl = new URL('/setup', request.url);
     redirectUrl.searchParams.delete('resetSetup');
-    redirectUrl.searchParams.set('previewSetup', '1');
+    redirectUrl.searchParams.delete('previewSetup');
+    redirectUrl.searchParams.delete('clearPreview');
+    redirectUrl.searchParams.delete(RESET_ERROR_PARAM);
+
+    if (resetSucceeded) {
+      redirectUrl.searchParams.set('previewSetup', '1');
+    } else {
+      redirectUrl.searchParams.set(RESET_ERROR_PARAM, '1');
+    }
 
     const response = NextResponse.redirect(redirectUrl);
     response.cookies.delete('dxlander-token');
-    return applyPreviewCookie(response, { persist: true, clear: false });
+    return applyPreviewCookie(response, {
+      persist: resetSucceeded,
+      clear: !resetSucceeded || shouldClearPreview,
+    });
   }
 
   // Skip middleware for static files and API routes we don't want to protect

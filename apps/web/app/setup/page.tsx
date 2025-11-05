@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, type ReactNode, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   type LucideIcon,
   AlertCircle,
@@ -46,6 +46,7 @@ type StepConfig = {
 
 export default function SetupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [formData, setFormData] = useState<FormState>({
     dbType: 'sqlite',
@@ -721,6 +722,11 @@ export default function SetupPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
+        {searchParams.get('resetSetupError') === '1' && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            Unable to reset the setup state. Please check the API logs and try again.
+          </div>
+        )}
         {currentStep < 5 && (
           <div className="mb-8">
             <div className="flex items-center justify-between">

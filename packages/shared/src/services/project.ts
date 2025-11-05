@@ -4,6 +4,7 @@ import { BitbucketService, type BitbucketConfig, type BitbucketRepoInfo } from '
 import * as path from 'path';
 import * as os from 'os';
 import * as fs from 'fs';
+import type { ReadEntry } from 'tar';
 
 export interface ProjectAnalysisInput {
   projectId: string;
@@ -260,24 +261,40 @@ export async function importFromGitLab(
       strip: 1,
       preservePaths: false,
       strict: true,
-      filter: (_p: string, entry: any) => {
+      filter: (tarPath: string, entry: ReadEntry | fs.Stats) => {
         // Security: Limit file count to prevent resource exhaustion
         fileCount++;
         if (fileCount > MAX_FILES) {
           throw new Error(`Archive contains too many files (>${MAX_FILES})`);
         }
 
-        // Security: Validate file type
-        const t = (entry as { type?: unknown })?.type;
-        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+        if (!entry || typeof entry !== 'object') {
+          console.warn(`[Security] Missing archive entry metadata for: ${tarPath}`);
           return false;
         }
 
-        // Security: Prevent path traversal attacks
-        const entryPath = (entry as { path?: string })?.path || '';
-        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
-          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+        const entryType =
+          'type' in entry && typeof entry.type === 'string' ? entry.type : undefined;
+        if (entryType !== 'File' && entryType !== 'Directory') {
           return false;
+        }
+
+        const candidatePathRaw =
+          'path' in entry && typeof entry.path === 'string' ? entry.path : tarPath;
+        const candidatePath = typeof candidatePathRaw === 'string' ? candidatePathRaw : '';
+
+        if (candidatePath) {
+          if (path.isAbsolute(candidatePathRaw)) {
+            console.warn(`[Security] Blocked absolute path in archive: ${candidatePathRaw}`);
+            return false;
+          }
+
+          const normalized = candidatePath.replace(/\\/g, '/');
+          const segments = normalized.split('/').filter(Boolean);
+          if (segments.includes('..')) {
+            console.warn(`[Security] Blocked path traversal in archive: ${candidatePath}`);
+            return false;
+          }
         }
 
         return true;
@@ -355,24 +372,40 @@ export async function importFromBitbucket(
       strip: 1,
       preservePaths: false,
       strict: true,
-      filter: (_p: string, entry: any) => {
+      filter: (tarPath: string, entry: ReadEntry | fs.Stats) => {
         // Security: Limit file count to prevent resource exhaustion
         fileCount++;
         if (fileCount > MAX_FILES) {
           throw new Error(`Archive contains too many files (>${MAX_FILES})`);
         }
 
-        // Security: Validate file type
-        const t = (entry as { type?: unknown })?.type;
-        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+        if (!entry || typeof entry !== 'object') {
+          console.warn(`[Security] Missing archive entry metadata for: ${tarPath}`);
           return false;
         }
 
-        // Security: Prevent path traversal attacks
-        const entryPath = (entry as { path?: string })?.path || '';
-        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
-          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+        const entryType =
+          'type' in entry && typeof entry.type === 'string' ? entry.type : undefined;
+        if (entryType !== 'File' && entryType !== 'Directory') {
           return false;
+        }
+
+        const candidatePathRaw =
+          'path' in entry && typeof entry.path === 'string' ? entry.path : tarPath;
+        const candidatePath = typeof candidatePathRaw === 'string' ? candidatePathRaw : '';
+
+        if (candidatePath) {
+          if (path.isAbsolute(candidatePathRaw)) {
+            console.warn(`[Security] Blocked absolute path in archive: ${candidatePathRaw}`);
+            return false;
+          }
+
+          const normalized = candidatePath.replace(/\\/g, '/');
+          const segments = normalized.split('/').filter(Boolean);
+          if (segments.includes('..')) {
+            console.warn(`[Security] Blocked path traversal in archive: ${candidatePath}`);
+            return false;
+          }
         }
 
         return true;
