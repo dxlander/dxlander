@@ -70,6 +70,7 @@ This document provides a comprehensive overview of DXLander's current features a
 #### AI Providers
 
 - **Anthropic Claude Agent SDK:** Claude-3 family models with API integration
+- **OpenRouter:** Unified API for accessing multiple AI models
 - **Custom providers:** Extensible system for additional AI services
 
 #### Provider Configuration

@@ -90,3 +90,25 @@ export const AI_MODELS = {
     CONFIG_GEN: 'claude-3-haiku-20240307',
   },
 } as const;
+
+/**
+ * Supported AI Providers
+ */
+export const AI_PROVIDERS = [
+  'claude-code',
+  'openai',
+  'ollama',
+  'lmstudio',
+  'anthropic',
+  'openrouter',
+] as const;
+
+/**
+ * AI Provider Timeout Configuration (in milliseconds)
+ */
+export const AI_PROVIDER_TIMEOUTS = {
+  INITIALIZATION: 15000, // 15 seconds
+  MODEL_FETCH: 15000, // 15 seconds
+  CONNECTION_TEST: 10000, // 10 seconds
+  ANALYSIS: 300000, // 5 minutes
+} as const;

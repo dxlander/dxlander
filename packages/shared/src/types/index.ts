@@ -58,9 +58,7 @@ export const ProjectSchema = z.object({
   analysis: AnalysisResultSchema.optional(),
   generatedConfigs: z.record(z.string()).optional(),
   detectedIntegrations: z.array(IntegrationSchema).default([]),
-  status: z
-    .enum(['analyzing', 'analyzed', 'configuring', 'ready', 'deploying', 'deployed', 'failed'])
-    .default('analyzing'),
+  status: z.enum(['imported', 'configured', 'deployed']).default('imported'),
   deploymentHistory: z.array(z.any()).default([]),
   createdAt: z.date().default(() => new Date()),
   updatedAt: z.date().default(() => new Date()),

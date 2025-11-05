@@ -6,17 +6,16 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import {
-  ClaudeAgentProvider,
-  encryptionService,
   getProjectFilesDir,
   type ProjectAnalysisResult,
   type ProjectContext,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
+import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
+import { AIProviderService } from './ai-provider.service';
 
 interface ProjectFile {
   path: string;
@@ -55,12 +54,6 @@ export class AIAnalysisService {
         );
       }
 
-      // Decrypt API key (encryption service already initialized)
-      let apiKey: string | undefined;
-      if (aiProvider.encryptedApiKey) {
-        apiKey = encryptionService.decryptFromStorage(aiProvider.encryptedApiKey);
-      }
-
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.projectId, projectId),
@@ -86,17 +79,8 @@ export class AIAnalysisService {
         createdAt: new Date(),
       });
 
-      // Update project status
-      await db
-        .update(schema.projects)
-        .set({
-          status: 'analyzing',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.projects.id, projectId));
-
       // Run analysis in background (don't await)
-      this.runAnalysis(analysisId, project, aiProvider, apiKey).catch((error) => {
+      this.runAnalysis(analysisId, project, aiProvider).catch((error) => {
         console.error('Background analysis failed:', error);
       });
 
@@ -113,8 +97,7 @@ export class AIAnalysisService {
   private static async runAnalysis(
     analysisId: string,
     project: any,
-    aiProvider: any,
-    apiKey: string | undefined
+    aiProvider: any
   ): Promise<void> {
     try {
       // Log: Reading project files
@@ -188,16 +171,16 @@ export class AIAnalysisService {
         `Initializing ${aiProvider.provider}`
       );
 
-      // Initialize AI provider
-      const provider = new ClaudeAgentProvider();
-      const settings = aiProvider.settings ? JSON.parse(aiProvider.settings) : {};
-
-      await provider.initialize({
-        provider: aiProvider.provider,
-        apiKey,
-        model: settings.model || 'claude-sonnet-4-5-20250929',
-        settings,
-      });
+      // Initialize AI provider using the AIProviderService
+      let provider;
+      try {
+        provider = await AIProviderService.getProvider({
+          userId: project.userId,
+          providerId: aiProvider.id,
+        });
+      } catch (error: any) {
+        throw new Error(`Failed to initialize AI provider: ${error.message}`);
+      }
 
       await this.logActivity(
         analysisId,
@@ -243,11 +226,10 @@ export class AIAnalysisService {
         })
         .where(eq(schema.analysisRuns.id, analysisId));
 
-      // Update project status
+      // Update project metadata
       await db
         .update(schema.projects)
         .set({
-          status: 'analyzed',
           language: analysisResult.language.primary,
           updatedAt: new Date(),
         })
@@ -283,15 +265,6 @@ export class AIAnalysisService {
           completedAt: new Date(),
         })
         .where(eq(schema.analysisRuns.id, analysisId));
-
-      // Update project status
-      await db
-        .update(schema.projects)
-        .set({
-          status: 'failed',
-          updatedAt: new Date(),
-        })
-        .where(eq(schema.projects.id, project.id));
     }
   }
 

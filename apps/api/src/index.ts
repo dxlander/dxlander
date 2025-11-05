@@ -5,6 +5,8 @@ import { trpcServer } from '@hono/trpc-server';
 import { appRouter } from './routes';
 import { createContext } from './context';
 import { initializeEncryptionService } from '@dxlander/shared';
+import { db, isSetupComplete } from '@dxlander/database';
+import { sql } from 'drizzle-orm';
 
 // Import our custom middleware
 import { setupMiddleware } from './middleware/setup';
@@ -41,8 +43,69 @@ app.use('/trpc/*', authMiddleware);
 app.use('/upload/*', authMiddleware);
 
 // Health check
-app.get('/health', (c) => {
-  return c.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (c) => {
+  const startTime = Date.now();
+
+  try {
+    // Check database connectivity
+    let dbOk = true;
+    try {
+      db.all(sql`SELECT 1`);
+    } catch (error) {
+      console.error('Database health check failed:', error);
+      dbOk = false;
+    }
+
+    const setupComplete = dbOk ? await isSetupComplete() : false;
+
+    // Collect system metrics
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
+    const uptime = process.uptime();
+    const responseTime = Date.now() - startTime;
+
+    // Determine status code and overall status
+    const statusCode = dbOk ? 200 : 503;
+    const overallStatus = dbOk ? 'ok' : 'error';
+
+    return c.json(
+      {
+        status: overallStatus,
+        checks: {
+          database: dbOk ? 'ok' : 'error',
+          setupComplete,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${responseTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      statusCode
+    );
+  } catch (error) {
+    console.error('Health check failed:', error);
+    const memoryUsage = process.memoryUsage().rss / 1024 / 1024;
+    const uptime = process.uptime();
+    const responseTime = Date.now() - startTime;
+
+    return c.json(
+      {
+        status: 'error',
+        checks: {
+          database: 'error',
+          setupComplete: false,
+        },
+        system: {
+          uptime: `${uptime.toFixed(0)}s`,
+          memory: `${memoryUsage.toFixed(2)} MB`,
+          responseTime: `${responseTime}ms`,
+        },
+        timestamp: new Date().toISOString(),
+      },
+      503
+    );
+  }
 });
 
 // Setup status check (for first-time setup wizard)

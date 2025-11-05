@@ -1,16 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
-import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
+import { Header, PageLayout, Section } from '@/components/layouts';
+import {
+  DeleteProjectDialog,
+  type DeleteProjectDialogProps,
+} from '@/components/projects/delete-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,34 +16,33 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { trpc } from '@/lib/trpc';
+import { formatRelativeTimeFull } from '@dxlander/shared/utils';
 import {
-  Plus,
-  Search,
-  FolderOpen,
-  Zap,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  MoreHorizontal,
-  Settings,
-  Key,
-  FileText,
-  Trash2,
+  Archive,
+  Code,
+  Download,
   ExternalLink,
   Eye,
-  Code,
-  Rocket,
-  Download,
-  GitBranch,
-  Archive,
-  Link2,
   FileCode,
+  FileText,
+  FolderOpen,
+  GitBranch,
+  Key,
+  Link2,
+  MoreHorizontal,
+  Plus,
+  Rocket,
+  Search,
+  Settings,
+  Trash2,
+  Zap,
 } from 'lucide-react';
-import { trpc } from '@/lib/trpc';
-import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+import Link from 'next/link';
+import { useState } from 'react';
 
 // Extended project type to include all properties used in the dashboard
 type Project = DeleteProjectDialogProps['project'] & {
@@ -91,32 +88,6 @@ export default function Dashboard() {
         label: 'Imported',
         color: 'text-blue-600 bg-blue-100',
       },
-      discovering: {
-        icon: <Clock className="h-4 w-4 animate-pulse" />,
-        variant: 'secondary' as const,
-        label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100',
-      },
-      // Support both 'analyzing' and 'discovering' for backward compatibility
-      analyzing: {
-        icon: <Clock className="h-4 w-4 animate-pulse" />,
-        variant: 'secondary' as const,
-        label: 'Discovering...',
-        color: 'text-ocean-600 bg-ocean-100',
-      },
-      discovered: {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        variant: 'secondary' as const,
-        label: 'Discovered',
-        color: 'text-green-600 bg-green-100',
-      },
-      // Support both 'analyzed' and 'discovered' for backward compatibility
-      analyzed: {
-        icon: <CheckCircle2 className="h-4 w-4" />,
-        variant: 'secondary' as const,
-        label: 'Discovered',
-        color: 'text-green-600 bg-green-100',
-      },
       configured: {
         icon: <FileText className="h-4 w-4" />,
         variant: 'secondary' as const,
@@ -129,29 +100,8 @@ export default function Dashboard() {
         label: 'Deployed',
         color: 'text-indigo-600 bg-indigo-100',
       },
-      failed: {
-        icon: <AlertCircle className="h-4 w-4" />,
-        variant: 'destructive' as const,
-        label: 'Failed',
-        color: 'text-red-600 bg-red-100',
-      },
     };
     return configs[status as keyof typeof configs] || configs.imported;
-  };
-
-  // Helper function to format time
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    const now = new Date();
-    const diffMs = now.getTime() - d.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins} ${diffMins === 1 ? 'minute' : 'minutes'} ago`;
-    if (diffHours < 24) return `${diffHours} ${diffHours === 1 ? 'hour' : 'hours'} ago`;
-    return `${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
   };
 
   const filteredProjects = projects.filter((project: Project) => {
@@ -326,7 +276,7 @@ export default function Dashboard() {
 
                       return (
                         <Link key={project.id} href={`/project/${project.id}`}>
-                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group">
+                          <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 group cursor-pointer">
                             <CardContent className="p-6">
                               <div className="flex items-start justify-between gap-6">
                                 {/* Project Info */}
@@ -377,7 +327,9 @@ export default function Dashboard() {
                                       )}
                                       <span className="text-gray-400">•</span>
                                       <span>
-                                        {formatDate(project.updatedAt || project.createdAt)}
+                                        {formatRelativeTimeFull(
+                                          project.updatedAt || project.createdAt
+                                        )}
                                       </span>
                                     </div>
 
@@ -394,15 +346,15 @@ export default function Dashboard() {
                                         ) : (
                                           <>
                                             <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                            <a
-                                              href={project.sourceUrl}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate"
-                                              onClick={(e) => e.stopPropagation()}
+                                            <span
+                                              className="text-ocean-600 hover:text-ocean-700 hover:underline truncate cursor-pointer"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                window.open(project.sourceUrl!, '_blank');
+                                              }}
                                             >
                                               {project.sourceUrl}
-                                            </a>
+                                            </span>
                                           </>
                                         )}
                                         {project.sourceBranch && (
@@ -437,15 +389,15 @@ export default function Dashboard() {
                                     {project.deployUrl && (
                                       <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                                         <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
-                                        <a
-                                          href={project.deployUrl}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate"
-                                          onClick={(e) => e.stopPropagation()}
+                                        <span
+                                          className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate cursor-pointer"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            window.open(project.deployUrl!, '_blank');
+                                          }}
                                         >
                                           {project.deployUrl}
-                                        </a>
+                                        </span>
                                       </div>
                                     )}
                                   </div>

@@ -549,3 +549,99 @@ export async function resetSetupState(): Promise<void> {
 }
 
 export default db;
+
+/**
+ * Return the absolute path to the SQLite database file used by the app
+ */
+export function getDatabaseFilePath(): string {
+  return dbPath;
+}
+
+// Whitelist of valid table names for security (prevents SQL injection)
+const VALID_TABLE_NAMES = new Set([
+  'users',
+  'projects',
+  'analysis_runs',
+  'analysis_activity_logs',
+  'config_sets',
+  'config_files',
+  'config_optimizations',
+  'config_activity_logs',
+  'build_runs',
+  'deployments',
+  'settings',
+  'encryption_keys',
+  'ai_providers',
+  'integrations',
+  'deployment_credentials',
+  'audit_logs',
+]);
+
+/**
+ * Gather database statistics including file size, table counts, and per-table record counts.
+ *
+ * @returns Promise resolving to database statistics object containing:
+ *   - dbPath: absolute path to the database file
+ *   - fileSizeBytes: size of the SQLite file on disk
+ *   - tablesCount: number of user tables (excluding SQLite internal tables)
+ *   - totalRecords: sum of row counts across all user tables
+ *   - perTable: array of { name, count } for each table
+ */
+export async function getDatabaseStats(): Promise<{
+  dbPath: string;
+  fileSizeBytes: number;
+  tablesCount: number;
+  totalRecords: number;
+  perTable: Array<{ name: string; count: number }>;
+}> {
+  try {
+    // Use async file stat to avoid blocking event loop
+    const stats = await fs.promises.stat(dbPath);
+
+    // Get user tables (exclude sqlite internal tables)
+    const tables = sqlite
+      .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")
+      .all() as Array<{ name: string }>;
+
+    let totalRecords = 0;
+    const perTable: Array<{ name: string; count: number }> = [];
+
+    for (const t of tables) {
+      // Security: Validate table name against whitelist to prevent SQL injection
+      if (!VALID_TABLE_NAMES.has(t.name)) {
+        console.warn(`Skipping unknown table: ${t.name}`);
+        continue;
+      }
+
+      try {
+        // Safe to use template literal here since table name is validated against whitelist
+        const row = sqlite.prepare(`SELECT COUNT(*) as cnt FROM "${t.name}";`).get() as
+          | { cnt: number }
+          | undefined;
+        const cnt = row?.cnt ?? 0;
+        totalRecords += cnt;
+        perTable.push({ name: t.name, count: cnt });
+      } catch (err) {
+        // If counting a table fails for any reason, skip it but continue
+        console.error('Failed to count rows for table', t.name, err);
+      }
+    }
+
+    return {
+      dbPath,
+      fileSizeBytes: stats.size,
+      tablesCount: tables.length,
+      totalRecords,
+      perTable,
+    };
+  } catch (error) {
+    console.error('Failed to collect database stats:', error);
+    return {
+      dbPath,
+      fileSizeBytes: 0,
+      tablesCount: 0,
+      totalRecords: 0,
+      perTable: [],
+    };
+  }
+}
