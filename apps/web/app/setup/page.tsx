@@ -226,7 +226,7 @@ export default function SetupPage() {
         return (
           <div className="text-center space-y-6 py-8">
             <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center">
-              <Rocket className="w-10 h-10 text-white" />
+              <img src="/logo-white.svg" alt="DXLander Logo" className="w-10 h-10" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Welcome to DXLander!</h2>
             <p className="text-gray-600 max-w-md mx-auto">
