@@ -20,6 +20,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { formatDateTime } from '@dxlander/shared/utils';
 import {
   VariablesTab,
   FilesTab,
@@ -92,18 +93,6 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
   }, [configSet?.status, refetch]);
 
   const isLoading = projectLoading || configLoading;
-
-  // Utility functions
-  const formatDate = (date: Date | string) => {
-    const d = new Date(date);
-    return d.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
 
   if (isLoading) {
     return (
@@ -217,7 +206,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
     <PageLayout background="default">
       <Header
         title={`${configSet.type.charAt(0).toUpperCase() + configSet.type.slice(1)} Configuration`}
-        subtitle={`${project.name} • v${configSet.version} • Created ${formatDate(configSet.createdAt)}`}
+        subtitle={`${project.name} • v${configSet.version} • Created ${formatDateTime(configSet.createdAt)}`}
         badge={configSet.status}
         actions={headerActions}
       />
