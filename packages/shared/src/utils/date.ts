@@ -5,10 +5,31 @@
 export type DateInput = Date | string | number;
 
 /**
- * Format a date to an absolute date string (e.g., "Jan 1, 2024")
+ * Validates and converts input to a Date object
+ * @param date - The date to validate and convert
+ * @returns A valid Date object
+ * @throws Error if the date is invalid
+ */
+function toValidDate(date: DateInput): Date {
+  const d = date instanceof Date ? date : new Date(date);
+  if (isNaN(d.getTime())) {
+    throw new Error('Invalid date provided');
+  }
+  return d;
+}
+
+/**
+ * Format a date to an absolute date string
+ * @param date - The date to format (Date object, ISO string, or timestamp)
+ * @returns Formatted date string in format "Jan 1, 2024"
+ * @throws Error if the date is invalid
+ * @example
+ * formatDate(new Date('2024-01-15')) // "Jan 15, 2024"
+ * formatDate('2024-01-15') // "Jan 15, 2024"
+ * formatDate(1705276800000) // "Jan 15, 2024"
  */
 export function formatDate(date: DateInput): string {
-  const d = date instanceof Date ? date : new Date(date);
+  const d = toValidDate(date);
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -17,10 +38,16 @@ export function formatDate(date: DateInput): string {
 }
 
 /**
- * Format a date to an absolute date string with time (e.g., "Jan 1, 2024, 02:30 PM")
+ * Format a date to an absolute date string with time
+ * @param date - The date to format (Date object, ISO string, or timestamp)
+ * @returns Formatted date string in format "Jan 1, 2024, 02:30 PM"
+ * @throws Error if the date is invalid
+ * @example
+ * formatDateTime(new Date('2024-01-15T14:30:00')) // "Jan 15, 2024, 02:30 PM"
+ * formatDateTime('2024-01-15T14:30:00') // "Jan 15, 2024, 02:30 PM"
  */
 export function formatDateTime(date: DateInput): string {
-  const d = date instanceof Date ? date : new Date(date);
+  const d = toValidDate(date);
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -31,10 +58,17 @@ export function formatDateTime(date: DateInput): string {
 }
 
 /**
- * Format a date to a relative time string (e.g., "2h ago", "3d ago", "Just now")
+ * Format a date to a relative time string (short format)
+ * @param date - The date to format (Date object, ISO string, or timestamp)
+ * @returns Relative time string in format "2h ago", "3d ago", or "Just now"
+ * @throws Error if the date is invalid
+ * @example
+ * formatRelativeTime(new Date(Date.now() - 7200000)) // "2h ago" (2 hours ago)
+ * formatRelativeTime(new Date(Date.now() - 300000)) // "5m ago" (5 minutes ago)
+ * formatRelativeTime(new Date(Date.now() - 30000)) // "Just now" (30 seconds ago)
  */
 export function formatRelativeTime(date: DateInput): string {
-  const d = date instanceof Date ? date : new Date(date);
+  const d = toValidDate(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);
@@ -48,10 +82,17 @@ export function formatRelativeTime(date: DateInput): string {
 }
 
 /**
- * Format a date to a relative time string with full words (e.g., "2 hours ago", "3 days ago")
+ * Format a date to a relative time string (full word format)
+ * @param date - The date to format (Date object, ISO string, or timestamp)
+ * @returns Relative time string in format "2 hours ago", "3 days ago", or "Just now"
+ * @throws Error if the date is invalid
+ * @example
+ * formatRelativeTimeFull(new Date(Date.now() - 7200000)) // "2 hours ago"
+ * formatRelativeTimeFull(new Date(Date.now() - 3600000)) // "1 hour ago"
+ * formatRelativeTimeFull(new Date(Date.now() - 60000)) // "1 minute ago"
  */
 export function formatRelativeTimeFull(date: DateInput): string {
-  const d = date instanceof Date ? date : new Date(date);
+  const d = toValidDate(date);
   const now = new Date();
   const diffMs = now.getTime() - d.getTime();
   const diffMins = Math.floor(diffMs / 60000);

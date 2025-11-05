@@ -94,8 +94,6 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
 
   const isLoading = projectLoading || configLoading;
 
-
-
   if (isLoading) {
     return (
       <PageLayout background="default">

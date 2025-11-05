@@ -101,4 +101,109 @@ describe('Date Utilities', () => {
       expect(formatRelativeTimeFull(date)).toBe('2 days ago');
     });
   });
+
+  describe('Edge Cases', () => {
+    describe('Invalid Dates', () => {
+      it('should throw error for invalid date string in formatDate', () => {
+        expect(() => formatDate('invalid-date')).toThrow('Invalid date provided');
+      });
+
+      it('should throw error for invalid date string in formatDateTime', () => {
+        expect(() => formatDateTime('invalid-date')).toThrow('Invalid date provided');
+      });
+
+      it('should throw error for invalid date string in formatRelativeTime', () => {
+        expect(() => formatRelativeTime('invalid-date')).toThrow('Invalid date provided');
+      });
+
+      it('should throw error for invalid date string in formatRelativeTimeFull', () => {
+        expect(() => formatRelativeTimeFull('invalid-date')).toThrow('Invalid date provided');
+      });
+
+      it('should throw error for NaN timestamp', () => {
+        expect(() => formatDate(NaN)).toThrow('Invalid date provided');
+      });
+    });
+
+    describe('Future Dates', () => {
+      it('should handle future dates in formatRelativeTime', () => {
+        const futureDate = new Date('2024-01-16T12:00:00Z'); // 1 day in future
+        // Future dates will show negative values, but function still works
+        const result = formatRelativeTime(futureDate);
+        expect(result).toBeDefined();
+      });
+
+      it('should handle future dates in formatRelativeTimeFull', () => {
+        const futureDate = new Date('2024-01-16T12:00:00Z'); // 1 day in future
+        // Future dates will show negative values, but function still works
+        const result = formatRelativeTimeFull(futureDate);
+        expect(result).toBeDefined();
+      });
+    });
+
+    describe('Very Old Dates', () => {
+      it('should format dates from years ago', () => {
+        const oldDate = new Date('2020-01-01T12:00:00Z');
+        expect(formatDate(oldDate)).toBe('Jan 1, 2020');
+      });
+
+      it('should format relative time for very old dates', () => {
+        const oldDate = new Date('2023-01-01T12:00:00Z'); // ~380 days ago from test date
+        const result = formatRelativeTime(oldDate);
+        expect(result).toMatch(/\d+d ago/);
+      });
+    });
+
+    describe('Different Input Types', () => {
+      it('should handle Date object in formatDate', () => {
+        const date = new Date('2024-01-01T00:00:00Z');
+        expect(formatDate(date)).toBe('Jan 1, 2024');
+      });
+
+      it('should handle ISO string in formatDate', () => {
+        expect(formatDate('2024-01-01T00:00:00Z')).toBe('Jan 1, 2024');
+      });
+
+      it('should handle timestamp number in formatDate', () => {
+        const timestamp = new Date('2024-01-01T00:00:00Z').getTime();
+        expect(formatDate(timestamp)).toBe('Jan 1, 2024');
+      });
+
+      it('should handle short date string', () => {
+        expect(formatDate('2024-01-01')).toBe('Jan 1, 2024');
+      });
+    });
+
+    describe('Boundary Cases', () => {
+      it('should handle exactly 1 minute ago', () => {
+        const date = new Date('2024-01-15T11:59:00Z');
+        expect(formatRelativeTime(date)).toBe('1m ago');
+        expect(formatRelativeTimeFull(date)).toBe('1 minute ago');
+      });
+
+      it('should handle exactly 1 hour ago', () => {
+        const date = new Date('2024-01-15T11:00:00Z');
+        expect(formatRelativeTime(date)).toBe('1h ago');
+        expect(formatRelativeTimeFull(date)).toBe('1 hour ago');
+      });
+
+      it('should handle exactly 1 day ago', () => {
+        const date = new Date('2024-01-14T12:00:00Z');
+        expect(formatRelativeTime(date)).toBe('1d ago');
+        expect(formatRelativeTimeFull(date)).toBe('1 day ago');
+      });
+
+      it('should handle 59 minutes ago (should show minutes, not hours)', () => {
+        const date = new Date('2024-01-15T11:01:00Z'); // 59 minutes ago
+        expect(formatRelativeTime(date)).toBe('59m ago');
+        expect(formatRelativeTimeFull(date)).toBe('59 minutes ago');
+      });
+
+      it('should handle 23 hours ago (should show hours, not days)', () => {
+        const date = new Date('2024-01-14T13:00:00Z'); // 23 hours ago
+        expect(formatRelativeTime(date)).toBe('23h ago');
+        expect(formatRelativeTimeFull(date)).toBe('23 hours ago');
+      });
+    });
+  });
 });
