@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { AnalysisResults } from '@/components/analysis';
 import { ArrowLeft, Download, Plus, Loader2, AlertCircle } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { mockAnalysisResults } from '@/lib/mock-data';
+import { mockAnalysisResults, type AnalysisResults as AnalysisResultsData } from '@/lib/mock-data';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -49,7 +49,8 @@ export default function StackDiscoveryPage({ params }: PageProps) {
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
               <p className="text-gray-600 mb-8">
-                The project you're looking for doesn't exist or you don't have access to it.
+                The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
+                to it.
               </p>
               <Link href="/dashboard">
                 <Button>
@@ -64,8 +65,10 @@ export default function StackDiscoveryPage({ params }: PageProps) {
     );
   }
 
-  // For demo purposes, use mock data. In production, use project.discoveryResults
-  const discoveryResults = (project as any).discoveryResults || mockAnalysisResults;
+  type ProjectWithDiscovery = { discoveryResults?: AnalysisResultsData };
+
+  const discoveryResults =
+    (project as ProjectWithDiscovery | undefined)?.discoveryResults ?? mockAnalysisResults;
 
   const headerActions = (
     <div className="flex items-center gap-3">

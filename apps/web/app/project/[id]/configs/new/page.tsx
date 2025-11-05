@@ -93,14 +93,19 @@ export default function NewConfigurationPage({ params }: PageProps) {
 
   // Watch for analysis completion and start config generation
   useEffect(() => {
-    if (analysisProgress?.status === 'complete' && stage === 'analyzing') {
+    if (
+      analysisProgress?.status === 'complete' &&
+      stage === 'analyzing' &&
+      analysisId &&
+      selectedType
+    ) {
       setStage('generating');
 
       // Start config generation
       generateConfigMutation.mutate(
         {
           projectId: resolvedParams.id,
-          analysisId: analysisId!,
+          analysisId,
           configType: selectedType as 'docker' | 'kubernetes' | 'bash',
         },
         {
@@ -116,7 +121,15 @@ export default function NewConfigurationPage({ params }: PageProps) {
         }
       );
     }
-  }, [analysisProgress?.status, stage]);
+  }, [
+    analysisProgress?.status,
+    stage,
+    analysisId,
+    selectedType,
+    generateConfigMutation,
+    resolvedParams.id,
+    router,
+  ]);
 
   if (isLoading) {
     return (
@@ -142,7 +155,8 @@ export default function NewConfigurationPage({ params }: PageProps) {
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
               <p className="text-gray-600 mb-8">
-                The project you're looking for doesn't exist or you don't have access to it.
+                The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
+                to it.
               </p>
               <Link href="/dashboard">
                 <Button>
@@ -176,11 +190,11 @@ export default function NewConfigurationPage({ params }: PageProps) {
       setAnalysisId(result.analysisId);
       // Analysis progress will be polled automatically
       // When complete, useEffect will trigger config generation
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to start analysis:', error);
 
       // Show error message if it's about missing AI provider
-      if (error.message?.includes('No default AI provider')) {
+      if (error instanceof Error && error.message.includes('No default AI provider')) {
         // Error banner is already shown above
       }
 

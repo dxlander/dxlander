@@ -75,7 +75,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
               <p className="text-gray-600 mb-8">
-                The project you're looking for doesn't exist or you don't have access to it.
+                The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
+                to it.
               </p>
               <Link href="/dashboard">
                 <Button>
@@ -121,6 +122,10 @@ export default function ProjectDetailPage({ params }: PageProps) {
   };
 
   const statusConfig = getStatusConfig(project.status);
+  const projectFramework =
+    typeof project === 'object' && project !== null && 'framework' in project
+      ? (project as { framework?: string }).framework
+      : undefined;
 
   const formatBytes = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';
@@ -173,8 +178,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
               {project.language && (
                 <span className="text-sm text-gray-600">{project.language}</span>
               )}
-              {(project as any).framework && (
-                <span className="text-sm text-gray-600">· {(project as any).framework}</span>
+              {projectFramework && (
+                <span className="text-sm text-gray-600">· {projectFramework}</span>
               )}
             </div>
 

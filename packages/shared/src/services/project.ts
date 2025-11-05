@@ -1,4 +1,9 @@
 import { createHash } from 'crypto';
+import { GitLabService, type GitLabConfig, type GitLabRepoInfo } from './gitlab';
+import { BitbucketService, type BitbucketConfig, type BitbucketRepoInfo } from './bitbucket';
+import * as path from 'path';
+import * as os from 'os';
+import * as fs from 'fs';
 
 export interface ProjectAnalysisInput {
   projectId: string;
@@ -204,4 +209,188 @@ export function generateRandomProjectName(): string {
   const number = Math.floor(10000 + Math.random() * 90000); // 5-digit number
 
   return `${adjective}-${noun}-${number}`;
+}
+
+export async function importFromGitLab(
+  config: GitLabConfig,
+  projectId: string,
+  branch?: string
+): Promise<{ extractPath: string; branch: string; repoInfo: GitLabRepoInfo }> {
+  const gitlabService = new GitLabService(config);
+
+  // Validate token
+  const isValid = await gitlabService.validateToken();
+  if (!isValid) {
+    throw new Error('Invalid GitLab token');
+  }
+
+  // Get repository info
+  const repoInfo = await gitlabService.getRepository(projectId);
+  const targetBranch = branch || repoInfo.defaultBranch;
+
+  // Create temp directory
+  const tempDir = path.join(os.tmpdir(), `gitlab-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  try {
+    // Download repository
+    const archivePath = await gitlabService.downloadRepository(projectId, targetBranch, tempDir);
+
+    // Security: Validate archive size to prevent zip bombs
+    const archiveStats = fs.statSync(archivePath);
+    const MAX_ARCHIVE_SIZE = 500 * 1024 * 1024; // 500MB
+    if (archiveStats.size > MAX_ARCHIVE_SIZE) {
+      throw new Error(
+        `Archive too large (${(archiveStats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed: 500MB`
+      );
+    }
+
+    // Extract archive
+    const extractPath = path.join(tempDir, 'extracted');
+    fs.mkdirSync(extractPath, { recursive: true });
+
+    // Use tar to extract with security filters
+    const tar = await import('tar');
+    let fileCount = 0;
+    const MAX_FILES = 10000;
+
+    await tar.x({
+      file: archivePath,
+      cwd: extractPath,
+      strip: 1,
+      preservePaths: false,
+      strict: true,
+      filter: (_p, entry) => {
+        // Security: Limit file count to prevent resource exhaustion
+        fileCount++;
+        if (fileCount > MAX_FILES) {
+          throw new Error(`Archive contains too many files (>${MAX_FILES})`);
+        }
+
+        // Security: Validate file type
+        const t = (entry as { type?: unknown })?.type;
+        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+          return false;
+        }
+
+        // Security: Prevent path traversal attacks
+        const entryPath = (entry as { path?: string })?.path || '';
+        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
+          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+          return false;
+        }
+
+        return true;
+      },
+    });
+
+    // Cleanup archive to avoid disk space leaks
+    try {
+      fs.unlinkSync(archivePath);
+    } catch (err) {
+      // Best-effort cleanup; ignore errors
+      void err;
+    }
+
+    return { extractPath, branch: targetBranch, repoInfo };
+  } catch (error) {
+    // Cleanup on error
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+export async function importFromBitbucket(
+  config: BitbucketConfig,
+  workspace: string,
+  repoSlug: string,
+  branch?: string
+): Promise<{ extractPath: string; branch: string; repoInfo: BitbucketRepoInfo }> {
+  const bitbucketService = new BitbucketService(config);
+
+  // Validate credentials
+  const isValid = await bitbucketService.validateCredentials();
+  if (!isValid) {
+    throw new Error('Invalid Bitbucket credentials');
+  }
+
+  // Get repository info
+  const repoInfo = await bitbucketService.getRepository(workspace, repoSlug);
+  const targetBranch = branch || repoInfo.mainBranch;
+
+  // Create temp directory
+  const tempDir = path.join(os.tmpdir(), `bitbucket-${Date.now()}`);
+  fs.mkdirSync(tempDir, { recursive: true });
+
+  try {
+    // Download repository
+    const archivePath = await bitbucketService.downloadRepository(
+      workspace,
+      repoSlug,
+      targetBranch,
+      tempDir
+    );
+
+    // Security: Validate archive size to prevent zip bombs
+    const archiveStats = fs.statSync(archivePath);
+    const MAX_ARCHIVE_SIZE = 500 * 1024 * 1024; // 500MB
+    if (archiveStats.size > MAX_ARCHIVE_SIZE) {
+      throw new Error(
+        `Archive too large (${(archiveStats.size / 1024 / 1024).toFixed(2)}MB). Maximum allowed: 500MB`
+      );
+    }
+
+    // Extract archive
+    const extractPath = path.join(tempDir, 'extracted');
+    fs.mkdirSync(extractPath, { recursive: true });
+
+    // Use tar to extract with security filters
+    const tar = await import('tar');
+    let fileCount = 0;
+    const MAX_FILES = 10000;
+
+    await tar.x({
+      file: archivePath,
+      cwd: extractPath,
+      strip: 1,
+      preservePaths: false,
+      strict: true,
+      filter: (_p, entry) => {
+        // Security: Limit file count to prevent resource exhaustion
+        fileCount++;
+        if (fileCount > MAX_FILES) {
+          throw new Error(`Archive contains too many files (>${MAX_FILES})`);
+        }
+
+        // Security: Validate file type
+        const t = (entry as { type?: unknown })?.type;
+        if (typeof t !== 'string' || !(t === 'File' || t === 'Directory')) {
+          return false;
+        }
+
+        // Security: Prevent path traversal attacks
+        const entryPath = (entry as { path?: string })?.path || '';
+        if (entryPath.includes('..') || path.isAbsolute(entryPath)) {
+          console.warn(`[Security] Blocked suspicious path in archive: ${entryPath}`);
+          return false;
+        }
+
+        return true;
+      },
+    });
+
+    // Cleanup archive to avoid disk space leaks
+    try {
+      fs.unlinkSync(archivePath);
+    } catch (err) {
+      // Best-effort cleanup; ignore errors
+      void err;
+    }
+
+    return { extractPath, branch: targetBranch, repoInfo };
+  } catch (error) {
+    // Cleanup on error
+    fs.rmSync(tempDir, { recursive: true, force: true });
+    throw error;
+  }
 }

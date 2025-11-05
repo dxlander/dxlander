@@ -97,7 +97,12 @@ dxlander/
 
 - `src/services/encryption.ts` - AES-256-GCM encryption for credentials
 - `src/services/github.ts` - GitHub API integration
+- `src/services/gitlab.ts` - GitLab API integration
+- `src/services/bitbucket.ts` - Bitbucket API integration
 - `src/services/project.ts` - Project validation and utilities
+- `src/services/project-structure.ts` - Centralized project directory structure management
+- `src/services/file-storage.ts` - File system operations and path utilities
+- `src/services/zip-upload.ts` - ZIP file extraction and processing
 - `src/services/ai/` - AI prompt templates and types
 - `src/types/` - Shared TypeScript types
 - `src/utils/` - Common utility functions
@@ -190,10 +195,34 @@ Credential injection → Deployment execution → Status tracking
 - **Production:** PostgreSQL for teams and enterprise
 - **File Storage:** Local filesystem at `~/.dxlander/projects/`
 
+### Project Directory Structure
+
+Each imported project follows a standardized structure to ensure consistent behavior across all import sources (GitHub, GitLab, Bitbucket, ZIP):
+
+```
+~/.dxlander/projects/{projectId}/
+├── files/              # Imported source code
+│   ├── package.json
+│   ├── src/
+│   └── ...
+└── configs/            # Generated deployment configurations
+    ├── {configId}/     # Docker configuration set
+    ├── {configId}/     # Kubernetes configuration set
+    └── ...
+```
+
+**Key Principles:**
+
+- **Source files** are always stored in `{projectId}/files/` directory
+- **Generated configs** are always stored in `{projectId}/configs/{configId}/` directories
+- This structure prevents configs from mixing with source code
+- Ensures AI analysis only reads source files, never generated configs
+- Consistent across all import methods (GitHub, GitLab, Bitbucket, ZIP)
+
 ### Security
 
 - **Encryption:** AES-256-GCM for all sensitive data
-- **Key Management:** File-based storage
+- **Key Management:** File-based storage or environment variable
 - **Authentication:** JWT tokens with bcrypt password hashing
 
 ## Development Workflow
@@ -259,7 +288,7 @@ packages/shared → packages/database (types only)
 
 ### Environment Variables
 
-- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (production)
+- `DXLANDER_ENCRYPTION_KEY` - Master encryption key (44+ chars base64, production)
 - `DATABASE_URL` - PostgreSQL connection (optional)
 - `NODE_ENV` - Environment mode
 - `PORT` - API server port (default: 3001)
@@ -269,8 +298,9 @@ packages/shared → packages/database (types only)
 ### Encryption
 
 - All API keys and credentials are encrypted before database storage
-- Master encryption key stored securely in filesystem
+- Master encryption key can be provided via environment variable or file
 - File permissions set to 0600 (owner read/write only)
+- Minimum 44-character base64 key length enforced for security (32 raw bytes encoded in base64 produce 44 characters)
 
 ### Authentication
 
