@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, type ReactNode, useState } from 'react';
+import { Fragment, Suspense, type ReactNode, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   type LucideIcon,
@@ -44,7 +44,7 @@ type StepConfig = {
   icon: LucideIcon;
 };
 
-export default function SetupPage() {
+function SetupPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -827,5 +827,13 @@ export default function SetupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SetupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetupPageContent />
+    </Suspense>
   );
 }
