@@ -7,9 +7,7 @@ import { IconWrapper } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input, FloatingInput } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -18,13 +16,6 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,40 +26,31 @@ import {
 import {
   ArrowLeft,
   Plus,
-  Database,
-  Cloud,
-  Mail,
-  CreditCard,
   Key,
   Search,
   MoreHorizontal,
   Edit,
   Trash2,
   CheckCircle2,
-  FileJson,
   Lock,
   ShieldCheck,
   AlertCircle,
   Loader2,
-  TestTube,
+  X,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 
-type CredentialType =
-  | 'api_key'
-  | 'json_service_account'
-  | 'oauth_token'
-  | 'connection_string'
-  | 'key_value';
+interface Field {
+  key: string;
+  value: string;
+}
 
 interface IntegrationFormData {
   name: string;
   service: string;
-  serviceType: string;
-  credentialType: CredentialType;
-  credentials: Record<string, string>;
+  fields: Field[];
 }
 
 export default function IntegrationsPage() {
@@ -76,22 +58,17 @@ export default function IntegrationsPage() {
   const [showNewIntegrationDialog, setShowNewIntegrationDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
-  const [isTesting, setIsTesting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState<IntegrationFormData>({
     name: '',
     service: '',
-    serviceType: 'database',
-    credentialType: 'api_key',
-    credentials: {},
+    fields: [{ key: '', value: '' }],
   });
 
   // tRPC queries and mutations
   const { data: integrations = [], isLoading, refetch } = trpc.integrations.list.useQuery();
-  const { data: availableIntegrations = [] } = trpc.integrations.listAvailable.useQuery();
 
   const createMutation = trpc.integrations.create.useMutation({
     onSuccess: () => {
@@ -130,69 +107,68 @@ export default function IntegrationsPage() {
     },
   });
 
-  const testMutation = trpc.integrations.test.useMutation({
-    onSuccess: (result) => {
-      if (result.success) {
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
-      refetch();
-      setIsTesting(false);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-      setIsTesting(false);
-    },
-  });
-
-  const testConnectionMutation = trpc.integrations.testConnection.useMutation({
-    onSuccess: (result) => {
-      if (result.success) {
-        toast.success(result.message);
-      } else {
-        toast.error(result.message);
-      }
-      setIsTesting(false);
-    },
-    onError: (error) => {
-      toast.error(error.message);
-      setIsTesting(false);
-    },
-  });
+  const { data: editFields } = trpc.integrations.getFields.useQuery(
+    { id: selectedIntegration?.id || '' },
+    { enabled: !!selectedIntegration && showEditDialog }
+  );
 
   const resetForm = () => {
     setFormData({
       name: '',
       service: '',
-      serviceType: 'database',
-      credentialType: 'api_key',
-      credentials: {},
+      fields: [{ key: '', value: '' }],
     });
   };
 
+  const addField = () => {
+    setFormData({
+      ...formData,
+      fields: [...formData.fields, { key: '', value: '' }],
+    });
+  };
+
+  const removeField = (index: number) => {
+    const newFields = formData.fields.filter((_, i) => i !== index);
+    setFormData({
+      ...formData,
+      fields: newFields.length > 0 ? newFields : [{ key: '', value: '' }],
+    });
+  };
+
+  const updateField = (index: number, field: 'key' | 'value', value: string) => {
+    const newFields = [...formData.fields];
+    newFields[index][field] = value;
+    setFormData({ ...formData, fields: newFields });
+  };
+
   const handleCreate = () => {
-    if (!formData.name || !formData.service || Object.keys(formData.credentials).length === 0) {
-      toast.error('Please fill in all required fields');
+    if (!formData.name || !formData.service) {
+      toast.error('Please enter integration name and service type');
+      return;
+    }
+
+    const validFields = formData.fields.filter((f) => f.key && f.value);
+    if (validFields.length === 0) {
+      toast.error('Please add at least one field with both key and value');
       return;
     }
 
     createMutation.mutate({
       name: formData.name,
-      service: formData.service,
-      serviceType: formData.serviceType,
-      credentialType: formData.credentialType,
-      credentials: formData.credentials,
+      service: formData.service.toUpperCase(),
+      fields: validFields,
     });
   };
 
   const handleUpdate = () => {
     if (!selectedIntegration) return;
 
+    const validFields = formData.fields.filter((f) => f.key && f.value);
+
     updateMutation.mutate({
       id: selectedIntegration.id,
       name: formData.name || undefined,
-      credentials: Object.keys(formData.credentials).length > 0 ? formData.credentials : undefined,
+      fields: validFields.length > 0 ? validFields : undefined,
     });
   };
 
@@ -201,45 +177,12 @@ export default function IntegrationsPage() {
     deleteMutation.mutate({ id: selectedIntegration.id });
   };
 
-  const handleTest = (integration: any) => {
-    setIsTesting(true);
-    testMutation.mutate({ id: integration.id });
-  };
-
-  const handleTestConnection = () => {
-    if (!formData.service || Object.keys(formData.credentials).length === 0) {
-      toast.error('Please select a service and enter credentials');
-      return;
-    }
-
-    setIsTesting(true);
-    testConnectionMutation.mutate({
-      service: formData.service,
-      credentials: formData.credentials,
-    });
-  };
-
-  const handleServiceChange = (serviceId: string) => {
-    const service = availableIntegrations.find((s: any) => s.service === serviceId);
-    if (service) {
-      setFormData({
-        ...formData,
-        service: serviceId,
-        serviceType: service.type,
-        credentialType: service.credentialType as CredentialType,
-        credentials: {},
-      });
-    }
-  };
-
-  const handleEditClick = (integration: any) => {
+  const handleEditClick = async (integration: any) => {
     setSelectedIntegration(integration);
     setFormData({
       name: integration.name,
       service: integration.service,
-      serviceType: integration.serviceType,
-      credentialType: integration.credentialType,
-      credentials: {},
+      fields: [{ key: '', value: '' }],
     });
     setShowEditDialog(true);
   };
@@ -249,79 +192,21 @@ export default function IntegrationsPage() {
     setShowDeleteDialog(true);
   };
 
-  const updateCredentialField = (key: string, value: string) => {
-    setFormData({
-      ...formData,
-      credentials: { ...formData.credentials, [key]: value },
-    });
-  };
-
-  // Calculate categories with counts
-  const categories = [
-    { id: 'all', label: 'All Integrations', count: integrations.length },
-    { id: 'database', label: 'Databases', count: integrations.filter((i) => i.serviceType === 'database').length },
-    { id: 'storage', label: 'Storage', count: integrations.filter((i) => i.serviceType === 'storage').length },
-    { id: 'payment', label: 'Payment', count: integrations.filter((i) => i.serviceType === 'payment').length },
-    { id: 'email', label: 'Email', count: integrations.filter((i) => i.serviceType === 'email').length },
-    { id: 'auth', label: 'Auth', count: integrations.filter((i) => i.serviceType === 'auth').length },
-  ];
-
-  const filteredIntegrations = integrations.filter((integration) => {
-    const matchesSearch =
-      integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      integration.service.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'all' || integration.serviceType === selectedCategory;
-
-    return matchesSearch && matchesCategory;
+  // Load fields when edit dialog opens
+  useState(() => {
+    if (editFields && showEditDialog) {
+      setFormData((prev) => ({
+        ...prev,
+        fields: editFields.length > 0 ? editFields : [{ key: '', value: '' }],
+      }));
+    }
   });
 
-  const getIntegrationIcon = (type: string) => {
-    switch (type) {
-      case 'database':
-        return <Database className="h-5 w-5" />;
-      case 'payment':
-        return <CreditCard className="h-5 w-5" />;
-      case 'storage':
-        return <Cloud className="h-5 w-5" />;
-      case 'email':
-        return <Mail className="h-5 w-5" />;
-      default:
-        return <Key className="h-5 w-5" />;
-    }
-  };
-
-  const getCredentialTypeIcon = (type: CredentialType) => {
-    switch (type) {
-      case 'json_service_account':
-        return <FileJson className="h-4 w-4" />;
-      case 'oauth_token':
-        return <ShieldCheck className="h-4 w-4" />;
-      default:
-        return <Key className="h-4 w-4" />;
-    }
-  };
-
-  const renderCredentialInputs = () => {
-    const selectedService = availableIntegrations.find((s: any) => s.service === formData.service);
-    if (!selectedService) return null;
-
-    const allFields = [...selectedService.requiredCredentials, ...selectedService.optionalCredentials];
-
-    return (
-      <div className="space-y-3">
-        {allFields.map((field: string) => (
-          <FloatingInput
-            key={field}
-            label={field.charAt(0).toUpperCase() + field.slice(1).replace(/([A-Z])/g, ' $1')}
-            type={field.toLowerCase().includes('secret') || field.toLowerCase().includes('key') || field.toLowerCase().includes('password') ? 'password' : 'text'}
-            value={formData.credentials[field] || ''}
-            onChange={(e) => updateCredentialField(field, e.target.value)}
-            leftIcon={<Key className="h-4 w-4" />}
-          />
-        ))}
-      </div>
-    );
-  };
+  const filteredIntegrations = integrations.filter(
+    (integration) =>
+      integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      integration.service.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const headerActions = (
     <div className="flex items-center space-x-3">
@@ -364,7 +249,7 @@ export default function IntegrationsPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span>Auto-injection by AI</span>
+                      <span>Dynamic field support for any service</span>
                     </div>
                   </div>
                 </div>
@@ -372,32 +257,15 @@ export default function IntegrationsPage() {
             </CardContent>
           </Card>
 
-          {/* Search & Filter */}
-          <div className="flex items-center justify-between gap-4">
-            <Tabs value={selectedCategory} onValueChange={setSelectedCategory}>
-              <TabsList>
-                {categories.map((cat) => (
-                  <TabsTrigger key={cat.id} value={cat.id} className="relative">
-                    {cat.label}
-                    {cat.count > 0 && (
-                      <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
-                        {cat.count}
-                      </Badge>
-                    )}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-
-            <div className="relative w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search integrations..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          {/* Search */}
+          <div className="relative w-full md:w-96">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search integrations..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
 
           {/* Loading State */}
@@ -423,7 +291,7 @@ export default function IntegrationsPage() {
                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
                   {searchQuery
                     ? 'Try adjusting your search or add a new integration'
-                    : 'Add your first integration to enable automatic credential management. AI will use these when analyzing and deploying projects.'}
+                    : 'Add your first integration to securely store credentials for any third-party service. Define custom fields for maximum flexibility.'}
                 </p>
                 <Button size="lg" onClick={() => setShowNewIntegrationDialog(true)}>
                   <Plus className="h-5 w-5 mr-2" />
@@ -447,31 +315,21 @@ export default function IntegrationsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-3 flex-1">
                           <IconWrapper variant="default" size="md" className="flex-shrink-0">
-                            {getIntegrationIcon(integration.serviceType)}
+                            <Key className="h-5 w-5" />
                           </IconWrapper>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-semibold text-gray-900 truncate">
                                 {integration.name}
                               </h4>
-                              {integration.status === 'connected' ? (
-                                <Badge
-                                  variant="secondary"
-                                  className="bg-green-100 text-green-700 flex-shrink-0"
-                                >
-                                  Connected
-                                </Badge>
-                              ) : integration.status === 'error' ? (
-                                <Badge variant="destructive" className="flex-shrink-0">
-                                  Error
-                                </Badge>
-                              ) : (
-                                <Badge variant="secondary" className="flex-shrink-0">
-                                  Unknown
-                                </Badge>
-                              )}
+                              <Badge variant="secondary" className="flex-shrink-0">
+                                {integration.service}
+                              </Badge>
                             </div>
-                            <p className="text-sm text-gray-600 capitalize">{integration.service}</p>
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Lock className="h-3.5 w-3.5" />
+                              <span>AES-256-GCM Encrypted</span>
+                            </div>
                           </div>
                         </div>
 
@@ -482,10 +340,6 @@ export default function IntegrationsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleTest(integration)}>
-                              <TestTube className="h-4 w-4 mr-2" />
-                              Test Connection
-                            </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleEditClick(integration)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
@@ -510,21 +364,6 @@ export default function IntegrationsPage() {
                         </div>
                       )}
 
-                      {/* Credential Type & Security */}
-                      <div className="flex items-center gap-4 text-xs">
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          {getCredentialTypeIcon(integration.credentialType)}
-                          <span className="capitalize">
-                            {integration.credentialType.replace(/_/g, ' ')}
-                          </span>
-                        </div>
-                        <span className="text-gray-400">•</span>
-                        <div className="flex items-center gap-1.5 text-gray-600">
-                          <Lock className="h-3.5 w-3.5" />
-                          <span>AES-256-GCM</span>
-                        </div>
-                      </div>
-
                       {/* Stats */}
                       <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
                         <div>
@@ -536,14 +375,18 @@ export default function IntegrationsPage() {
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Created</p>
                           <p className="text-sm font-semibold text-gray-900">
-                            {formatDistanceToNow(new Date(integration.createdAt), { addSuffix: true })}
+                            {formatDistanceToNow(new Date(integration.createdAt), {
+                              addSuffix: true,
+                            })}
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Last Used</p>
                           <p className="text-sm font-semibold text-gray-900">
                             {integration.lastUsed
-                              ? formatDistanceToNow(new Date(integration.lastUsed), { addSuffix: true })
+                              ? formatDistanceToNow(new Date(integration.lastUsed), {
+                                  addSuffix: true,
+                                })
                               : 'Never'}
                           </p>
                         </div>
@@ -563,7 +406,8 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle className="text-xl">Add New Integration</DialogTitle>
             <DialogDescription>
-              Add credentials for third-party services. All data is encrypted with AES-256-GCM.
+              Securely store credentials for any third-party service. All fields are encrypted with
+              AES-256-GCM.
             </DialogDescription>
           </DialogHeader>
 
@@ -576,52 +420,52 @@ export default function IntegrationsPage() {
               placeholder="e.g., Production Supabase"
             />
 
-            <div className="space-y-2">
-              <Label htmlFor="service-type">Service</Label>
-              <Select value={formData.service} onValueChange={handleServiceChange}>
-                <SelectTrigger id="service-type">
-                  <SelectValue placeholder="Select a service" />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableIntegrations.map((service: any) => (
-                    <SelectItem key={service.service} value={service.service}>
-                      {service.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <FloatingInput
+              label="Service Type"
+              value={formData.service}
+              onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+              leftIcon={<Key className="h-4 w-4" />}
+              placeholder="e.g., SUPABASE, STRIPE, CUSTOM_API"
+            />
 
-            {formData.service && (
-              <>
-                <div className="space-y-2">
-                  <Label>Credentials</Label>
-                  {renderCredentialInputs()}
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-900">Credential Fields</label>
+                <Button type="button" variant="outline" size="sm" onClick={addField}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Field
+                </Button>
+              </div>
 
-                <div className="flex gap-2">
+              {formData.fields.map((field, index) => (
+                <div key={index} className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Field name (e.g., API_KEY, URL)"
+                      value={field.key}
+                      onChange={(e) => updateField(index, 'key', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      type="password"
+                      placeholder="Field value"
+                      value={field.value}
+                      onChange={(e) => updateField(index, 'value', e.target.value)}
+                    />
+                  </div>
                   <Button
                     type="button"
-                    variant="outline"
-                    onClick={handleTestConnection}
-                    disabled={isTesting || Object.keys(formData.credentials).length === 0}
-                    className="flex-1"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeField(index)}
+                    disabled={formData.fields.length === 1}
                   >
-                    {isTesting ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Testing...
-                      </>
-                    ) : (
-                      <>
-                        <TestTube className="h-4 w-4 mr-2" />
-                        Test Connection
-                      </>
-                    )}
+                    <X className="h-4 w-4" />
                   </Button>
                 </div>
-              </>
-            )}
+              ))}
+            </div>
 
             <div className="p-4 bg-ocean-50 border border-ocean-200 rounded-lg">
               <div className="flex items-start gap-3">
@@ -629,7 +473,7 @@ export default function IntegrationsPage() {
                 <div>
                   <h4 className="font-medium text-gray-900 mb-1">Automatic Encryption</h4>
                   <p className="text-sm text-gray-700">
-                    Credentials will be encrypted using AES-256-GCM before storage.
+                    All field values will be encrypted using AES-256-GCM before storage.
                   </p>
                 </div>
               </div>
@@ -669,7 +513,7 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle className="text-xl">Edit Integration</DialogTitle>
             <DialogDescription>
-              Update integration name or credentials. Leave credentials empty to keep existing.
+              Update integration name or credentials. Leave fields empty to keep existing values.
             </DialogDescription>
           </DialogHeader>
 
@@ -681,10 +525,48 @@ export default function IntegrationsPage() {
               leftIcon={<Key className="h-4 w-4" />}
             />
 
-            <div className="space-y-2">
-              <Label>Update Credentials (optional)</Label>
-              {renderCredentialInputs()}
-              <p className="text-xs text-gray-500">Leave empty to keep existing credentials</p>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-gray-900">
+                  Update Credentials (optional)
+                </label>
+                <Button type="button" variant="outline" size="sm" onClick={addField}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Field
+                </Button>
+              </div>
+
+              {formData.fields.map((field, index) => (
+                <div key={index} className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      placeholder="Field name"
+                      value={field.key}
+                      onChange={(e) => updateField(index, 'key', e.target.value)}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <Input
+                      type="password"
+                      placeholder="Field value"
+                      value={field.value}
+                      onChange={(e) => updateField(index, 'value', e.target.value)}
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeField(index)}
+                    disabled={formData.fields.length === 1}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              <p className="text-xs text-gray-500">
+                Leave fields empty to keep existing credentials
+              </p>
             </div>
           </div>
 
@@ -722,7 +604,8 @@ export default function IntegrationsPage() {
           <DialogHeader>
             <DialogTitle>Delete Integration</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedIntegration?.name}"? This action cannot be undone.
+              Are you sure you want to delete "{selectedIntegration?.name}"? This action cannot be
+              undone.
             </DialogDescription>
           </DialogHeader>
 

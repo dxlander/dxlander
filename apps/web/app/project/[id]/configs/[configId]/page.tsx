@@ -20,7 +20,7 @@ import {
   Eye,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { formatDateTime } from '@dxlander/shared/utils';
+import { format } from 'date-fns';
 import {
   VariablesTab,
   FilesTab,
@@ -206,7 +206,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
     <PageLayout background="default">
       <Header
         title={`${configSet.type.charAt(0).toUpperCase() + configSet.type.slice(1)} Configuration`}
-        subtitle={`${project.name} • v${configSet.version} • Created ${formatDateTime(configSet.createdAt)}`}
+        subtitle={`${project.name} • v${configSet.version} • Created ${format(new Date(configSet.createdAt), 'MMM d, yyyy, hh:mm a')}`}
         badge={configSet.status}
         actions={headerActions}
       />

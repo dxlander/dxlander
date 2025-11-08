@@ -13,7 +13,7 @@ import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { formatDateTime } from '@dxlander/shared/utils';
+import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { trpc } from '@/lib/trpc';
 import { useRouter } from 'next/navigation';
@@ -100,7 +100,7 @@ export function DeleteProjectDialog({ project, open, onOpenChange }: DeleteProje
                   </p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-ocean-600">
-                  <span>Created {formatDateTime(project.createdAt)}</span>
+                  <span>Created {format(new Date(project.createdAt), 'MMM d, yyyy, hh:mm a')}</span>
                   <Badge
                     variant="secondary"
                     data-testid="project-status-badge"

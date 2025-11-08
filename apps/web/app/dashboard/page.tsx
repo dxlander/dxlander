@@ -20,7 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
-import { formatRelativeTimeFull } from '@dxlander/shared/utils';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Archive,
   Code,
@@ -327,8 +327,9 @@ export default function Dashboard() {
                                       )}
                                       <span className="text-gray-400">•</span>
                                       <span>
-                                        {formatRelativeTimeFull(
-                                          project.updatedAt || project.createdAt
+                                        {formatDistanceToNow(
+                                          new Date(project.updatedAt || project.createdAt),
+                                          { addSuffix: true }
                                         )}
                                       </span>
                                     </div>
