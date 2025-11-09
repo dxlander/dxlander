@@ -101,6 +101,20 @@ export default [
             'curly': ['error', 'all'],
             'no-throw-literal': 'error',
             'prefer-template': 'warn',
+
+            // Type Architecture Governance: Prevent duplicate domain type definitions
+            // All domain types (Project, User, Deployment, etc.) must be imported from @dxlander/shared
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'TSInterfaceDeclaration[id.name=/^(Project|Deployment|User|Integration|DeploymentCredential|ConfigSet|ProviderTestResult|ProviderTestConfig|ProjectFile)$/]',
+                    message: '❌ Do not redefine domain types. Import from @dxlander/shared instead. See type-architecture-refactoring.md for details.',
+                },
+                {
+                    selector: 'TSTypeAliasDeclaration[id.name=/^(Project|Deployment|User|Integration|DeploymentCredential|ConfigSet|ProviderTestResult|ProviderTestConfig|ProjectFile)$/]',
+                    message: '❌ Do not redefine domain types. Import from @dxlander/shared instead. See type-architecture-refactoring.md for details.',
+                },
+            ],
         },
     },
 

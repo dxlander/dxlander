@@ -10,19 +10,13 @@ import {
   getProjectFilesDir,
   type ProjectAnalysisResult,
   type ProjectContext,
+  type ProjectFile,
 } from '@dxlander/shared';
 import { randomUUID } from 'crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AIProviderService } from './ai-provider.service';
-
-interface ProjectFile {
-  path: string;
-  content: string;
-  size: number;
-  isDirectory: boolean;
-}
 
 export class AIAnalysisService {
   /**

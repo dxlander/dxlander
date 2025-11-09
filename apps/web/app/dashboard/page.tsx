@@ -20,6 +20,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
+import type { SerializedProject } from '@dxlander/shared';
 import { formatDistanceToNow } from 'date-fns';
 import {
   Archive,
@@ -44,22 +45,8 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
-// Extended project type to include all properties used in the dashboard
-type Project = DeleteProjectDialogProps['project'] & {
-  framework?: string | null;
-  language?: string | null;
-  generatedConfigs?: Record<string, unknown> | null;
-  lastActivity?: string | null;
-  localPath?: string | null;
-  sourceBranch?: string | null;
-  deployUrl?: string | null;
-  sourceHash?: string;
-  sourceType?: string;
-  sourceUrl?: string | null;
-  userId?: string;
-  updatedAt?: string;
-  projectSize?: number | null;
-};
+// Use SerializedProject from shared package
+type Project = SerializedProject;
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');

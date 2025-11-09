@@ -11,20 +11,13 @@ import { randomUUID } from 'crypto';
 import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
+  type ConfigType,
+  type GenerateConfigOptions,
   getConfigDir,
   getProjectConfigsDir,
   isPathSafe,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
-
-export type ConfigType = 'docker' | 'docker-compose' | 'kubernetes' | 'bash';
-
-interface GenerateConfigOptions {
-  projectId: string;
-  analysisId: string;
-  configType: ConfigType;
-  userId: string;
-}
 
 export class ConfigGenerationService {
   /**

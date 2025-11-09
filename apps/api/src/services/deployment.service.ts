@@ -1,63 +1,13 @@
 import { randomUUID } from 'crypto';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { db, deploymentCredentials } from '@dxlander/database';
-import { encryptionService } from '@dxlander/shared';
-
-export interface DeploymentPlatformConfig {
-  platform:
-    | 'vercel'
-    | 'railway'
-    | 'netlify'
-    | 'aws'
-    | 'gcp'
-    | 'azure'
-    | 'docker-registry'
-    | 'kubernetes'
-    | 'render'
-    | 'fly-io'
-    | 'digital-ocean'
-    | 'heroku';
-  name: string;
-  apiKey?: string;
-  config?: Record<string, any>;
-  settings?: Record<string, any>;
-}
-
-export interface CreateDeploymentCredentialInput {
-  userId: string;
-  name: string;
-  platform: string;
-  apiKey?: string;
-  config?: Record<string, any>;
-  settings?: Record<string, any>;
-  isDefault?: boolean;
-}
-
-export interface UpdateDeploymentCredentialInput {
-  name?: string;
-  apiKey?: string;
-  config?: Record<string, any>;
-  settings?: Record<string, any>;
-  isActive?: boolean;
-  isDefault?: boolean;
-}
-
-export interface DeploymentCredential {
-  id: string;
-  userId: string;
-  name: string;
-  platform: string;
-  settings?: Record<string, any>;
-  isActive: boolean;
-  isDefault: boolean;
-  lastTested?: Date;
-  lastTestStatus?: string;
-  lastError?: string;
-  usageCount: number;
-  lastUsed?: Date;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import {
+  encryptionService,
+  type DeploymentPlatformConfig,
+  type CreateDeploymentCredentialInput,
+  type UpdateDeploymentCredentialInput,
+  type DeploymentCredential,
+} from '@dxlander/shared';
 
 export class DeploymentService {
   /**
