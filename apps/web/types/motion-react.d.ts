@@ -1,3 +1,5 @@
 declare module 'motion/react' {
-  export * from 'motion';
+  export const motion: typeof import('framer-motion').motion;
+  export const useReducedMotion: typeof import('framer-motion').useReducedMotion;
+  export * from 'framer-motion';
 }
