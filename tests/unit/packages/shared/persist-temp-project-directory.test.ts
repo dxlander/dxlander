@@ -40,15 +40,16 @@ describe('persistTempProjectDirectory', () => {
 
     const result = persistTempProjectDirectory(PROJECT_ID, extractPath);
 
-    const destination = getProjectDir(PROJECT_ID);
-    expect(result.localPath).toBe(destination);
+    const projectRoot = getProjectDir(PROJECT_ID);
+    expect(result.localPath).toBe(projectRoot);
     expect(result.filesCount).toBe(files.length);
 
     const expectedSize = files.reduce((total, file) => total + Buffer.byteLength(file.contents), 0);
     expect(result.totalSize).toBe(expectedSize);
 
+    // Files are stored in the /files subdirectory
     for (const file of files) {
-      const copiedPath = path.join(destination, file.relative);
+      const copiedPath = path.join(projectRoot, 'files', file.relative);
       expect(fs.existsSync(copiedPath)).toBe(true);
       expect(fs.readFileSync(copiedPath, 'utf-8')).toBe(file.contents);
     }

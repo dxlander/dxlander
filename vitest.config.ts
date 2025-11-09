@@ -5,6 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
+    setupFiles: ['./tests/setup-integration.ts'],
     include: ['tests/**/*.{test,spec}.{js,ts,tsx}'],
     exclude: [
       'node_modules',
@@ -18,9 +19,13 @@ export default defineConfig({
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
-    // Inline workspace packages for proper module resolution
-    deps: {
-      inline: [/@dxlander\/.*/],
+    server: {
+      deps: {
+        // Inline workspace packages for proper module resolution
+        inline: [/@dxlander\/.*/],
+        // External dependencies that have issues with Vite transformation
+        external: ['pg', 'pg-native'],
+      },
     },
   },
   esbuild: {

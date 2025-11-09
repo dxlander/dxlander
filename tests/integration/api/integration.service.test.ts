@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { IntegrationService } from '../../../../../apps/api/src/services/integration.service';
+import { IntegrationService } from '../../../apps/api/src/services/integration.service';
 import { db, schema } from '@dxlander/database';
 import { eq } from 'drizzle-orm';
 

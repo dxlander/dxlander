@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { appRouter } from '../../../../../apps/api/src/routes';
+import { appRouter } from '../../../apps/api/src/routes';
 import { db, schema } from '@dxlander/database';
 import { eq } from 'drizzle-orm';
 import type { Context } from '@dxlander/shared';

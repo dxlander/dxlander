@@ -154,8 +154,8 @@ describe('Delete Project Implementation Verification', () => {
 
       const content = readFileSync(dashboardPath, 'utf8');
 
-      // Verify dialog is imported and used
-      expect(content).toContain('import { DeleteProjectDialog }');
+      // Verify dialog is imported and used (handles both single-line and multi-line imports)
+      expect(content).toMatch(/import\s+{[^}]*DeleteProjectDialog[^}]*}\s+from/);
       expect(content).toContain('DeleteProjectDialog');
       expect(content).toContain('handleDeleteClick');
     });
