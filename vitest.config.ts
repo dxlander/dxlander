@@ -14,6 +14,7 @@ export default defineConfig({
       'apps/web/.next',
       'apps/web/**',
       '**/*.d.ts',
+      'tests/e2e/**', // E2E tests run with Playwright, not Vitest
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
