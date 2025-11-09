@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import * as path from 'path';
 
 export default defineConfig({
   test: {
@@ -19,5 +20,12 @@ export default defineConfig({
   },
   esbuild: {
     target: 'node18',
+  },
+  resolve: {
+    alias: {
+      '@dxlander/database': path.resolve(__dirname, './packages/database/src/index.ts'),
+      '@dxlander/shared': path.resolve(__dirname, './packages/shared/src/index.ts'),
+      '@dxlander/ai-agents': path.resolve(__dirname, './packages/ai-agents/src/index.ts'),
+    },
   },
 });

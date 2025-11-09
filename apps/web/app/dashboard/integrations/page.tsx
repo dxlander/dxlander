@@ -17,6 +17,13 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -37,10 +44,52 @@ import {
   AlertCircle,
   Loader2,
   X,
+  Database,
+  Mail,
+  CreditCard,
+  Cloud,
+  Server,
+  Globe,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+
+// Service type options with descriptions
+const SERVICE_TYPES = [
+  {
+    value: 'DATABASE',
+    label: 'Database',
+    description: 'PostgreSQL, MySQL, MongoDB, etc.',
+    icon: Database,
+  },
+  {
+    value: 'EMAIL',
+    label: 'Email Service',
+    description: 'SendGrid, Mailgun, AWS SES, etc.',
+    icon: Mail,
+  },
+  {
+    value: 'PAYMENT',
+    label: 'Payment Gateway',
+    description: 'Stripe, PayPal, Square, etc.',
+    icon: CreditCard,
+  },
+  {
+    value: 'CLOUD',
+    label: 'Cloud Provider',
+    description: 'AWS, Google Cloud, Azure, etc.',
+    icon: Cloud,
+  },
+  {
+    value: 'BACKEND',
+    label: 'Backend Service',
+    description: 'Supabase, Firebase, etc.',
+    icon: Server,
+  },
+  { value: 'API', label: 'External API', description: 'Custom REST/GraphQL APIs', icon: Globe },
+  { value: 'OTHER', label: 'Other', description: 'Other third-party services', icon: Key },
+] as const;
 
 interface Field {
   key: string;
@@ -53,12 +102,27 @@ interface IntegrationFormData {
   fields: Field[];
 }
 
+interface Integration {
+  id: string;
+  name: string;
+  service: string;
+  userId: string;
+  projectId?: string | null;
+  encryptedCredentials: string;
+  usageCount: number;
+  lastUsed?: Date | null;
+  lastError?: string | null;
+  autoInjected: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export default function IntegrationsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showNewIntegrationDialog, setShowNewIntegrationDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<any>(null);
+  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
 
   // Form state
   const [formData, setFormData] = useState<IntegrationFormData>({
@@ -177,7 +241,7 @@ export default function IntegrationsPage() {
     deleteMutation.mutate({ id: selectedIntegration.id });
   };
 
-  const handleEditClick = async (integration: any) => {
+  const handleEditClick = async (integration: Integration) => {
     setSelectedIntegration(integration);
     setFormData({
       name: integration.name,
@@ -187,7 +251,7 @@ export default function IntegrationsPage() {
     setShowEditDialog(true);
   };
 
-  const handleDeleteClick = (integration: any) => {
+  const handleDeleteClick = (integration: Integration) => {
     setSelectedIntegration(integration);
     setShowDeleteDialog(true);
   };
@@ -412,25 +476,61 @@ export default function IntegrationsPage() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            <FloatingInput
-              label="Integration Name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              leftIcon={<Key className="h-4 w-4" />}
-              placeholder="e.g., Production Supabase"
-            />
+            {/* Integration Name */}
+            <div className="space-y-2">
+              <FloatingInput
+                label="Integration Name"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                leftIcon={<Key className="h-4 w-4" />}
+              />
+              <p className="text-xs text-gray-500">
+                A friendly name to identify this integration (e.g., "Production Supabase", "Stripe
+                Live")
+              </p>
+            </div>
 
-            <FloatingInput
-              label="Service Type"
-              value={formData.service}
-              onChange={(e) => setFormData({ ...formData, service: e.target.value })}
-              leftIcon={<Key className="h-4 w-4" />}
-              placeholder="e.g., SUPABASE, STRIPE, CUSTOM_API"
-            />
+            {/* Service Type Dropdown */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-900">Service Type</label>
+              <Select
+                value={formData.service}
+                onValueChange={(value) => setFormData({ ...formData, service: value })}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select service type..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {SERVICE_TYPES.map((type) => {
+                    const Icon = type.icon;
+                    return (
+                      <SelectItem key={type.value} value={type.value}>
+                        <div className="flex items-center gap-2">
+                          <Icon className="h-4 w-4 text-gray-500" />
+                          <div>
+                            <div className="font-medium">{type.label}</div>
+                            <div className="text-xs text-gray-500">{type.description}</div>
+                          </div>
+                        </div>
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Choose the category that best describes this integration
+              </p>
+            </div>
 
+            {/* Credential Fields */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-900">Credential Fields</label>
+                <div>
+                  <label className="text-sm font-medium text-gray-900">Credential Fields</label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Define custom fields for API keys, tokens, URLs, and other credentials
+                  </p>
+                </div>
                 <Button type="button" variant="outline" size="sm" onClick={addField}>
                   <Plus className="h-4 w-4 mr-2" />
                   Add Field
