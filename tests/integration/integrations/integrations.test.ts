@@ -471,10 +471,7 @@ describe('Integration CRUD Operations', () => {
         .set({ encryptedCredentials: 'corrupted:data:here' })
         .where(eq(schema.integrations.id, created.id));
 
-      const decrypted = await integrationService.getDecryptedCredentials(
-        created.id,
-        testUserId
-      );
+      const decrypted = await integrationService.getDecryptedCredentials(created.id, testUserId);
 
       expect(decrypted).toBeNull();
     });
