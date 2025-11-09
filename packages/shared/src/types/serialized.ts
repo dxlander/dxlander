@@ -22,16 +22,21 @@ import type { ConfigSet } from './config';
 /**
  * Serialized Project type for API responses
  *
- * All Date fields are converted to ISO string format.
- * Note: This type matches the actual database schema (projects table),
- * not the Zod schema which includes fields that are computed or joined.
+ * This type matches exactly what Drizzle ORM returns from the database,
+ * with Date objects serialized to ISO strings by tRPC.
+ *
+ * Note: Field types match the database schema inference:
+ * - text() fields → string | null
+ * - text().notNull() fields → string
+ * - integer() fields → number | null
+ * - timestamp fields → string (serialized from Date)
  */
 export type SerializedProject = {
   id: string;
   userId: string;
   name: string;
   description: string | null;
-  sourceType: 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'git' | 'local';
+  sourceType: string; // Drizzle infers enum as string
   sourceUrl: string | null;
   sourceHash: string;
   sourceBranch: string | null;
@@ -39,13 +44,13 @@ export type SerializedProject = {
   filesCount: number | null;
   projectSize: number | null;
   language: string | null;
-  status: 'imported' | 'configured' | 'deployed';
+  status: string; // Drizzle infers enum as string
   latestAnalysisId: string | null;
   latestConfigSetId: string | null;
-  lastDeployedAt: string | null;
+  lastDeployedAt: string | null; // Serialized from Date
   deployUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: string; // Serialized from Date
+  updatedAt: string; // Serialized from Date
 };
 
 /**
