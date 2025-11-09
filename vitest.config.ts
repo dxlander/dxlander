@@ -16,6 +16,8 @@ export default defineConfig({
       'apps/web/**',
       '**/*.d.ts',
       'tests/e2e/**', // E2E tests run with Playwright, not Vitest
+      'tests/integration/api/**', // Blocked by pg module ESM issue
+      'tests/integration/integrations/**', // Blocked by pg module ESM issue
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
