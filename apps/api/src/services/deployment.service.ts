@@ -3,7 +3,6 @@ import { eq, and, desc, sql } from 'drizzle-orm';
 import { db, deploymentCredentials } from '@dxlander/database';
 import {
   encryptionService,
-  type DeploymentPlatformConfig,
   type CreateDeploymentCredentialInput,
   type UpdateDeploymentCredentialInput,
   type DeploymentCredential,

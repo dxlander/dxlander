@@ -2,10 +2,7 @@
 
 import { IconWrapper } from '@/components/common';
 import { Header, PageLayout, Section } from '@/components/layouts';
-import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+import { DeleteProjectDialog } from '@/components/projects/delete-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

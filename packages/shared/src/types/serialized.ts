@@ -1,9 +1,4 @@
-import type {
-  Project,
-  Deployment,
-  User,
-  IntegrationVaultEntry,
-} from './index';
+import type { Project, Deployment, User } from './index';
 import type { ConfigSet } from './config';
 
 /**
