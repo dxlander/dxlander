@@ -110,9 +110,18 @@ export async function middleware(request: NextRequest) {
     let resetSucceeded = false;
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const resetSecret = process.env.DXLANDER_SETUP_RESET_SECRET;
+      if (!resetSecret) {
+        console.warn('DXLANDER_SETUP_RESET_SECRET is not configured; skipping setup reset request');
+        throw new Error('Reset secret not configured');
+      }
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-dxlander-reset-secret': resetSecret,
+      };
       const resetResponse = await fetch(`${apiUrl}/setup/reset`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         cache: 'no-store',
       });
       if (!resetResponse.ok) {

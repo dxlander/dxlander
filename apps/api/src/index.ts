@@ -143,6 +143,23 @@ app.post('/setup/reset', async (c) => {
     return c.json({ success: false, message: 'Setup reset is disabled in production' }, 403);
   }
 
+  const resetSecret = process.env.DXLANDER_SETUP_RESET_SECRET;
+  if (!resetSecret) {
+    console.warn('Reset endpoint blocked: DXLANDER_SETUP_RESET_SECRET not configured');
+    return c.json({ success: false, message: 'Setup reset secret not configured' }, 403);
+  }
+
+  const providedSecret =
+    c.req.header('x-dxlander-reset-secret') ??
+    c.req
+      .header('authorization')
+      ?.replace(/^Bearer\s+/i, '')
+      .trim();
+
+  if (!providedSecret || providedSecret !== resetSecret) {
+    return c.json({ success: false, message: 'Unauthorized setup reset request' }, 401);
+  }
+
   try {
     const { resetSetupState } = await import('@dxlander/database');
     await resetSetupState();

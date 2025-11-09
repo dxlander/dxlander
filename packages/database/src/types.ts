@@ -33,11 +33,17 @@ export type DatabaseConfig = SqliteConfig | PostgresConfig;
 import { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import { users, projects, deployments, settings } from './schema';
 
+export interface DatabaseTableStats {
+  name: string;
+  count: number;
+}
+
 export interface DatabaseStats {
-  filePath: string;
-  sizeBytes: number;
-  lastModified: Date | null;
-  exists: boolean;
+  dbPath: string;
+  fileSizeBytes: number;
+  tablesCount: number;
+  totalRecords: number;
+  perTable: DatabaseTableStats[];
 }
 
 // Select types (what you get when reading from DB)

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { schema } from './schema';
-import type { DatabaseStats } from './types';
+import type { DatabaseStats, DatabaseTableStats } from './types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { homedir } from 'os';
@@ -485,39 +485,6 @@ export async function markSetupComplete(): Promise<void> {
   }
 }
 
-export function getDatabaseFilePath(): string {
-  return dbPath;
-}
-
-export function getDatabaseStats(): DatabaseStats {
-  try {
-    if (!fs.existsSync(dbPath)) {
-      return {
-        filePath: dbPath,
-        sizeBytes: 0,
-        lastModified: null,
-        exists: false,
-      };
-    }
-
-    const stats = fs.statSync(dbPath);
-    return {
-      filePath: dbPath,
-      sizeBytes: stats.size,
-      lastModified: new Date(stats.mtimeMs),
-      exists: true,
-    };
-  } catch (error) {
-    console.error('Failed to read database stats:', error);
-    return {
-      filePath: dbPath,
-      sizeBytes: 0,
-      lastModified: null,
-      exists: false,
-    };
-  }
-}
-
 // Reset setup state for development/testing
 export async function resetSetupState(): Promise<void> {
   try {
@@ -534,6 +501,11 @@ export async function resetSetupState(): Promise<void> {
     await db.delete(schema.analysisRuns);
     await db.delete(schema.integrations);
     await db.delete(schema.aiProviders);
+    try {
+      sqlite.prepare('DELETE FROM encryption_keys;').run();
+    } catch (error) {
+      console.warn('Failed to clear encryption_keys table during reset:', error);
+    }
     await db.delete(schema.projects);
     await db.delete(schema.settings);
     await db.delete(schema.users);
@@ -587,13 +559,7 @@ const VALID_TABLE_NAMES = new Set([
  *   - totalRecords: sum of row counts across all user tables
  *   - perTable: array of { name, count } for each table
  */
-export async function getDatabaseStats(): Promise<{
-  dbPath: string;
-  fileSizeBytes: number;
-  tablesCount: number;
-  totalRecords: number;
-  perTable: Array<{ name: string; count: number }>;
-}> {
+export async function getDatabaseStats(): Promise<DatabaseStats> {
   try {
     // Use async file stat to avoid blocking event loop
     const stats = await fs.promises.stat(dbPath);
@@ -604,7 +570,7 @@ export async function getDatabaseStats(): Promise<{
       .all() as Array<{ name: string }>;
 
     let totalRecords = 0;
-    const perTable: Array<{ name: string; count: number }> = [];
+    const perTable: DatabaseTableStats[] = [];
 
     for (const t of tables) {
       // Security: Validate table name against whitelist to prevent SQL injection

@@ -27,7 +27,14 @@ export {
   deploymentCredentials,
   auditLogs,
 } from './schema';
-export type { User, Project, Deployment, Setting, DatabaseStats } from './types';
+export type {
+  User,
+  Project,
+  Deployment,
+  Setting,
+  DatabaseStats,
+  DatabaseTableStats,
+} from './types';
 
 // Export new PostgreSQL support
 export { createPostgresConnection } from './postgres-connection';
