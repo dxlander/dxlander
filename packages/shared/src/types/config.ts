@@ -1,4 +1,31 @@
-// Configuration related types
+import { z } from 'zod';
+
+/**
+ * Configuration Generation Types
+ *
+ * Types for AI-generated deployment configurations (Docker, Kubernetes, etc.)
+ */
+
+/**
+ * Supported configuration types for deployment
+ */
+export const ConfigTypeSchema = z.enum(['docker', 'docker-compose', 'kubernetes', 'bash']);
+export type ConfigType = z.infer<typeof ConfigTypeSchema>;
+
+/**
+ * Configuration generation options
+ */
+export const GenerateConfigOptionsSchema = z.object({
+  projectId: z.string().min(1),
+  analysisId: z.string().min(1),
+  configType: ConfigTypeSchema,
+  userId: z.string().min(1),
+});
+export type GenerateConfigOptions = z.infer<typeof GenerateConfigOptionsSchema>;
+
+/**
+ * Configuration Set (backend/database version with Date objects)
+ */
 export interface ConfigSet {
   id: string;
   projectId: string;
