@@ -1,4 +1,4 @@
-import type { Project, Deployment, User } from './index';
+import type { Deployment, User } from './index';
 import type { ConfigSet } from './config';
 
 /**
@@ -10,10 +10,10 @@ import type { ConfigSet } from './config';
  *
  * @example
  * ```typescript
- * // Backend returns Date objects
- * const project: Project = await db.query.projects.findFirst(...);
+ * // Backend returns Date objects from database
+ * const project = await db.query.projects.findFirst(...);
  *
- * // Frontend receives serialized strings
+ * // Frontend receives serialized strings via tRPC
  * const { data: project } = trpc.projects.get.useQuery();
  * // project: SerializedProject (dates are strings)
  * ```
@@ -23,8 +23,27 @@ import type { ConfigSet } from './config';
  * Serialized Project type for API responses
  *
  * All Date fields are converted to ISO string format.
+ * Note: This type matches the actual database schema (projects table),
+ * not the Zod schema which includes fields that are computed or joined.
  */
-export type SerializedProject = Omit<Project, 'createdAt' | 'updatedAt'> & {
+export type SerializedProject = {
+  id: string;
+  userId: string;
+  name: string;
+  description: string | null;
+  sourceType: 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'git' | 'local';
+  sourceUrl: string | null;
+  sourceHash: string;
+  sourceBranch: string | null;
+  localPath: string | null;
+  filesCount: number | null;
+  projectSize: number | null;
+  language: string | null;
+  status: 'imported' | 'configured' | 'deployed';
+  latestAnalysisId: string | null;
+  latestConfigSetId: string | null;
+  lastDeployedAt: string | null;
+  deployUrl: string | null;
   createdAt: string;
   updatedAt: string;
 };

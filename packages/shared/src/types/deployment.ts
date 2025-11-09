@@ -58,7 +58,7 @@ export interface DeploymentCredential {
   id: string;
   userId: string;
   name: string;
-  platform: string;
+  platform: DeploymentPlatform;
   settings?: Record<string, any>;
   isActive: boolean;
   isDefault: boolean;
@@ -92,7 +92,20 @@ export type SerializedDeploymentCredential = Omit<
 export const CreateDeploymentCredentialSchema = z.object({
   userId: z.string().min(1),
   name: z.string().min(1, 'Credential name is required'),
-  platform: z.string().min(1, 'Platform is required'),
+  platform: z.enum([
+    'vercel',
+    'railway',
+    'netlify',
+    'aws',
+    'gcp',
+    'azure',
+    'docker-registry',
+    'kubernetes',
+    'render',
+    'fly-io',
+    'digital-ocean',
+    'heroku',
+  ]),
   apiKey: z.string().optional(),
   config: z.record(z.any()).optional(),
   settings: z.record(z.any()).optional(),
