@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🚀 Pre-push checks..."
+
+# Clean and rebuild to match CI environment
+echo "🧹 Cleaning build artifacts..."
+pnpm clean
+
+echo "🔨 Rebuilding packages..."
+pnpm run build:packages
+
+# Run typecheck (same as CI)
+echo "🔍 Running typecheck..."
+pnpm typecheck
+
+# Run lint (same as CI)
+echo "✨ Running lint..."
+pnpm lint
+
+echo "✅ Pre-push checks passed!"

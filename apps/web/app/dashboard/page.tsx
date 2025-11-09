@@ -91,7 +91,6 @@ export default function Dashboard() {
   const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.framework && project.framework.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (project.language && project.language.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (activeTab === 'all') return matchesSearch;
@@ -350,25 +349,7 @@ export default function Dashboard() {
                                       </div>
                                     )}
 
-                                    {/* Generated Configs */}
-                                    {(project as Project).generatedConfigs &&
-                                      Object.keys((project as Project).generatedConfigs || {})
-                                        .length > 0 && (
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                          {Object.keys(
-                                            (project as Project).generatedConfigs || {}
-                                          ).map((file: string, idx: number) => (
-                                            <Badge
-                                              key={idx}
-                                              variant="secondary"
-                                              className="text-xs bg-gray-100 text-gray-700"
-                                            >
-                                              {file}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      )}
+                                    {/* Generated Configs - Would need to fetch from config_sets table */}
 
                                     {/* Deploy URL */}
                                     {project.deployUrl && (
