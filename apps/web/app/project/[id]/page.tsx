@@ -28,7 +28,7 @@ import {
   FolderTree,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { formatRelativeTime, formatDate } from '@dxlander/shared/utils';
+import { formatDistanceToNow, format } from 'date-fns';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -257,7 +257,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                     v{config.version} - {config.type}
                                   </p>
                                   <p className="text-xs text-gray-500">
-                                    {formatDate(config.createdAt)}
+                                    {format(new Date(config.createdAt), 'MMM d, yyyy')}
                                   </p>
                                 </div>
                               </div>
@@ -297,7 +297,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium text-gray-900">Project imported</p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                          {formatRelativeTime(project.createdAt)}
+                          {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
                         </p>
                       </div>
                     </div>
@@ -311,7 +311,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                             {config.type} configuration created
                           </p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatRelativeTime(config.createdAt)}
+                            {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
                           </p>
                         </div>
                       </div>
@@ -324,7 +324,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         <div className="flex-1 min-w-0">
                           <p className="text-xs font-medium text-gray-900">Project updated</p>
                           <p className="text-xs text-gray-500 mt-0.5">
-                            {formatRelativeTime(project.updatedAt)}
+                            {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
                           </p>
                         </div>
                       </div>
@@ -406,7 +406,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         <div>
                           <p className="text-xs text-gray-500">Imported</p>
                           <p className="text-sm font-medium text-gray-900">
-                            {formatDate(project.createdAt)}
+                            {format(new Date(project.createdAt), 'MMM d, yyyy')}
                           </p>
                         </div>
                       </div>
@@ -415,7 +415,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         <div>
                           <p className="text-xs text-gray-500">Updated</p>
                           <p className="text-sm font-medium text-gray-900">
-                            {formatDate(project.updatedAt)}
+                            {format(new Date(project.updatedAt), 'MMM d, yyyy')}
                           </p>
                         </div>
                       </div>

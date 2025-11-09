@@ -22,7 +22,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
-import { formatRelativeTime } from '@dxlander/shared/utils';
+import { formatDistanceToNow } from 'date-fns';
 import { use, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -175,7 +175,10 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                           </div>
 
                           <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
-                            <span>Created {formatRelativeTime(config.createdAt)}</span>
+                            <span>
+                              Created{' '}
+                              {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
+                            </span>
                           </div>
 
                           {/* Files - Note: Files are now stored in a separate table, will be shown in detail view */}

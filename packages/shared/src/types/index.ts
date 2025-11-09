@@ -183,3 +183,6 @@ export const SetupStepValidationSchema = z.object({
 });
 
 export type SetupStepValidation = z.infer<typeof SetupStepValidationSchema>;
+
+// Integration Vault types
+export * from './integration-vault';
