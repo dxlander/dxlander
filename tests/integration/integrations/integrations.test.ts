@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { db, schema } from '@dxlander/database';
 import { encryptionService } from '@dxlander/shared';
 import { IntegrationService } from '../../../apps/api/src/services/integration.service';
@@ -317,8 +317,8 @@ describe('Integration CRUD Operations', () => {
   });
 
   describe('Filter Operations', () => {
-    beforeAll(async () => {
-      // Create test data for filtering
+    beforeEach(async () => {
+      // Create test data for filtering before each test
       const testIntegrations = [
         {
           userId: testUserId,

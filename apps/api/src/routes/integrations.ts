@@ -106,12 +106,15 @@ export const integrationsRouter = router({
         credentials[field.key] = field.value;
       }
 
+      // Map service type from dropdown to serviceType field
+      const serviceType = input.service.toLowerCase();
+
       const integration = await integrationService.createIntegration({
         userId,
         name: input.name,
-        service: input.service,
-        serviceType: 'custom', // All are custom now
-        credentialType: 'key_value', // All use key-value pairs
+        service: input.service, // Keep original case for display (DATABASE, EMAIL, etc.)
+        serviceType, // Lowercase for filtering (database, email, etc.)
+        credentialType: 'key_value', // All dynamic integrations use key-value pairs
         credentials,
         autoInjected: input.autoInjected,
         projectId: input.projectId,
@@ -129,10 +132,7 @@ export const integrationsRouter = router({
         createdAt: new Date(),
       });
 
-      return {
-        id: integration.id,
-        message: 'Integration created successfully',
-      };
+      return integration;
     } catch (error) {
       console.error('Failed to create integration:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to create integration');
@@ -179,10 +179,7 @@ export const integrationsRouter = router({
         createdAt: new Date(),
       });
 
-      return {
-        success: true,
-        message: 'Integration updated successfully',
-      };
+      return integration;
     } catch (error) {
       console.error('Failed to update integration:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to update integration');
@@ -221,7 +218,7 @@ export const integrationsRouter = router({
 
       return {
         success: true,
-        message: 'Integration deleted successfully',
+        deletedIntegration: integration,
       };
     } catch (error) {
       console.error('Failed to delete integration:', error);

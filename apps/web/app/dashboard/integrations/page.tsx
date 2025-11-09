@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { PageLayout, Header, Section } from '@/components/layouts';
 import { IconWrapper } from '@/components/common';
@@ -242,14 +242,14 @@ export default function IntegrationsPage() {
   };
 
   // Load fields when edit dialog opens
-  useState(() => {
+  useEffect(() => {
     if (editFields && showEditDialog) {
       setFormData((prev) => ({
         ...prev,
         fields: editFields.length > 0 ? editFields : [{ key: '', value: '' }],
       }));
     }
-  });
+  }, [editFields, showEditDialog]);
 
   const filteredIntegrations = integrations.filter(
     (integration) =>
