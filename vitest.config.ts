@@ -17,6 +17,10 @@ export default defineConfig({
     ],
     testTimeout: 30000,
     hookTimeout: 30000,
+    // Inline workspace packages for proper module resolution
+    deps: {
+      inline: [/@dxlander\/.*/],
+    },
   },
   esbuild: {
     target: 'node18',
@@ -27,5 +31,7 @@ export default defineConfig({
       '@dxlander/shared': path.resolve(__dirname, './packages/shared/src/index.ts'),
       '@dxlander/ai-agents': path.resolve(__dirname, './packages/ai-agents/src/index.ts'),
     },
+    // Ensure external dependencies like drizzle-orm are properly resolved
+    conditions: ['node', 'import', 'module', 'browser', 'default'],
   },
 });

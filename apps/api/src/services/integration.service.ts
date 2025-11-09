@@ -6,42 +6,17 @@
 import { randomUUID } from 'crypto';
 import { eq, and, desc } from 'drizzle-orm';
 import { db, schema } from '@dxlander/database';
-import { encryptionService } from '@dxlander/shared';
+import {
+  encryptionService,
+  type IntegrationVaultEntry,
+  type CreateIntegrationServiceInput,
+  type UpdateIntegrationServiceInput,
+} from '@dxlander/shared';
 
-export interface CreateIntegrationInput {
-  userId: string;
-  name: string;
-  service: string;
-  serviceType: string;
-  credentialType: string;
-  credentials: Record<string, any>;
-  autoInjected?: boolean;
-  projectId?: string;
-}
-
-export interface UpdateIntegrationInput {
-  name?: string;
-  credentials?: Record<string, any>;
-  autoInjected?: boolean;
-}
-
-export interface Integration {
-  id: string;
-  userId: string;
-  name: string;
-  service: string;
-  serviceType: string;
-  credentialType: string;
-  status: string;
-  autoInjected: boolean;
-  detectedIn?: string[] | null;
-  lastTested?: Date | null;
-  lastError?: string | null;
-  usageCount: number;
-  lastUsed?: Date | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+// Re-export for backward compatibility
+export type Integration = IntegrationVaultEntry;
+export type CreateIntegrationInput = CreateIntegrationServiceInput;
+export type UpdateIntegrationInput = UpdateIntegrationServiceInput;
 
 export class IntegrationService {
   /**
@@ -150,7 +125,9 @@ export class IntegrationService {
     }
 
     if (input.credentials !== undefined) {
-      updateData.encryptedCredentials = encryptionService.encryptObjectForStorage(input.credentials);
+      updateData.encryptedCredentials = encryptionService.encryptObjectForStorage(
+        input.credentials
+      );
     }
 
     if (input.autoInjected !== undefined) {

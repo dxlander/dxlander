@@ -54,6 +54,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
+import type { SerializedIntegrationVaultEntry, IntegrationField } from '@dxlander/shared';
 
 // Service type options with descriptions
 const SERVICE_TYPES = [
@@ -91,30 +92,14 @@ const SERVICE_TYPES = [
   { value: 'OTHER', label: 'Other', description: 'Other third-party services', icon: Key },
 ] as const;
 
-interface Field {
-  key: string;
-  value: string;
-}
+// Use shared types
+type Integration = SerializedIntegrationVaultEntry;
+type Field = IntegrationField;
 
 interface IntegrationFormData {
   name: string;
   service: string;
   fields: Field[];
-}
-
-interface Integration {
-  id: string;
-  name: string;
-  service: string;
-  userId: string;
-  projectId?: string | null;
-  encryptedCredentials: string;
-  usageCount: number;
-  lastUsed?: Date | null;
-  lastError?: string | null;
-  autoInjected: boolean;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 export default function IntegrationsPage() {
