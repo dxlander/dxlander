@@ -57,7 +57,7 @@
     "pnpm-lock.yaml"
   ],
   "scripts": {
-    "dev": "pnpm run build:packages && concurrently --raw \"pnpm run dev:api\" \"pnpm run dev:web\"",
+    "dev": "concurrently --raw \"pnpm run dev:api\" \"pnpm run dev:web\"",
     "dev:web": "pnpm --filter @dxlander/web run dev",
     "dev:api": "pnpm --filter @dxlander/api run dev",
     "clean": "pnpm --filter @dxlander/shared exec rm -rf dist && pnpm --filter @dxlander/database exec rm -rf dist && pnpm --filter @dxlander/ai-agents exec rm -rf dist && pnpm --filter @dxlander/api exec rm -rf dist && pnpm --filter @dxlander/web exec rm -rf .next",
@@ -88,6 +88,7 @@
     "db:migrate": "pnpm --filter @dxlander/database run migrate",
     "db:seed": "pnpm --filter @dxlander/database run seed",
     "prepare": "husky",
+    "postinstall": "pnpm run build:packages",
     "prepublishOnly": "echo 'Building production release...' && pnpm run build",
     "prepack": "echo 'Packaging DXLander production build...'",
     "publish:npm": "cd dist-production && npm publish --access public --tag alpha",
