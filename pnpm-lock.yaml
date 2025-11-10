@@ -115,11 +115,11 @@ importers:
         specifier: ^2.4.3
         version: 2.4.3
       better-sqlite3:
-        specifier: ^9.4.0
-        version: 9.6.0
+        specifier: ^11.0.0
+        version: 11.10.0
       drizzle-orm:
         specifier: ^0.29.0
-        version: 0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@9.6.0)(pg@8.16.3)
+        version: 0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@11.10.0)(pg@8.16.3)
       hono:
         specifier: ^4.0.0
         version: 4.9.7
@@ -359,14 +359,14 @@ importers:
         specifier: ^2.4.3
         version: 2.4.3
       better-sqlite3:
-        specifier: ^9.4.0
-        version: 9.6.0
+        specifier: ^11.0.0
+        version: 11.10.0
       drizzle-kit:
         specifier: ^0.20.0
         version: 0.20.18
       drizzle-orm:
         specifier: ^0.29.0
-        version: 0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@9.6.0)(pg@8.16.3)
+        version: 0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@11.10.0)(pg@8.16.3)
       pg:
         specifier: ^8.16.3
         version: 8.16.3
@@ -4185,8 +4185,8 @@ packages:
     resolution: {integrity: sha512-V/Hy/X9Vt7f3BbPJEi8BdVFMByHi+jNXrYkW3huaybV/kQ0KJg0Y6PkEMbn+zeT+i+SiKZ/HMqJGIIt4LZDqNQ==}
     dev: false
 
-  /better-sqlite3@9.6.0:
-    resolution: {integrity: sha512-yR5HATnqeYNVnkaUTf4bOP2dJSnyhP4puJN/QPRyx4YkBEEUxib422n2XzPqDEHjQQqazoYoADdAm5vE15+dAQ==}
+  /better-sqlite3@11.10.0:
+    resolution: {integrity: sha512-EwhOpyXiOEL/lKzHz9AW1msWFNzGc/z+LzeB3/jnFJpxu+th2yqvzsSWas1v9jgs9+xiXJcD5A8CJxAG2TaghQ==}
     requiresBuild: true
     dependencies:
       bindings: 1.5.0
@@ -4744,7 +4744,7 @@ packages:
       - supports-color
     dev: false
 
-  /drizzle-orm@0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@9.6.0)(pg@8.16.3):
+  /drizzle-orm@0.29.5(@types/better-sqlite3@7.6.13)(@types/pg@8.15.6)(@types/react@19.1.13)(better-sqlite3@11.10.0)(pg@8.16.3):
     resolution: {integrity: sha512-jS3+uyzTz4P0Y2CICx8FmRQ1eplURPaIMWDn/yq6k4ShRFj9V7vlJk67lSf2kyYPzQ60GkkNGXcJcwrxZ6QCRw==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
@@ -4818,7 +4818,7 @@ packages:
       '@types/better-sqlite3': 7.6.13
       '@types/pg': 8.15.6
       '@types/react': 19.1.13
-      better-sqlite3: 9.6.0
+      better-sqlite3: 11.10.0
       pg: 8.16.3
     dev: false
 
