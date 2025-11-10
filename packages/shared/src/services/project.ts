@@ -284,8 +284,8 @@ export async function importFromGitLab(
         const candidatePath = typeof candidatePathRaw === 'string' ? candidatePathRaw : '';
 
         if (candidatePath) {
-          if (path.isAbsolute(candidatePathRaw)) {
-            console.warn(`[Security] Blocked absolute path in archive: ${candidatePathRaw}`);
+          if (path.isAbsolute(candidatePath)) {
+            console.warn(`[Security] Blocked absolute path in archive: ${candidatePath}`);
             return false;
           }
 
@@ -395,8 +395,8 @@ export async function importFromBitbucket(
         const candidatePath = typeof candidatePathRaw === 'string' ? candidatePathRaw : '';
 
         if (candidatePath) {
-          if (path.isAbsolute(candidatePathRaw)) {
-            console.warn(`[Security] Blocked absolute path in archive: ${candidatePathRaw}`);
+          if (path.isAbsolute(candidatePath)) {
+            console.warn(`[Security] Blocked absolute path in archive: ${candidatePath}`);
             return false;
           }
 

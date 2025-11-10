@@ -6,12 +6,7 @@ import {
   SetupStepValidationSchema,
 } from '@dxlander/shared';
 import jwt from 'jsonwebtoken';
-import {
-  initializeDatabase,
-  isSetupComplete,
-  completeSetup,
-  resetSetupState,
-} from '@dxlander/database';
+import { initializeDatabase, isSetupComplete, completeSetup } from '@dxlander/database';
 
 export const setupRouter = router({
   // Check if setup is already complete
@@ -245,6 +240,26 @@ export const setupRouter = router({
       // Validate the complete configuration
       const validatedConfig = SetupConfigSchema.parse(input);
 
+      // Validate SQLite path if provided to prevent path traversal attacks
+      if (validatedConfig.sqlitePath) {
+        const sqlitePath = validatedConfig.sqlitePath.trim();
+
+        // Basic path validation (defense in depth)
+        if (sqlitePath.includes('..') || sqlitePath.includes('~') || /[<>:"|?*]/.test(sqlitePath)) {
+          throw new Error('Invalid database path: path traversal or special characters detected');
+        }
+
+        // TODO: When implementing custom SQLite paths, use path.resolve() to normalize
+        // and validate the path is in an acceptable location
+        // Currently, the database always uses ~/.dxlander/data/dxlander.db
+        console.warn('Custom SQLite path provided but not yet implemented:', sqlitePath);
+      }
+
+      // TODO: Validate PostgreSQL configuration when implementing custom database support
+      if (validatedConfig.postgresHost) {
+        console.warn('PostgreSQL configuration provided but not yet implemented');
+      }
+
       // Initialize database
       await initializeDatabase();
 
@@ -283,23 +298,6 @@ export const setupRouter = router({
         throw new Error(`Validation failed: ${error.errors.map((e) => e.message).join(', ')}`);
       }
       throw new Error(error instanceof Error ? error.message : 'Failed to complete setup');
-    }
-  }),
-
-  // Reset setup (for development/testing)
-  resetSetup: publicProcedure.mutation(async () => {
-    if (process.env.NODE_ENV === 'production' && process.env.ALLOW_SETUP_RESET !== 'true') {
-      throw new Error('Setup reset is disabled in production');
-    }
-
-    try {
-      await resetSetupState();
-      return {
-        success: true,
-        message: 'Setup has been reset successfully',
-      };
-    } catch (error) {
-      throw new Error('Failed to reset setup state');
     }
   }),
 });

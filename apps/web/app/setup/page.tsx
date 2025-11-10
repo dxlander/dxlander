@@ -1,7 +1,7 @@
 'use client';
 
 import { Fragment, Suspense, type ReactNode, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
   type LucideIcon,
   AlertCircle,
@@ -15,6 +15,17 @@ import {
   User,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
+import { Button } from '@/components/ui/button';
+import { FloatingInput } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 type DatabaseType = 'sqlite' | 'postgresql';
 type AIProvider = 'openai' | 'anthropic' | 'google' | 'azure';
@@ -46,7 +57,6 @@ type StepConfig = {
 
 function SetupPageContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [formData, setFormData] = useState<FormState>({
     dbType: 'sqlite',
@@ -139,8 +149,13 @@ function SetupPageContent() {
         const trimmedPath = formData.dbPath.trim();
         if (!trimmedPath) {
           newErrors.dbPath = 'Database path is required';
-        } else if (trimmedPath.includes('..')) {
-          newErrors.dbPath = 'Path traversal detected. Please provide a valid path.';
+        } else if (
+          trimmedPath.includes('..') ||
+          trimmedPath.includes('~') ||
+          trimmedPath.match(/[<>:"|?*]/)
+        ) {
+          newErrors.dbPath =
+            'Invalid database path. Avoid path traversal patterns and special characters.';
         }
       }
     }
@@ -205,7 +220,6 @@ function SetupPageContent() {
     clearSubmitError();
     setLoading(true);
     try {
-      // Build the payload with full configuration
       const payload: {
         adminEmail: string;
         adminPassword: string;
@@ -228,7 +242,6 @@ function SetupPageContent() {
         useDefaults: false,
       };
 
-      // Include database configuration
       payload.dbType = formData.dbType;
       if (formData.dbType === 'sqlite') {
         payload.sqlitePath = formData.dbPath;
@@ -240,7 +253,6 @@ function SetupPageContent() {
         payload.postgresPassword = formData.pgPassword;
       }
 
-      // Include AI configuration if enabled
       payload.aiEnabled = formData.aiEnabled;
       if (formData.aiEnabled) {
         payload.aiProvider = formData.aiProvider;
@@ -264,7 +276,7 @@ function SetupPageContent() {
       case 0:
         return (
           <div className="text-center space-y-6 py-8">
-            <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mx-auto flex items-center justify-center">
+            <div className="w-20 h-20 bg-gradient-to-br from-ocean-600 to-ocean-500 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-ocean-500/30">
               <img src="/logo-white.svg" alt="DXLander Logo" className="w-10 h-10" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Welcome to DXLander!</h2>
@@ -273,19 +285,13 @@ function SetupPageContent() {
               database, create an admin account, and optionally set up AI features.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
-              <button
-                onClick={handleNext}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
-              >
+              <Button size="lg" onClick={handleNext}>
                 Start Setup
-              </button>
-              <button
-                onClick={handleUseDefaults}
-                disabled={loading}
-                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium disabled:opacity-50"
-              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="lg" onClick={handleUseDefaults} disabled={loading}>
                 {loading ? 'Setting up...' : 'Use Defaults (Quick Start)'}
-              </button>
+              </Button>
             </div>
           </div>
         );
@@ -306,130 +312,76 @@ function SetupPageContent() {
                   Database Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
-                  <button
+                  <Card
+                    variant={formData.dbType === 'sqlite' ? 'elevated' : 'default'}
+                    className="cursor-pointer transition-all"
                     onClick={() => handleChange('dbType', 'sqlite')}
-                    className={`p-4 rounded-lg border-2 text-left transition ${
-                      formData.dbType === 'sqlite'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
                   >
-                    <div className="font-semibold text-gray-900">SQLite</div>
-                    <div className="text-sm text-gray-600">Recommended for most users</div>
-                  </button>
-                  <button
+                    <CardContent className="p-4">
+                      <div className="font-semibold text-gray-900">SQLite</div>
+                      <div className="text-sm text-gray-600">Recommended for most users</div>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    variant={formData.dbType === 'postgresql' ? 'elevated' : 'default'}
+                    className="cursor-pointer transition-all"
                     onClick={() => handleChange('dbType', 'postgresql')}
-                    className={`p-4 rounded-lg border-2 text-left transition ${
-                      formData.dbType === 'postgresql'
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
                   >
-                    <div className="font-semibold text-gray-900">PostgreSQL</div>
-                    <div className="text-sm text-gray-600">For production deployments</div>
-                  </button>
+                    <CardContent className="p-4">
+                      <div className="font-semibold text-gray-900">PostgreSQL</div>
+                      <div className="text-sm text-gray-600">For production deployments</div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
 
               {formData.dbType === 'sqlite' ? (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Database Path
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.dbPath}
-                    onChange={(e) => handleChange('dbPath', e.target.value)}
-                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                      errors.dbPath ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="./dxlander.db"
-                  />
-                  {errors.dbPath && <p className="text-xs text-red-600 mt-1">{errors.dbPath}</p>}
-                  <p className="text-xs text-gray-500 mt-1">Local file path for SQLite database</p>
-                </div>
+                <FloatingInput
+                  label="Database Path"
+                  type="text"
+                  value={formData.dbPath}
+                  onChange={(e) => handleChange('dbPath', e.target.value)}
+                  error={errors.dbPath}
+                />
               ) : (
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Host</label>
-                      <input
-                        type="text"
-                        value={formData.pgHost}
-                        onChange={(e) => handleChange('pgHost', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                          errors.pgHost ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="localhost"
-                      />
-                      {errors.pgHost && (
-                        <p className="text-xs text-red-600 mt-1">{errors.pgHost}</p>
-                      )}
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="65535"
-                        step="1"
-                        value={formData.pgPort}
-                        onChange={(e) => handleChange('pgPort', e.target.value)}
-                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                          errors.pgPort ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        placeholder="5432"
-                      />
-                      {errors.pgPort && (
-                        <p className="text-xs text-red-600 mt-1">{errors.pgPort}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Database Name
-                    </label>
-                    <input
+                    <FloatingInput
+                      label="Host"
                       type="text"
-                      value={formData.pgDatabase}
-                      onChange={(e) => handleChange('pgDatabase', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        errors.pgDatabase ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="dxlander"
+                      value={formData.pgHost}
+                      onChange={(e) => handleChange('pgHost', e.target.value)}
+                      error={errors.pgHost}
                     />
-                    {errors.pgDatabase && (
-                      <p className="text-xs text-red-600 mt-1">{errors.pgDatabase}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
-                    <input
-                      type="text"
-                      value={formData.pgUser}
-                      onChange={(e) => handleChange('pgUser', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        errors.pgUser ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="postgres"
+                    <FloatingInput
+                      label="Port"
+                      type="number"
+                      value={formData.pgPort}
+                      onChange={(e) => handleChange('pgPort', e.target.value)}
+                      error={errors.pgPort}
                     />
-                    {errors.pgUser && <p className="text-xs text-red-600 mt-1">{errors.pgUser}</p>}
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                    <input
-                      type="password"
-                      value={formData.pgPassword}
-                      onChange={(e) => handleChange('pgPassword', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        errors.pgPassword ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="••••••••"
-                    />
-                    {errors.pgPassword && (
-                      <p className="text-xs text-red-600 mt-1">{errors.pgPassword}</p>
-                    )}
-                  </div>
+                  <FloatingInput
+                    label="Database Name"
+                    type="text"
+                    value={formData.pgDatabase}
+                    onChange={(e) => handleChange('pgDatabase', e.target.value)}
+                    error={errors.pgDatabase}
+                  />
+                  <FloatingInput
+                    label="Username"
+                    type="text"
+                    value={formData.pgUser}
+                    onChange={(e) => handleChange('pgUser', e.target.value)}
+                    error={errors.pgUser}
+                  />
+                  <FloatingInput
+                    label="Password"
+                    type="password"
+                    value={formData.pgPassword}
+                    onChange={(e) => handleChange('pgPassword', e.target.value)}
+                    error={errors.pgPassword}
+                  />
                 </div>
               )}
             </div>
@@ -445,58 +397,27 @@ function SetupPageContent() {
             </div>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  value={formData.adminEmail}
-                  onChange={(e) => handleChange('adminEmail', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.adminEmail ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="admin@example.com"
-                />
-                {errors.adminEmail && (
-                  <p className="text-xs text-red-600 mt-1">{errors.adminEmail}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                <input
-                  type="password"
-                  value={formData.adminPassword}
-                  onChange={(e) => handleChange('adminPassword', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.adminPassword ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="••••••••"
-                />
-                {errors.adminPassword && (
-                  <p className="text-xs text-red-600 mt-1">{errors.adminPassword}</p>
-                )}
-                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Confirm Password
-                </label>
-                <input
-                  type="password"
-                  value={formData.adminConfirmPassword}
-                  onChange={(e) => handleChange('adminConfirmPassword', e.target.value)}
-                  className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                    errors.adminConfirmPassword ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="••••••••"
-                />
-                {errors.adminConfirmPassword && (
-                  <p className="text-xs text-red-600 mt-1">{errors.adminConfirmPassword}</p>
-                )}
-              </div>
+              <FloatingInput
+                label="Email Address"
+                type="email"
+                value={formData.adminEmail}
+                onChange={(e) => handleChange('adminEmail', e.target.value)}
+                error={errors.adminEmail}
+              />
+              <FloatingInput
+                label="Password"
+                type="password"
+                value={formData.adminPassword}
+                onChange={(e) => handleChange('adminPassword', e.target.value)}
+                error={errors.adminPassword}
+              />
+              <FloatingInput
+                label="Confirm Password"
+                type="password"
+                value={formData.adminConfirmPassword}
+                onChange={(e) => handleChange('adminConfirmPassword', e.target.value)}
+                error={errors.adminConfirmPassword}
+              />
             </div>
           </div>
         );
@@ -512,15 +433,16 @@ function SetupPageContent() {
             </div>
 
             <div className="space-y-4">
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2">
+                <Checkbox
                   id="aiEnabled"
                   checked={formData.aiEnabled}
-                  onChange={(e) => handleChange('aiEnabled', e.target.checked)}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                  onCheckedChange={(checked) => handleChange('aiEnabled', checked as boolean)}
                 />
-                <label htmlFor="aiEnabled" className="ml-2 text-sm font-medium text-gray-700">
+                <label
+                  htmlFor="aiEnabled"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
                   Enable AI Features
                 </label>
               </div>
@@ -531,45 +453,40 @@ function SetupPageContent() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       AI Provider
                     </label>
-                    <select
+                    <Select
                       value={formData.aiProvider}
-                      onChange={(e) => handleChange('aiProvider', e.target.value as AIProvider)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      onValueChange={(value) => handleChange('aiProvider', value as AIProvider)}
                     >
-                      <option value="openai">OpenAI (GPT-4, GPT-3.5)</option>
-                      <option value="anthropic">Anthropic (Claude)</option>
-                      <option value="google">Google (Gemini)</option>
-                      <option value="azure">Azure OpenAI</option>
-                    </select>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI (GPT-4, GPT-3.5)</SelectItem>
+                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                        <SelectItem value="google">Google (Gemini)</SelectItem>
+                        <SelectItem value="azure">Azure OpenAI</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">API Key</label>
-                    <input
-                      type="password"
-                      value={formData.aiApiKey}
-                      onChange={(e) => handleChange('aiApiKey', e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
-                        errors.aiApiKey ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder="sk-..."
-                    />
-                    {errors.aiApiKey && (
-                      <p className="text-xs text-red-600 mt-1">{errors.aiApiKey}</p>
-                    )}
-                    <p className="text-xs text-gray-500 mt-1">
-                      Your API key will be stored securely and never shared
-                    </p>
-                  </div>
+                  <FloatingInput
+                    label="API Key"
+                    type="password"
+                    value={formData.aiApiKey}
+                    onChange={(e) => handleChange('aiApiKey', e.target.value)}
+                    error={errors.aiApiKey}
+                  />
                 </>
               )}
 
               {!formData.aiEnabled && (
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <p className="text-sm text-gray-600">
-                    You can skip AI configuration for now and enable it later from settings.
-                  </p>
-                </div>
+                <Card variant="default" className="bg-ocean-50/30">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600">
+                      You can skip AI configuration for now and enable it later from settings.
+                    </p>
+                  </CardContent>
+                </Card>
               )}
             </div>
           </div>
@@ -586,128 +503,145 @@ function SetupPageContent() {
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Database className="w-4 h-4" />
-                  Database
-                </h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Type:</span>
-                    <span className="font-medium">{formData.dbType.toUpperCase()}</span>
-                  </div>
-                  {formData.dbType === 'sqlite' ? (
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Database className="w-4 h-4 text-ocean-600" />
+                    Database
+                  </h3>
+                  <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Path:</span>
-                      <span className="font-medium">{formData.dbPath}</span>
+                      <span className="text-gray-600">Type:</span>
+                      <span className="font-medium">{formData.dbType.toUpperCase()}</span>
                     </div>
-                  ) : (
-                    <>
+                    {formData.dbType === 'sqlite' ? (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Host:</span>
-                        <span className="font-medium">
-                          {formData.pgHost}:{formData.pgPort}
-                        </span>
+                        <span className="text-gray-600">Path:</span>
+                        <span className="font-medium">{formData.dbPath}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Database:</span>
-                        <span className="font-medium">{formData.pgDatabase}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-                <button
-                  onClick={() => setCurrentStep(1)}
-                  className="text-xs text-blue-600 hover:text-blue-700 mt-2"
-                >
-                  Edit Database Settings
-                </button>
-              </div>
-
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <User className="w-4 h-4" />
-                  Admin Account
-                </h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Email:</span>
-                    <span className="font-medium">{formData.adminEmail}</span>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Host:</span>
+                          <span className="font-medium">
+                            {formData.pgHost}:{formData.pgPort}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Database:</span>
+                          <span className="font-medium">{formData.pgDatabase}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Password:</span>
-                    <span className="font-medium">••••••••</span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setCurrentStep(2)}
-                  className="text-xs text-blue-600 hover:text-blue-700 mt-2"
-                >
-                  Edit Admin Account
-                </button>
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(1)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit Database Settings
+                  </Button>
+                </CardContent>
+              </Card>
 
-              <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                  <Brain className="w-4 h-4" />
-                  AI Configuration
-                </h3>
-                {formData.aiEnabled ? (
-                  <div className="space-y-1 text-sm">
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4 text-ocean-600" />
+                    Admin Account
+                  </h3>
+                  <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Provider:</span>
-                      <span className="font-medium capitalize">{formData.aiProvider}</span>
+                      <span className="text-gray-600">Email:</span>
+                      <span className="font-medium">{formData.adminEmail}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">API Key:</span>
+                      <span className="text-gray-600">Password:</span>
                       <span className="font-medium">••••••••</span>
                     </div>
                   </div>
-                ) : (
-                  <p className="text-sm text-gray-600">AI features disabled</p>
-                )}
-                <button
-                  onClick={() => setCurrentStep(3)}
-                  className="text-xs text-blue-600 hover:text-blue-700 mt-2"
-                >
-                  Edit AI Configuration
-                </button>
-              </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(2)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit Admin Account
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-ocean-600" />
+                    AI Configuration
+                  </h3>
+                  {formData.aiEnabled ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Provider:</span>
+                        <span className="font-medium capitalize">{formData.aiProvider}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">API Key:</span>
+                        <span className="font-medium">••••••••</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">AI features disabled</p>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(3)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit AI Configuration
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
 
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <div className="flex gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="font-semibold text-blue-900 text-sm">Ready to Complete Setup</h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    Once you click &quot;Complete Setup&quot;, your DXLander instance will be
-                    initialized with these settings.
-                  </p>
+            <Card variant="default" className="bg-ocean-50/40 border-ocean-300/50">
+              <CardContent className="p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-ocean-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-ocean-900 text-sm">
+                      Ready to Complete Setup
+                    </h4>
+                    <p className="text-sm text-ocean-700 mt-1">
+                      Once you click &quot;Complete Setup&quot;, your DXLander instance will be
+                      initialized with these settings.
+                    </p>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
           </div>
         );
 
       case 5:
         return (
           <div className="text-center space-y-6 py-8">
-            <div className="w-20 h-20 bg-green-100 rounded-full mx-auto flex items-center justify-center">
-              <CheckCircle2 className="w-10 h-10 text-green-600" />
+            <div className="w-20 h-20 bg-ocean-100 rounded-full mx-auto flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-ocean-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Setup Complete! 🎉</h2>
+            <h2 className="text-3xl font-bold text-gray-900">Setup Complete!</h2>
             <p className="text-gray-600 max-w-md mx-auto">
               Your DXLander instance has been successfully configured and is ready to use.
             </p>
             <div className="space-y-3 pt-4">
-              <button
+              <Button
+                size="lg"
                 onClick={() => router.push('/dashboard')}
-                className="w-full max-w-xs mx-auto block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium"
+                className="w-full max-w-xs"
               >
                 Go to Dashboard
-              </button>
-              <a href="/docs" className="block text-sm text-blue-600 hover:text-blue-700">
+              </Button>
+              <a href="/docs" className="block text-sm text-ocean-600 hover:text-ocean-700">
                 View Documentation →
               </a>
             </div>
@@ -720,13 +654,8 @@ function SetupPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-ocean-50 via-white to-ocean-100/50 flex items-center justify-center p-4">
       <div className="w-full max-w-3xl">
-        {searchParams.get('resetSetupError') === '1' && (
-          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            Unable to reset the setup state. Please check the API logs and try again.
-          </div>
-        )}
         {currentStep < 5 && (
           <div className="mb-8">
             <div className="flex items-center justify-between">
@@ -745,9 +674,9 @@ function SetupPageContent() {
                         }`}
                         className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                           isActive
-                            ? 'bg-blue-600 text-white scale-110'
+                            ? 'bg-ocean-600 text-white scale-110 shadow-lg shadow-ocean-500/30'
                             : isCompleted
-                              ? 'bg-green-500 text-white'
+                              ? 'bg-ocean-500 text-white shadow-md shadow-ocean-500/20'
                               : 'bg-gray-200 text-gray-400'
                         }`}
                       >
@@ -760,9 +689,9 @@ function SetupPageContent() {
                       <span
                         className={`text-xs mt-2 font-medium hidden sm:block ${
                           isActive
-                            ? 'text-blue-600'
+                            ? 'text-ocean-600'
                             : isCompleted
-                              ? 'text-green-600'
+                              ? 'text-ocean-500'
                               : 'text-gray-400'
                         }`}
                       >
@@ -772,7 +701,7 @@ function SetupPageContent() {
                     {index < steps.length - 2 && (
                       <div
                         className={`flex-1 h-0.5 mx-2 transition-all ${
-                          isCompleted ? 'bg-green-500' : 'bg-gray-200'
+                          isCompleted ? 'bg-ocean-500' : 'bg-gray-200'
                         }`}
                       />
                     )}
@@ -783,48 +712,42 @@ function SetupPageContent() {
           </div>
         )}
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          {renderStepContent()}
+        <Card variant="default" className="shadow-2xl">
+          <CardContent className="p-8">
+            {renderStepContent()}
 
-          {errors.submit && (
-            <div className="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-              {errors.submit}
-            </div>
-          )}
+            {errors.submit && (
+              <Card variant="default" className="mt-6 border-red-200 bg-red-50">
+                <CardContent className="p-4 text-sm text-red-700">{errors.submit}</CardContent>
+              </Card>
+            )}
 
-          {currentStep > 0 && currentStep < 5 && (
-            <div className="flex justify-between mt-8 pt-6 border-t border-gray-200">
-              <button
-                onClick={handleBack}
-                className="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg font-medium transition"
-                disabled={loading}
-              >
-                <ChevronLeft className="w-4 h-4" />
-                Back
-              </button>
+            {currentStep > 0 && currentStep < 5 && (
+              <div className="flex justify-between mt-8 pt-6 border-t border-ocean-200/50">
+                <Button variant="outline" onClick={handleBack} disabled={loading}>
+                  <ChevronLeft className="h-4 w-4" />
+                  Back
+                </Button>
 
-              {currentStep < 4 ? (
-                <button
-                  onClick={handleNext}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium transition disabled:opacity-50"
-                  disabled={loading}
-                >
-                  Next
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              ) : (
-                <button
-                  onClick={handleComplete}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition disabled:opacity-50"
-                >
-                  {loading ? 'Completing...' : 'Complete Setup'}
-                  <CheckCircle2 className="w-4 h-4" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+                {currentStep < 4 ? (
+                  <Button onClick={handleNext} disabled={loading}>
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                  >
+                    {loading ? 'Completing...' : 'Complete Setup'}
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

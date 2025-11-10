@@ -118,8 +118,19 @@ export const SetupConfigSchema = z
     adminPassword: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string(),
 
-    // Optional AI API key (can be set later)
+    // Optional AI configuration
+    aiEnabled: z.boolean().optional(),
+    aiProvider: z.string().optional(),
     aiApiKey: z.string().optional(),
+
+    // Optional database configuration (UI sends these but not yet implemented in backend)
+    dbType: z.string().optional(),
+    sqlitePath: z.string().optional(),
+    postgresHost: z.string().optional(),
+    postgresPort: z.number().optional(),
+    postgresDb: z.string().optional(),
+    postgresUser: z.string().optional(),
+    postgresPassword: z.string().optional(),
 
     // Use defaults for everything else
     useDefaults: z.boolean().default(true),
