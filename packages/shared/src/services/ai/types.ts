@@ -17,7 +17,8 @@ export type AIProviderType =
   | 'anthropic'
   | 'ollama'
   | 'lmstudio'
-  | 'openrouter';
+  | 'openrouter'
+  | 'groq';
 
 /**
  * AI model configuration

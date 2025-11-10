@@ -107,6 +107,23 @@ const PROVIDER_INFO = {
     borderColor: 'border-orange-200',
     description: 'OpenRouter unified API for multiple AI models',
   },
+  groq: {
+    name: 'Groq',
+    icon: Zap,
+    requiresApiKey: true,
+    requiresBaseUrl: false,
+    models: [
+      'moonshotai/kimi-k2-instruct',
+      'openai/gpt-oss-120b',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'qwen/qwen3-32b',
+      'whisper-large-v3',
+    ],
+    color: 'bg-yellow-100 text-yellow-700',
+    borderColor: 'border-yellow-200',
+    description: 'Groq for fast inference with open-source models',
+  },
 } as const;
 
 type ProviderType = keyof typeof PROVIDER_INFO;
@@ -230,8 +247,9 @@ export function AIProvidersTab() {
     { provider: formData.provider, apiKey: formData.apiKey || undefined },
     {
       enabled:
-        formData.provider === 'openrouter' &&
-        (!!formData.apiKey || providers.some((p) => p.provider === 'openrouter')),
+        (formData.provider === 'openrouter' || formData.provider === 'groq') &&
+        (!!formData.apiKey ||
+          providers.some((p) => p.provider === 'openrouter' || p.provider === 'groq')),
     }
   );
 
@@ -242,12 +260,12 @@ export function AIProvidersTab() {
     }
   }, [detailedModelsData]);
 
-  // Fetch detailed models when provider changes to OpenRouter
+  // Fetch detailed models when provider changes to OpenRouter or Groq
   const handleProviderChange = (value: string) => {
     setFormData({ ...formData, provider: value as ProviderType, model: '' });
 
-    // If changing to OpenRouter, fetch detailed models
-    if (value === 'openrouter') {
+    // If changing to OpenRouter or Groq, fetch detailed models
+    if (value === 'openrouter' || value === 'groq') {
       // Trigger refetch of detailed models
       refetch();
     } else {
@@ -735,8 +753,9 @@ export function AIProvidersTab() {
                   <SelectValue placeholder="Select a model" />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Use detailed models for OpenRouter, otherwise use default models */}
-                  {formData.provider === 'openrouter' && detailedModels.length > 0
+                  {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
+                  {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
+                  detailedModels.length > 0
                     ? detailedModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           <div className="flex items-center justify-between w-full">
@@ -931,8 +950,9 @@ export function AIProvidersTab() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {/* Use detailed models for OpenRouter, otherwise use default models */}
-                  {formData.provider === 'openrouter' && detailedModels.length > 0
+                  {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
+                  {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
+                  detailedModels.length > 0
                     ? detailedModels.map((model) => (
                         <SelectItem key={model.id} value={model.id}>
                           <div className="flex items-center justify-between w-full">

@@ -9,10 +9,11 @@ import { db, schema } from '@dxlander/database';
 import {
   ClaudeAgentProvider,
   encryptionService,
+  GroqProvider,
   OpenRouterProvider,
   type IAIProvider,
 } from '@dxlander/shared';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gte } from 'drizzle-orm';
 
 interface GetProviderOptions {
   userId: string;
@@ -20,7 +21,7 @@ interface GetProviderOptions {
 }
 
 interface ProviderConfig {
-  provider: 'claude-code' | 'openai' | 'anthropic' | 'ollama' | 'lmstudio' | 'openrouter';
+  provider: 'claude-code' | 'openai' | 'anthropic' | 'ollama' | 'lmstudio' | 'openrouter' | 'groq';
   apiKey?: string;
   model: string;
   settings?: {
@@ -143,6 +144,18 @@ export class AIProviderService {
         return provider;
       }
 
+      case 'groq': {
+        const provider = new GroqProvider();
+        await provider.initialize({
+          apiKey: config.apiKey || '',
+          model: config.model,
+          provider: config.provider,
+          settings: config.settings,
+        });
+        await this.updateLastUsed(providerId);
+        return provider;
+      }
+
       case 'ollama':
       case 'lmstudio': {
         // TODO: Implement local providers
@@ -187,6 +200,56 @@ export class AIProviderService {
         desc(aiProviders.createdAt),
       ],
     });
+  }
+
+  /**
+   * Check if the user has exceeded the rate limit for Groq provider
+   * 1 project every 3 hours
+   */
+  static async checkGroqRateLimit(userId: string): Promise<boolean> {
+    // Get the default Groq provider for the user
+    const groqProvider = await db.query.aiProviders.findFirst({
+      where: and(
+        eq(schema.aiProviders.userId, userId),
+        eq(schema.aiProviders.provider, 'groq'),
+        eq(schema.aiProviders.isActive, true)
+      ),
+    });
+
+    if (!groqProvider) {
+      // No Groq provider configured, no rate limit
+      return false;
+    }
+
+    // Check if there's been an analysis in the last 3 hours
+    const threeHoursAgo = new Date(Date.now() - 3 * 60 * 60 * 1000);
+
+    // Look for recent analysis runs using Groq
+    const recentAnalysis = await db.query.analysisRuns.findFirst({
+      where: and(
+        eq(schema.analysisRuns.userId, userId),
+        eq(schema.analysisRuns.aiProvider, 'groq'),
+        gte(schema.analysisRuns.startedAt, threeHoursAgo)
+      ),
+      orderBy: (analysisRuns, { desc }) => [desc(analysisRuns.startedAt)],
+    });
+
+    // If there's a recent analysis, they're rate limited
+    return !!recentAnalysis;
+  }
+
+  /**
+   * Check if the token limit would be exceeded
+   * Max 15,000 tokens per run
+   */
+  static checkTokenLimit(config: ProviderConfig): boolean {
+    if (config.provider !== 'groq') {
+      return false; // Only apply to Groq provider
+    }
+
+    // Check if maxTokens exceeds the limit
+    const maxTokens = config.settings?.maxTokens || 4096;
+    return maxTokens > 15000;
   }
 
   /**

@@ -4,7 +4,6 @@ import {
   ClaudeAgentProvider,
   encryptionService,
   IdSchema,
-  OpenRouterProvider,
   protectedProcedure,
   router,
 } from '@dxlander/shared';
@@ -357,6 +356,24 @@ export const aiProvidersRouter = router({
           if (!testResult.success) {
             throw new Error(testResult.message);
           }
+        } else if (provider.provider === 'groq') {
+          // For Groq, test the actual connection
+          if (!apiKey) {
+            throw new Error('API key is required for Groq');
+          }
+
+          // Use the provider tester service for proper testing
+          const testConfig = {
+            provider: 'groq',
+            apiKey: apiKey,
+            settings: settings,
+          };
+
+          testResult = await AIProviderTesterService.testConnection(testConfig);
+
+          if (!testResult.success) {
+            throw new Error(testResult.message);
+          }
         } else {
           // Ollama/LM Studio - check if base URL is provided
           if (!settings.baseUrl) {
@@ -519,13 +536,25 @@ export const aiProvidersRouter = router({
       }
 
       try {
-        // Currently only support OpenRouter for detailed models
-        if (input.provider !== 'openrouter') {
+        // Currently support OpenRouter and Groq for detailed models
+        if (input.provider !== 'openrouter' && input.provider !== 'groq') {
           return [];
         }
 
-        // Create a temporary provider instance to fetch models
-        const provider = new OpenRouterProvider();
+        let provider;
+        let providerType;
+
+        if (input.provider === 'openrouter') {
+          const { OpenRouterProvider } = await import('@dxlander/shared');
+          provider = new OpenRouterProvider();
+          providerType = 'openrouter';
+        } else if (input.provider === 'groq') {
+          const { GroqProvider } = await import('@dxlander/shared');
+          provider = new GroqProvider();
+          providerType = 'groq';
+        } else {
+          throw new Error(`Unsupported provider: ${input.provider}`);
+        }
 
         // Initialize with provided API key or try to get from existing provider
         let apiKey = input.apiKey;
@@ -535,7 +564,7 @@ export const aiProvidersRouter = router({
           const existingProvider = await db.query.aiProviders.findFirst({
             where: and(
               eq(schema.aiProviders.userId, userId),
-              eq(schema.aiProviders.provider, 'openrouter'),
+              eq(schema.aiProviders.provider, input.provider),
               eq(schema.aiProviders.isActive, true)
             ),
           });
@@ -546,11 +575,11 @@ export const aiProvidersRouter = router({
         }
 
         if (!apiKey) {
-          throw new Error('API key is required to fetch OpenRouter models');
+          throw new Error(`API key is required to fetch ${input.provider} models`);
         }
 
         await provider.initialize({
-          provider: 'openrouter',
+          provider: providerType,
           apiKey,
         });
 

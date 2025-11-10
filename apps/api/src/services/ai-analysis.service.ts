@@ -54,6 +54,14 @@ export class AIAnalysisService {
         );
       }
 
+      // Check rate limits for Groq provider (disabled for testing)
+      // if (aiProvider.provider === 'groq') {
+      //   const isRateLimited = await AIProviderService.checkGroqRateLimit(userId);
+      //   if (isRateLimited) {
+      //     throw new Error('Groq provider rate limit exceeded. Please wait 3 hours between analyses.');
+      //   }
+      // }
+
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.projectId, projectId),

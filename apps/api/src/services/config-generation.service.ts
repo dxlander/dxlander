@@ -6,8 +6,6 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
@@ -15,6 +13,8 @@ import {
   getProjectConfigsDir,
   isPathSafe,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
+import { and, desc, eq } from 'drizzle-orm';
 import { AIProviderService } from './ai-provider.service';
 
 export type ConfigType = 'docker' | 'docker-compose' | 'kubernetes' | 'bash';
@@ -62,6 +62,19 @@ export class ConfigGenerationService {
       if (!aiProvider) {
         throw new Error('No default AI provider configured');
       }
+
+      // Check rate limits for Groq provider (disabled for testing)
+      // if (aiProvider.provider === 'groq') {
+      //   const isRateLimited = await AIProviderService.checkGroqRateLimit(userId);
+      //   if (isRateLimited) {
+      //     throw new Error('Groq provider rate limit exceeded. Please wait 3 hours between configurations.');
+      //   }
+      //
+      //   // Check token limit - only bash config generation is allowed
+      //   if (configType !== 'bash') {
+      //     throw new Error('Groq provider only supports basic bash configuration generation due to token limits.');
+      //   }
+      // }
 
       // Get latest config version
       const latestConfig = await db.query.configSets.findFirst({
