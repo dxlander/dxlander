@@ -421,6 +421,9 @@ importers:
       '@types/adm-zip':
         specifier: ^0.5.7
         version: 0.5.7
+      '@types/node':
+        specifier: ^20
+        version: 20.19.16
       typescript:
         specifier: ^5.4.0
         version: 5.9.2

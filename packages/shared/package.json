@@ -38,6 +38,7 @@
   },
   "devDependencies": {
     "@types/adm-zip": "^0.5.7",
+    "@types/node": "^20",
     "typescript": "^5.4.0"
   }
 }
