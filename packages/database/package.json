@@ -20,7 +20,7 @@
     "@types/better-sqlite3": "^7.6.9",
     "@types/pg": "^8.15.6",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^9.4.0",
+    "better-sqlite3": "^11.0.0",
     "drizzle-kit": "^0.20.0",
     "drizzle-orm": "^0.29.0",
     "pg": "^8.16.3",
