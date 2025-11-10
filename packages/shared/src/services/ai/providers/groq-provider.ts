@@ -1404,6 +1404,12 @@ export class GroqProvider implements IAIProvider {
               };
             } else {
               // If all else fails, treat as direct file content
+              if (!request.projectContext?.projectPath) {
+                return {
+                  configType: request.configType,
+                  files: [],
+                };
+              }
               const fileName = `${request.configType}.txt`;
               const filePath = path.join(request.projectContext.projectPath, fileName);
               let content = configJson;
