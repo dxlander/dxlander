@@ -389,18 +389,8 @@ export class GroqProvider implements IAIProvider {
     let cleanedContent = configJson;
 
     // Remove common tool-calling patterns that might appear at the start
-    cleanedContent = cleanedContent.replace(
-      /^I'll\s+analyze[^]*?(?=<write_file>|<write>|###|```)/i,
-      ''
-    );
-    cleanedContent = cleanedContent.replace(
-      /^I\s+will\s+analyze[^]*?(?=<write_file>|<write>|###|```)/i,
-      ''
-    );
-
-    // Remove any <glob>, <read>, or other tool-calling tags that aren't file writes
-    cleanedContent = cleanedContent.replace(/<glob>[^]*?<\/glob>/gi, '');
-    cleanedContent = cleanedContent.replace(/<read>[^]*?<\/read>/gi, '');
+cleanedContent = cleanedContent.replace(
+      /^I'll\s+analyze[\s\S]*?(?=<write_file>|<write>|###|
 
     // Try to extract just the script content if there's analysis text
     const scriptMatch = cleanedContent.match(/(?:```(?:bash|sh)?\s*\n?)([\s\S]*?)(?:\n?```|$)/);
