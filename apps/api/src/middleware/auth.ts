@@ -7,7 +7,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
  * Validates JWT tokens and user sessions
  */
 
-interface User {
+interface AuthUser {
   id: string;
   email: string;
   role: string;
@@ -22,7 +22,7 @@ interface DecodedPayload extends JwtPayload {
 }
 
 interface AuthContext {
-  user: User;
+  user: AuthUser;
   token: string;
 }
 
@@ -51,7 +51,7 @@ function extractTokenFromHeader(authHeader: string | undefined): string | null {
   return authHeader;
 }
 
-function verifyJWT(token: string): User {
+function verifyJWT(token: string): AuthUser {
   try {
     const secret = process.env.JWT_SECRET || 'development-secret';
     const decoded = jwt.verify(token, secret) as DecodedPayload;
@@ -121,7 +121,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
  */
 export const requireRole = (requiredRole: string) => {
   return async (c: Context, next: Next) => {
-    const user = c.get('user') as User;
+    const user = c.get('user') as AuthUser;
 
     if (!user) {
       throw new HTTPException(401, {

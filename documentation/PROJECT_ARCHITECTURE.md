@@ -109,6 +109,56 @@ dxlander/
 - `src/constants/` - Application constants
 - `src/trpc/` - tRPC router and procedure definitions
 
+#### Type Architecture
+
+DXLander follows a centralized type architecture where all domain types are defined in `packages/shared/src/types/` and shared across frontend and backend.
+
+**Type Organization:**
+
+```
+packages/shared/src/types/
+├── index.ts                 # Core domain models (Project, User, Deployment)
+├── serialized.ts            # Serialized versions for API responses
+├── integration-vault.ts     # Integration credential vault
+├── deployment.ts            # Deployment credentials & platforms
+├── config.ts               # Build configuration types
+└── ai-providers.ts         # AI provider testing types
+```
+
+**Key Principles:**
+
+1. **Single Source of Truth:** All domain types (Project, User, Deployment, etc.) are defined once in `packages/shared/src/types/`
+2. **Serialization Pattern:** tRPC serializes `Date` objects to ISO strings. We provide `Serialized*` types for frontend use:
+   - Backend uses `Project` (with `Date` objects)
+   - Frontend uses `SerializedProject` (with `string` dates)
+3. **ESLint Enforcement:** Duplicate type definitions are caught at lint time with `no-restricted-syntax` rules
+4. **Import from Shared:** Always import types from `@dxlander/shared`, never redefine locally
+
+**Example:**
+
+```typescript
+// ✅ Backend (apps/api/)
+import type { Project } from '@dxlander/shared';
+const project: Project = await db.query.projects.findFirst(...);
+// project.createdAt is Date
+
+// ✅ Frontend (apps/web/)
+import type { SerializedProject } from '@dxlander/shared';
+const { data: project } = trpc.projects.get.useQuery();
+// project.createdAt is string
+
+// ❌ DON'T DO THIS
+interface Project { ... }  // ESLint error! Import from @dxlander/shared
+```
+
+**Type Categories:**
+
+- **Domain Models:** Project, User, Deployment, Integration
+- **Serialized Types:** SerializedProject, SerializedUser, SerializedDeployment
+- **Input Schemas:** CreateProjectInput, UpdateProjectInput (with Zod validation)
+- **Service Types:** DeploymentPlatformConfig, ProviderTestConfig
+- **Configuration Types:** ConfigType, ConfigSet, GenerateConfigOptions
+
 ### Database (`packages/database/`)
 
 **Technology:** SQLite (default) / PostgreSQL (optional) + Drizzle ORM

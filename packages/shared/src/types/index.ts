@@ -85,7 +85,7 @@ export const DeploymentSchema = z.object({
 export type Deployment = z.infer<typeof DeploymentSchema>;
 
 // Configuration types
-export type { ConfigSet } from './config';
+export * from './config';
 
 // API types
 export const ApiErrorSchema = z.object({
@@ -183,3 +183,15 @@ export const SetupStepValidationSchema = z.object({
 });
 
 export type SetupStepValidation = z.infer<typeof SetupStepValidationSchema>;
+
+// Integration Vault types
+export * from './integration-vault';
+
+// Deployment types
+export * from './deployment';
+
+// AI Provider types
+export * from './ai-providers';
+
+// Serialized types for API responses
+export * from './serialized';

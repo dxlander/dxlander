@@ -2,10 +2,7 @@
 
 import { IconWrapper } from '@/components/common';
 import { Header, PageLayout, Section } from '@/components/layouts';
-import {
-  DeleteProjectDialog,
-  type DeleteProjectDialogProps,
-} from '@/components/projects/delete-dialog';
+import { DeleteProjectDialog } from '@/components/projects/delete-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -20,7 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { trpc } from '@/lib/trpc';
-import { formatRelativeTimeFull } from '@dxlander/shared/utils';
+import type { SerializedProject } from '@dxlander/shared';
+import { formatDistanceToNow } from 'date-fns';
 import {
   Archive,
   Code,
@@ -44,22 +42,8 @@ import {
 import Link from 'next/link';
 import { useState } from 'react';
 
-// Extended project type to include all properties used in the dashboard
-type Project = DeleteProjectDialogProps['project'] & {
-  framework?: string | null;
-  language?: string | null;
-  generatedConfigs?: Record<string, unknown> | null;
-  lastActivity?: string | null;
-  localPath?: string | null;
-  sourceBranch?: string | null;
-  deployUrl?: string | null;
-  sourceHash?: string;
-  sourceType?: string;
-  sourceUrl?: string | null;
-  userId?: string;
-  updatedAt?: string;
-  projectSize?: number | null;
-};
+// Use SerializedProject from shared package
+type Project = SerializedProject;
 
 export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -107,7 +91,6 @@ export default function Dashboard() {
   const filteredProjects = projects.filter((project: Project) => {
     const matchesSearch =
       project.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (project.framework && project.framework.toLowerCase().includes(searchQuery.toLowerCase())) ||
       (project.language && project.language.toLowerCase().includes(searchQuery.toLowerCase()));
 
     if (activeTab === 'all') return matchesSearch;
@@ -327,8 +310,9 @@ export default function Dashboard() {
                                       )}
                                       <span className="text-gray-400">•</span>
                                       <span>
-                                        {formatRelativeTimeFull(
-                                          project.updatedAt || project.createdAt
+                                        {formatDistanceToNow(
+                                          new Date(project.updatedAt || project.createdAt),
+                                          { addSuffix: true }
                                         )}
                                       </span>
                                     </div>
@@ -365,25 +349,7 @@ export default function Dashboard() {
                                       </div>
                                     )}
 
-                                    {/* Generated Configs */}
-                                    {(project as Project).generatedConfigs &&
-                                      Object.keys((project as Project).generatedConfigs || {})
-                                        .length > 0 && (
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                          <FileText className="h-3.5 w-3.5 text-gray-400" />
-                                          {Object.keys(
-                                            (project as Project).generatedConfigs || {}
-                                          ).map((file: string, idx: number) => (
-                                            <Badge
-                                              key={idx}
-                                              variant="secondary"
-                                              className="text-xs bg-gray-100 text-gray-700"
-                                            >
-                                              {file}
-                                            </Badge>
-                                          ))}
-                                        </div>
-                                      )}
+                                    {/* Generated Configs - Would need to fetch from config_sets table */}
 
                                     {/* Deploy URL */}
                                     {project.deployUrl && (
