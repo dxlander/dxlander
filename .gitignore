@@ -139,6 +139,8 @@ Thumbs.db
 # DXLander specific
 CLAUDE.md
 .claude/
+# Temporary backup folders generated during setup reset experiments
+dxlander-original*
 
 # Local development files
 *.local

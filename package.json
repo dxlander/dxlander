@@ -136,8 +136,8 @@
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.14",
     "@gitbeaker/rest": "^43.7.0",
-    "nanoid": "^5.0.0",
+    "nanoid": "^5.1.5",
     "simple-git": "^3.28.0",
-    "tar": "^7.5.1"
+    "tar": "^7.5.2"
   }
 }

@@ -5,6 +5,7 @@ export {
   isSetupComplete,
   markSetupComplete,
   completeSetup,
+  resetSetupState,
   getDatabaseStats,
   getDatabaseFilePath,
 } from './db';
@@ -26,7 +27,14 @@ export {
   deploymentCredentials,
   auditLogs,
 } from './schema';
-export type { User, Project, Deployment, Setting } from './types';
+export type {
+  User,
+  Project,
+  Deployment,
+  Setting,
+  DatabaseStats,
+  DatabaseTableStats,
+} from './types';
 
 // Export new PostgreSQL support
 export { createPostgresConnection } from './postgres-connection';

@@ -22,6 +22,27 @@ const PROTECTED_ROUTES = [
   '/api/deployments',
 ];
 
+const PREVIEW_COOKIE = 'dxlander-setup-preview';
+const PREVIEW_COOKIE_MAX_AGE = 60 * 30; // 30 minutes
+
+function applyPreviewCookie(
+  response: NextResponse,
+  options: { persist: boolean; clear: boolean }
+): NextResponse {
+  if (options.persist) {
+    response.cookies.set(PREVIEW_COOKIE, 'true', {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: PREVIEW_COOKIE_MAX_AGE,
+    });
+  } else if (options.clear) {
+    response.cookies.delete(PREVIEW_COOKIE);
+  }
+  return response;
+}
+
 function getAuthToken(request: NextRequest): string | null {
   // Check for token in cookie
   const tokenFromCookie = request.cookies.get('dxlander-token')?.value;
@@ -74,6 +95,13 @@ function isProtectedRoute(pathname: string): boolean {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+  const isDev = process.env.NODE_ENV !== 'production';
+  const previewParam = isDev && request.nextUrl.searchParams.has('previewSetup');
+  const clearPreviewParam = isDev && request.nextUrl.searchParams.has('clearPreview');
+  const hasPreviewCookie = isDev && request.cookies.get(PREVIEW_COOKIE)?.value === 'true';
+  const shouldPreviewSetup = isDev && !clearPreviewParam && (previewParam || hasPreviewCookie);
+  const shouldPersistPreview = Boolean(previewParam && isDev);
+  const shouldClearPreview = Boolean(clearPreviewParam && isDev);
 
   // Skip middleware for static files and API routes we don't want to protect
   if (
@@ -89,18 +117,38 @@ export async function middleware(request: NextRequest) {
     // Check setup status
     const setupStatus = await checkSetupStatus();
 
+    const applyHeaders = (response: NextResponse) => {
+      response.headers.set('x-dxlander-setup-complete', setupStatus.setupComplete.toString());
+      response.headers.set('x-dxlander-has-admin', setupStatus.hasAdminUser.toString());
+      return response;
+    };
+
     // Handle root path routing logic
     if (pathname === '/') {
-      if (!setupStatus.setupComplete) {
-        // Setup incomplete, redirect to setup
-        return NextResponse.redirect(new URL('/setup', request.url));
+      if (!setupStatus.setupComplete || shouldPreviewSetup) {
+        // Setup incomplete or preview requested, redirect to setup wizard
+        const targetUrl = new URL('/setup', request.url);
+        if (shouldPreviewSetup) {
+          targetUrl.searchParams.set('previewSetup', '1');
+        }
+        const response = NextResponse.redirect(targetUrl);
+        return applyPreviewCookie(response, {
+          persist: shouldPreviewSetup,
+          clear: shouldClearPreview,
+        });
       } else {
         // Setup complete, check authentication
         const token = getAuthToken(request);
         if (token) {
-          return NextResponse.redirect(new URL('/dashboard', request.url));
+          return applyPreviewCookie(NextResponse.redirect(new URL('/dashboard', request.url)), {
+            persist: false,
+            clear: shouldClearPreview,
+          });
         } else {
-          return NextResponse.redirect(new URL('/login', request.url));
+          return applyPreviewCookie(NextResponse.redirect(new URL('/login', request.url)), {
+            persist: false,
+            clear: shouldClearPreview,
+          });
         }
       }
     }
@@ -128,15 +176,21 @@ export async function middleware(request: NextRequest) {
     }
 
     // If accessing setup when already complete, redirect to login
-    if (pathname === '/setup' && setupStatus.setupComplete) {
+    if (pathname === '/setup' && setupStatus.setupComplete && !shouldPreviewSetup) {
       console.log('Setup already complete, redirecting to login');
-      return NextResponse.redirect(new URL('/login', request.url));
+      return applyPreviewCookie(NextResponse.redirect(new URL('/login', request.url)), {
+        persist: false,
+        clear: shouldClearPreview,
+      });
     }
 
     // Add setup status headers for client-side access
-    const response = NextResponse.next();
-    response.headers.set('x-dxlander-setup-complete', setupStatus.setupComplete.toString());
-    response.headers.set('x-dxlander-has-admin', setupStatus.hasAdminUser.toString());
+    const response = applyHeaders(
+      applyPreviewCookie(NextResponse.next(), {
+        persist: shouldPreviewSetup && shouldPersistPreview,
+        clear: shouldClearPreview,
+      })
+    );
 
     return response;
   } catch (error) {
@@ -144,10 +198,17 @@ export async function middleware(request: NextRequest) {
 
     // On error, redirect to setup for safety
     if (pathname !== '/setup') {
-      return NextResponse.redirect(new URL('/setup', request.url));
+      const redirectResponse = NextResponse.redirect(new URL('/setup', request.url));
+      return applyPreviewCookie(redirectResponse, {
+        persist: shouldPreviewSetup,
+        clear: shouldClearPreview,
+      });
     }
 
-    return NextResponse.next();
+    return applyPreviewCookie(NextResponse.next(), {
+      persist: shouldPreviewSetup && shouldPersistPreview,
+      clear: shouldClearPreview,
+    });
   }
 }
 

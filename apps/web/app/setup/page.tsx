@@ -1,76 +1,187 @@
 'use client';
 
-import { useState } from 'react';
+import { Fragment, Suspense, type ReactNode, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { PageLayout, Header, Section } from '@/components/layouts';
-import { IconWrapper } from '@/components/common';
+import {
+  type LucideIcon,
+  AlertCircle,
+  Brain,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  Eye,
+  Rocket,
+  User,
+} from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FloatingInput } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { ArrowRight, User, Database, Brain, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import { trpc } from '@/lib/trpc';
+import { Card, CardContent } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
-export default function SimplifiedSetup() {
+type DatabaseType = 'sqlite' | 'postgresql';
+type AIProvider = 'openai' | 'anthropic' | 'google' | 'azure';
+
+type FormState = {
+  dbType: DatabaseType;
+  dbPath: string;
+  pgHost: string;
+  pgPort: string;
+  pgDatabase: string;
+  pgUser: string;
+  pgPassword: string;
+  adminEmail: string;
+  adminPassword: string;
+  adminConfirmPassword: string;
+  aiEnabled: boolean;
+  aiProvider: AIProvider;
+  aiApiKey: string;
+};
+
+type FormField = keyof FormState;
+type FormErrors = Partial<Record<FormField | 'submit', string>>;
+
+type StepConfig = {
+  id: number;
+  title: string;
+  icon: LucideIcon;
+};
+
+function SetupPageContent() {
   const router = useRouter();
-  const [step, setStep] = useState<'welcome' | 'admin' | 'complete'>('welcome');
-  const [isLoading, setIsLoading] = useState(false);
-  const [useDefaults, setUseDefaults] = useState(true);
-  const [config, setConfig] = useState({
+  const [currentStep, setCurrentStep] = useState<number>(0);
+  const [formData, setFormData] = useState<FormState>({
+    dbType: 'sqlite',
+    dbPath: './dxlander.db',
+    pgHost: 'localhost',
+    pgPort: '5432',
+    pgDatabase: 'dxlander',
+    pgUser: 'postgres',
+    pgPassword: '',
     adminEmail: '',
     adminPassword: '',
-    confirmPassword: '',
+    adminConfirmPassword: '',
+    aiEnabled: false,
+    aiProvider: 'openai',
     aiApiKey: '',
   });
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [loading, setLoading] = useState(false);
 
-  // tRPC hooks
+  const clearSubmitError = (): void => {
+    setErrors((prev) => {
+      if (!prev.submit) return prev;
+      const { submit: _submit, ...rest } = prev;
+      return rest as FormErrors;
+    });
+  };
+
+  const clearSensitiveFields = (): void => {
+    setFormData((prev) => ({
+      ...prev,
+      pgPassword: '',
+      adminPassword: '',
+      adminConfirmPassword: '',
+      aiApiKey: '',
+    }));
+  };
+
   const setupMutation = trpc.setup.completeSetup.useMutation({
     onSuccess: (data) => {
-      // Store the JWT token in both localStorage and cookie
-      localStorage.setItem('dxlander-token', data.token);
-      // Set cookie with 7-day expiry
-      document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict`;
-      setStep('complete');
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dxlander-token', data.token);
+        const isSecure = window.location.protocol === 'https:';
+        const secureFlag = isSecure ? '; Secure' : '';
+        document.cookie = `dxlander-token=${data.token}; path=/; max-age=604800; SameSite=Strict${secureFlag}`;
+      }
+      clearSensitiveFields();
+      clearSubmitError();
+      setCurrentStep(5);
     },
     onError: (error) => {
-      console.error('Setup failed:', error);
-      setErrors({ general: error.message });
-    },
-    onSettled: () => {
-      setIsLoading(false);
+      setErrors((prev) => ({ ...prev, submit: error.message }));
     },
   });
 
-  const updateConfig = (key: string, value: string) => {
-    setConfig((prev) => ({ ...prev, [key]: value }));
-    // Clear error when user starts typing
-    if (errors[key]) {
-      setErrors((prev) => ({ ...prev, [key]: '' }));
+  const steps: StepConfig[] = [
+    { id: 0, title: 'Welcome', icon: Rocket },
+    { id: 1, title: 'Database', icon: Database },
+    { id: 2, title: 'Admin Account', icon: User },
+    { id: 3, title: 'AI Configuration', icon: Brain },
+    { id: 4, title: 'Review', icon: Eye },
+    { id: 5, title: 'Complete', icon: CheckCircle2 },
+  ];
+
+  const handleChange = <K extends FormField>(field: K, value: FormState[K]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }) as FormState);
+    if (errors[field]) {
+      const { [field]: _removed, ...rest } = errors;
+      setErrors(rest as FormErrors);
     }
   };
 
-  const validateAdminForm = () => {
-    const newErrors: Record<string, string> = {};
+  const validateStep = (step: number): boolean => {
+    const newErrors: FormErrors = {};
 
-    if (!config.adminEmail) {
-      newErrors.adminEmail = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(config.adminEmail)) {
-      newErrors.adminEmail = 'Valid email is required';
+    if (step === 1) {
+      if (formData.dbType === 'postgresql') {
+        if (!formData.pgHost) newErrors.pgHost = 'Host is required';
+        if (!formData.pgPort) {
+          newErrors.pgPort = 'Port is required';
+        } else {
+          const parsedPort = parseInt(formData.pgPort, 10);
+          if (!Number.isInteger(parsedPort) || parsedPort < 1 || parsedPort > 65535) {
+            newErrors.pgPort = 'Port must be a number between 1 and 65535';
+          }
+        }
+        if (!formData.pgDatabase) newErrors.pgDatabase = 'Database name is required';
+        if (!formData.pgUser) newErrors.pgUser = 'Username is required';
+        if (!formData.pgPassword) newErrors.pgPassword = 'Password is required';
+      } else if (formData.dbType === 'sqlite') {
+        const trimmedPath = formData.dbPath.trim();
+        if (!trimmedPath) {
+          newErrors.dbPath = 'Database path is required';
+        } else if (
+          trimmedPath.includes('..') ||
+          trimmedPath.includes('~') ||
+          trimmedPath.match(/[<>:"|?*]/)
+        ) {
+          newErrors.dbPath =
+            'Invalid database path. Avoid path traversal patterns and special characters.';
+        }
+      }
     }
 
-    if (!config.adminPassword) {
-      newErrors.adminPassword = 'Password is required';
-    } else if (config.adminPassword.length < 8) {
-      newErrors.adminPassword = 'Password must be at least 8 characters';
+    if (step === 2) {
+      if (!formData.adminEmail) {
+        newErrors.adminEmail = 'Email is required';
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.adminEmail)) {
+        newErrors.adminEmail = 'Invalid email format';
+      }
+      if (!formData.adminPassword) {
+        newErrors.adminPassword = 'Password is required';
+      } else if (formData.adminPassword.length < 8) {
+        newErrors.adminPassword = 'Password must be at least 8 characters';
+      } else if (formData.adminPassword !== formData.adminConfirmPassword) {
+        newErrors.adminConfirmPassword = 'Passwords do not match';
+      }
+      if (!formData.adminConfirmPassword) {
+        newErrors.adminConfirmPassword = 'Please confirm your password';
+      }
     }
 
-    if (config.adminPassword !== config.confirmPassword) {
-      newErrors.confirmPassword = "Passwords don't match";
+    if (step === 3 && formData.aiEnabled) {
+      if (!formData.aiApiKey) {
+        newErrors.aiApiKey = 'API key is required when AI is enabled';
+      }
     }
 
     setErrors(newErrors);
@@ -78,36 +189,18 @@ export default function SimplifiedSetup() {
   };
 
   const handleNext = () => {
-    if (step === 'welcome') {
-      setStep('admin');
-    } else if (step === 'admin') {
-      if (validateAdminForm()) {
-        completeSetup();
-      }
+    if (validateStep(currentStep)) {
+      setCurrentStep((prev) => Math.min(prev + 1, steps.length - 1));
     }
   };
 
-  const completeSetup = async () => {
-    setIsLoading(true);
-    setErrors({}); // Clear previous errors
-
-    try {
-      await setupMutation.mutateAsync({
-        adminEmail: config.adminEmail,
-        adminPassword: config.adminPassword,
-        confirmPassword: config.confirmPassword,
-        useDefaults: true,
-        aiApiKey: config.aiApiKey || undefined,
-      });
-    } catch (error) {
-      // Error handling is done in the mutation onError callback
-    }
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 0));
   };
 
-  const skipToDefaults = async () => {
-    setIsLoading(true);
-    setErrors({}); // Clear previous errors
-
+  const handleUseDefaults = async (): Promise<void> => {
+    clearSubmitError();
+    setLoading(true);
     try {
       await setupMutation.mutateAsync({
         adminEmail: 'admin@dxlander.local',
@@ -116,287 +209,554 @@ export default function SimplifiedSetup() {
         useDefaults: true,
       });
     } catch (error) {
-      // Error handling is done in the mutation onError callback
+      // Error handled in mutation onError
+    } finally {
+      setLoading(false);
     }
   };
 
-  const headerActions = (
-    <div className="flex items-center space-x-2">
-      <Badge variant="secondary">Setup</Badge>
-      <Link href="/design-system">
-        <Button variant="ghost" size="sm">
-          Design System
-        </Button>
-      </Link>
-    </div>
-  );
+  const handleComplete = async (): Promise<void> => {
+    if (!validateStep(currentStep)) return;
+    clearSubmitError();
+    setLoading(true);
+    try {
+      const payload: {
+        adminEmail: string;
+        adminPassword: string;
+        confirmPassword: string;
+        useDefaults: boolean;
+        dbType?: string;
+        sqlitePath?: string;
+        postgresHost?: string;
+        postgresPort?: number;
+        postgresDb?: string;
+        postgresUser?: string;
+        postgresPassword?: string;
+        aiEnabled?: boolean;
+        aiProvider?: string;
+        aiApiKey?: string;
+      } = {
+        adminEmail: formData.adminEmail.trim(),
+        adminPassword: formData.adminPassword,
+        confirmPassword: formData.adminConfirmPassword,
+        useDefaults: false,
+      };
 
-  return (
-    <PageLayout background="default">
-      <Header
-        title="DXLander"
-        subtitle="AI-Powered Deployment Automation"
-        actions={headerActions}
-      />
+      payload.dbType = formData.dbType;
+      if (formData.dbType === 'sqlite') {
+        payload.sqlitePath = formData.dbPath;
+      } else if (formData.dbType === 'postgresql') {
+        payload.postgresHost = formData.pgHost;
+        payload.postgresPort = parseInt(formData.pgPort, 10);
+        payload.postgresDb = formData.pgDatabase;
+        payload.postgresUser = formData.pgUser;
+        payload.postgresPassword = formData.pgPassword;
+      }
 
-      <Section spacing="lg" container={false}>
-        <div className="max-w-2xl mx-auto px-6">
-          <Card variant="default" className="min-h-[500px] bg-white border-ocean-200/40 shadow-xl">
-            {/* Welcome Step */}
-            {step === 'welcome' && (
-              <div className="p-8 text-center">
-                <div className="mx-auto mb-6 w-16 h-16 flex items-center justify-center">
-                  <Image
-                    src="/logo.svg"
-                    alt="DXLander"
-                    width={64}
-                    height={64}
-                    className="h-16 w-16"
+      payload.aiEnabled = formData.aiEnabled;
+      if (formData.aiEnabled) {
+        payload.aiProvider = formData.aiProvider;
+        payload.aiApiKey = formData.aiApiKey || undefined;
+      }
+
+      await setupMutation.mutateAsync(payload);
+    } catch (error) {
+      if (error instanceof Error) {
+        setErrors((prev) => ({ ...prev, submit: error.message }));
+      } else {
+        setErrors((prev) => ({ ...prev, submit: 'Setup failed. Please try again.' }));
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const renderStepContent = (): ReactNode => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <div className="text-center space-y-6 py-8">
+            <div className="w-20 h-20 bg-gradient-to-br from-ocean-600 to-ocean-500 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-ocean-500/30">
+              <img src="/logo-white.svg" alt="DXLander Logo" className="w-10 h-10" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900">Welcome to DXLander!</h2>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Let&apos;s get your instance set up in just a few steps. You&apos;ll configure your
+              database, create an admin account, and optionally set up AI features.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+              <Button size="lg" onClick={handleNext}>
+                Start Setup
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+              <Button variant="outline" size="lg" onClick={handleUseDefaults} disabled={loading}>
+                {loading ? 'Setting up...' : 'Use Defaults (Quick Start)'}
+              </Button>
+            </div>
+          </div>
+        );
+
+      case 1:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Database Configuration</h2>
+              <p className="text-gray-600">
+                Choose your database type and provide connection details.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Database Type
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Card
+                    variant={formData.dbType === 'sqlite' ? 'elevated' : 'default'}
+                    className="cursor-pointer transition-all"
+                    onClick={() => handleChange('dbType', 'sqlite')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="font-semibold text-gray-900">SQLite</div>
+                      <div className="text-sm text-gray-600">Recommended for most users</div>
+                    </CardContent>
+                  </Card>
+                  <Card
+                    variant={formData.dbType === 'postgresql' ? 'elevated' : 'default'}
+                    className="cursor-pointer transition-all"
+                    onClick={() => handleChange('dbType', 'postgresql')}
+                  >
+                    <CardContent className="p-4">
+                      <div className="font-semibold text-gray-900">PostgreSQL</div>
+                      <div className="text-sm text-gray-600">For production deployments</div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              {formData.dbType === 'sqlite' ? (
+                <FloatingInput
+                  label="Database Path"
+                  type="text"
+                  value={formData.dbPath}
+                  onChange={(e) => handleChange('dbPath', e.target.value)}
+                  error={errors.dbPath}
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FloatingInput
+                      label="Host"
+                      type="text"
+                      value={formData.pgHost}
+                      onChange={(e) => handleChange('pgHost', e.target.value)}
+                      error={errors.pgHost}
+                    />
+                    <FloatingInput
+                      label="Port"
+                      type="number"
+                      value={formData.pgPort}
+                      onChange={(e) => handleChange('pgPort', e.target.value)}
+                      error={errors.pgPort}
+                    />
+                  </div>
+                  <FloatingInput
+                    label="Database Name"
+                    type="text"
+                    value={formData.pgDatabase}
+                    onChange={(e) => handleChange('pgDatabase', e.target.value)}
+                    error={errors.pgDatabase}
+                  />
+                  <FloatingInput
+                    label="Username"
+                    type="text"
+                    value={formData.pgUser}
+                    onChange={(e) => handleChange('pgUser', e.target.value)}
+                    error={errors.pgUser}
+                  />
+                  <FloatingInput
+                    label="Password"
+                    type="password"
+                    value={formData.pgPassword}
+                    onChange={(e) => handleChange('pgPassword', e.target.value)}
+                    error={errors.pgPassword}
                   />
                 </div>
+              )}
+            </div>
+          </div>
+        );
 
-                <h1 className="text-3xl font-bold mb-4 text-gray-900">Welcome to DXLander</h1>
+      case 2:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin Account</h2>
+              <p className="text-gray-600">Create your administrator account to manage DXLander.</p>
+            </div>
 
-                <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
-                  Your AI-powered deployment automation platform. Create workflows, analyze
-                  projects, and deploy with confidence.
-                </p>
+            <div className="space-y-4">
+              <FloatingInput
+                label="Email Address"
+                type="email"
+                value={formData.adminEmail}
+                onChange={(e) => handleChange('adminEmail', e.target.value)}
+                error={errors.adminEmail}
+              />
+              <FloatingInput
+                label="Password"
+                type="password"
+                value={formData.adminPassword}
+                onChange={(e) => handleChange('adminPassword', e.target.value)}
+                error={errors.adminPassword}
+              />
+              <FloatingInput
+                label="Confirm Password"
+                type="password"
+                value={formData.adminConfirmPassword}
+                onChange={(e) => handleChange('adminConfirmPassword', e.target.value)}
+                error={errors.adminConfirmPassword}
+              />
+            </div>
+          </div>
+        );
 
-                <div className="grid grid-cols-3 gap-6 mb-8">
-                  <div className="text-center">
-                    <IconWrapper variant="default" size="md" className="mx-auto mb-3">
-                      <Shield className="h-5 w-5" />
-                    </IconWrapper>
-                    <h3 className="font-medium text-gray-900 mb-1">Secure</h3>
-                    <p className="text-sm text-gray-600">Enterprise-grade security</p>
-                  </div>
+      case 3:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Configuration</h2>
+              <p className="text-gray-600">
+                Optionally configure AI features for enhanced functionality.
+              </p>
+            </div>
 
-                  <div className="text-center">
-                    <IconWrapper variant="default" size="md" className="mx-auto mb-3">
-                      <Database className="h-5 w-5" />
-                    </IconWrapper>
-                    <h3 className="font-medium text-gray-900 mb-1">Self-Hosted</h3>
-                    <p className="text-sm text-gray-600">Complete data control</p>
-                  </div>
-
-                  <div className="text-center">
-                    <IconWrapper variant="default" size="md" className="mx-auto mb-3">
-                      <Brain className="h-5 w-5" />
-                    </IconWrapper>
-                    <h3 className="font-medium text-gray-900 mb-1">AI-Powered</h3>
-                    <p className="text-sm text-gray-600">Intelligent automation</p>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <Button size="lg" onClick={handleNext} className="w-full group">
-                    Start Setup
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="lg"
-                    onClick={skipToDefaults}
-                    disabled={isLoading}
-                    className="w-full"
-                  >
-                    {isLoading ? 'Setting up...' : 'Use Defaults (Quick Start)'}
-                  </Button>
-                </div>
-
-                <p className="text-xs text-gray-500 mt-4">
-                  Quick start uses: admin@dxlander.local / admin123456
-                </p>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="aiEnabled"
+                  checked={formData.aiEnabled}
+                  onCheckedChange={(checked) => handleChange('aiEnabled', checked as boolean)}
+                />
+                <label
+                  htmlFor="aiEnabled"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Enable AI Features
+                </label>
               </div>
-            )}
 
-            {/* Admin Account Step */}
-            {step === 'admin' && (
-              <div className="p-8">
-                <div className="flex items-center mb-6">
-                  <IconWrapper variant="primary" size="md" className="mr-4">
-                    <User className="h-5 w-5" />
-                  </IconWrapper>
+              {formData.aiEnabled && (
+                <>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Create Admin Account</h2>
-                    <p className="text-gray-600">Setup your administrator credentials</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      AI Provider
+                    </label>
+                    <Select
+                      value={formData.aiProvider}
+                      onValueChange={(value) => handleChange('aiProvider', value as AIProvider)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI (GPT-4, GPT-3.5)</SelectItem>
+                        <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                        <SelectItem value="google">Google (Gemini)</SelectItem>
+                        <SelectItem value="azure">Azure OpenAI</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
 
-                <div className="space-y-6">
-                  <div>
-                    <FloatingInput
-                      label="Email Address"
-                      type="email"
-                      value={config.adminEmail}
-                      onChange={(e) => updateConfig('adminEmail', e.target.value)}
-                    />
-                    {errors.adminEmail && (
-                      <p className="text-sm text-red-600 mt-1">{errors.adminEmail}</p>
+                  <FloatingInput
+                    label="API Key"
+                    type="password"
+                    value={formData.aiApiKey}
+                    onChange={(e) => handleChange('aiApiKey', e.target.value)}
+                    error={errors.aiApiKey}
+                  />
+                </>
+              )}
+
+              {!formData.aiEnabled && (
+                <Card variant="default" className="bg-ocean-50/30">
+                  <CardContent className="p-4">
+                    <p className="text-sm text-gray-600">
+                      You can skip AI configuration for now and enable it later from settings.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+        );
+
+      case 4:
+        return (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Confirm</h2>
+              <p className="text-gray-600">
+                Please review your configuration before completing setup.
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Database className="w-4 h-4 text-ocean-600" />
+                    Database
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Type:</span>
+                      <span className="font-medium">{formData.dbType.toUpperCase()}</span>
+                    </div>
+                    {formData.dbType === 'sqlite' ? (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Path:</span>
+                        <span className="font-medium">{formData.dbPath}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Host:</span>
+                          <span className="font-medium">
+                            {formData.pgHost}:{formData.pgPort}
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Database:</span>
+                          <span className="font-medium">{formData.pgDatabase}</span>
+                        </div>
+                      </>
                     )}
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(1)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit Database Settings
+                  </Button>
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <FloatingInput
-                      label="Password"
-                      type="password"
-                      value={config.adminPassword}
-                      onChange={(e) => updateConfig('adminPassword', e.target.value)}
-                    />
-                    {errors.adminPassword && (
-                      <p className="text-sm text-red-600 mt-1">{errors.adminPassword}</p>
-                    )}
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <User className="w-4 h-4 text-ocean-600" />
+                    Admin Account
+                  </h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Email:</span>
+                      <span className="font-medium">{formData.adminEmail}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600">Password:</span>
+                      <span className="font-medium">••••••••</span>
+                    </div>
                   </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(2)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit Admin Account
+                  </Button>
+                </CardContent>
+              </Card>
 
-                  <div>
-                    <FloatingInput
-                      label="Confirm Password"
-                      type="password"
-                      value={config.confirmPassword}
-                      onChange={(e) => updateConfig('confirmPassword', e.target.value)}
-                    />
-                    {errors.confirmPassword && (
-                      <p className="text-sm text-red-600 mt-1">{errors.confirmPassword}</p>
-                    )}
-                  </div>
+              <Card variant="default">
+                <CardContent className="p-4">
+                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                    <Brain className="w-4 h-4 text-ocean-600" />
+                    AI Configuration
+                  </h3>
+                  {formData.aiEnabled ? (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Provider:</span>
+                        <span className="font-medium capitalize">{formData.aiProvider}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">API Key:</span>
+                        <span className="font-medium">••••••••</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">AI features disabled</p>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCurrentStep(3)}
+                    className="mt-3 text-xs"
+                  >
+                    Edit AI Configuration
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
 
+            <Card variant="default" className="bg-ocean-50/40 border-ocean-300/50">
+              <CardContent className="p-4">
+                <div className="flex gap-3">
+                  <AlertCircle className="w-5 h-5 text-ocean-600 flex-shrink-0 mt-0.5" />
                   <div>
-                    <FloatingInput
-                      label="AI API Key (Optional)"
-                      type="password"
-                      value={config.aiApiKey}
-                      onChange={(e) => updateConfig('aiApiKey', e.target.value)}
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      Claude or OpenAI API key. Can be configured later in settings.
+                    <h4 className="font-semibold text-ocean-900 text-sm">
+                      Ready to Complete Setup
+                    </h4>
+                    <p className="text-sm text-ocean-700 mt-1">
+                      Once you click &quot;Complete Setup&quot;, your DXLander instance will be
+                      initialized with these settings.
                     </p>
                   </div>
-
-                  <div className="flex items-center space-x-2">
-                    <Checkbox
-                      id="defaults"
-                      checked={useDefaults}
-                      onCheckedChange={(checked) => setUseDefaults(checked === true)}
-                    />
-                    <Label htmlFor="defaults" className="text-sm">
-                      Use default settings (PostgreSQL, recommended configuration)
-                    </Label>
-                  </div>
-
-                  {errors.general && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-start">
-                        <AlertCircle className="h-5 w-5 text-red-600 mt-0.5 mr-3 shrink-0" />
-                        <div>
-                          <h4 className="font-medium text-red-900 mb-1">Setup Error</h4>
-                          <p className="text-sm text-red-800">{errors.general}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="bg-ocean-50 border border-ocean-200 rounded-lg p-4">
-                    <div className="flex items-start">
-                      <AlertCircle className="h-5 w-5 text-ocean-600 mt-0.5 mr-3 shrink-0" />
-                      <div>
-                        <h4 className="font-medium text-ocean-900 mb-1">Default Configuration</h4>
-                        <p className="text-sm text-ocean-800">
-                          PostgreSQL database, Claude AI provider, and secure defaults will be used.
-                          You can customize these later in settings.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          </div>
+        );
+
+      case 5:
+        return (
+          <div className="text-center space-y-6 py-8">
+            <div className="w-20 h-20 bg-ocean-100 rounded-full mx-auto flex items-center justify-center">
+              <CheckCircle2 className="w-10 h-10 text-ocean-600" />
+            </div>
+            <h2 className="text-3xl font-bold text-gray-900">Setup Complete!</h2>
+            <p className="text-gray-600 max-w-md mx-auto">
+              Your DXLander instance has been successfully configured and is ready to use.
+            </p>
+            <div className="space-y-3 pt-4">
+              <Button
+                size="lg"
+                onClick={() => router.push('/dashboard')}
+                className="w-full max-w-xs"
+              >
+                Go to Dashboard
+              </Button>
+              <a href="/docs" className="block text-sm text-ocean-600 hover:text-ocean-700">
+                View Documentation →
+              </a>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-ocean-50 via-white to-ocean-100/50 flex items-center justify-center p-4">
+      <div className="w-full max-w-3xl">
+        {currentStep < 5 && (
+          <div className="mb-8">
+            <div className="flex items-center justify-between">
+              {steps.slice(0, -1).map((step, index) => {
+                const Icon = step.icon;
+                const isActive = currentStep === index;
+                const isCompleted = currentStep > index;
+
+                return (
+                  <Fragment key={step.id}>
+                    <div className="flex flex-col items-center">
+                      <div
+                        role="img"
+                        aria-label={`Step ${index + 1}: ${step.title}${
+                          isCompleted ? ' - Completed' : isActive ? ' - Current' : ' - Upcoming'
+                        }`}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                          isActive
+                            ? 'bg-ocean-600 text-white scale-110 shadow-lg shadow-ocean-500/30'
+                            : isCompleted
+                              ? 'bg-ocean-500 text-white shadow-md shadow-ocean-500/20'
+                              : 'bg-gray-200 text-gray-400'
+                        }`}
+                      >
+                        {isCompleted ? (
+                          <CheckCircle2 className="w-5 h-5" />
+                        ) : (
+                          <Icon className="w-5 h-5" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-xs mt-2 font-medium hidden sm:block ${
+                          isActive
+                            ? 'text-ocean-600'
+                            : isCompleted
+                              ? 'text-ocean-500'
+                              : 'text-gray-400'
+                        }`}
+                      >
+                        {step.title}
+                      </span>
+                    </div>
+                    {index < steps.length - 2 && (
+                      <div
+                        className={`flex-1 h-0.5 mx-2 transition-all ${
+                          isCompleted ? 'bg-ocean-500' : 'bg-gray-200'
+                        }`}
+                      />
+                    )}
+                  </Fragment>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        <Card variant="default" className="shadow-2xl">
+          <CardContent className="p-8">
+            {renderStepContent()}
+
+            {errors.submit && (
+              <Card variant="default" className="mt-6 border-red-200 bg-red-50">
+                <CardContent className="p-4 text-sm text-red-700">{errors.submit}</CardContent>
+              </Card>
             )}
 
-            {/* Complete Step */}
-            {step === 'complete' && (
-              <div className="p-8 text-center">
-                <IconWrapper variant="default" size="xl" className="mx-auto mb-6">
-                  <CheckCircle2 className="h-8 w-8" />
-                </IconWrapper>
-
-                <h2 className="text-3xl font-bold mb-4 text-gray-900">Setup Complete!</h2>
-
-                <p className="text-lg text-gray-600 mb-8 max-w-lg mx-auto">
-                  Your DXLander instance is ready. You can now create deployment workflows and start
-                  automating your deployments.
-                </p>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                  <Card>
-                    <CardHeader className="text-center pb-2">
-                      <CardTitle className="text-lg">Next Steps</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-ocean-600" />
-                        <span>Create your first project</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-ocean-600" />
-                        <span>Set up deployment targets</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <CheckCircle2 className="h-4 w-4 text-ocean-600" />
-                        <span>Configure AI settings</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="text-center pb-2">
-                      <CardTitle className="text-lg">Configuration</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Database:</span>
-                        <span>PostgreSQL</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">AI Provider:</span>
-                        <span>Claude</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-600">Port:</span>
-                        <span>3000</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                <Button size="lg" className="group" onClick={() => router.push('/dashboard')}>
-                  Open Dashboard
-                  <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
-                </Button>
-              </div>
-            )}
-
-            {/* Navigation Footer */}
-            {step === 'admin' && (
-              <div className="flex items-center justify-between p-6 border-t border-ocean-200/30">
-                <Button variant="outline" onClick={() => setStep('welcome')}>
+            {currentStep > 0 && currentStep < 5 && (
+              <div className="flex justify-between mt-8 pt-6 border-t border-ocean-200/50">
+                <Button variant="outline" onClick={handleBack} disabled={loading}>
+                  <ChevronLeft className="h-4 w-4" />
                   Back
                 </Button>
 
-                <div className="flex items-center space-x-3">
-                  {Object.keys(errors).length > 0 && (
-                    <span className="text-sm text-red-600">Please fix the errors above</span>
-                  )}
-
-                  <Button onClick={handleNext} disabled={isLoading} className="group">
-                    {isLoading ? 'Creating Account...' : 'Complete Setup'}
-                    <ArrowRight className="h-4 w-4 ml-2 group-hover:translate-x-0.5 transition-transform" />
+                {currentStep < 4 ? (
+                  <Button onClick={handleNext} disabled={loading}>
+                    Next
+                    <ChevronRight className="h-4 w-4" />
                   </Button>
-                </div>
+                ) : (
+                  <Button
+                    onClick={handleComplete}
+                    disabled={loading}
+                    className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                  >
+                    {loading ? 'Completing...' : 'Complete Setup'}
+                    <CheckCircle2 className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             )}
-          </Card>
-        </div>
-      </Section>
-    </PageLayout>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+export default function SetupPage() {
+  return (
+    <Suspense fallback={null}>
+      <SetupPageContent />
+    </Suspense>
   );
 }

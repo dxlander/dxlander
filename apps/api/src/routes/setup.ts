@@ -240,6 +240,26 @@ export const setupRouter = router({
       // Validate the complete configuration
       const validatedConfig = SetupConfigSchema.parse(input);
 
+      // Validate SQLite path if provided to prevent path traversal attacks
+      if (validatedConfig.sqlitePath) {
+        const sqlitePath = validatedConfig.sqlitePath.trim();
+
+        // Basic path validation (defense in depth)
+        if (sqlitePath.includes('..') || sqlitePath.includes('~') || /[<>:"|?*]/.test(sqlitePath)) {
+          throw new Error('Invalid database path: path traversal or special characters detected');
+        }
+
+        // TODO: When implementing custom SQLite paths, use path.resolve() to normalize
+        // and validate the path is in an acceptable location
+        // Currently, the database always uses ~/.dxlander/data/dxlander.db
+        console.warn('Custom SQLite path provided but not yet implemented:', sqlitePath);
+      }
+
+      // TODO: Validate PostgreSQL configuration when implementing custom database support
+      if (validatedConfig.postgresHost) {
+        console.warn('PostgreSQL configuration provided but not yet implemented');
+      }
+
       // Initialize database
       await initializeDatabase();
 
@@ -279,16 +299,5 @@ export const setupRouter = router({
       }
       throw new Error(error instanceof Error ? error.message : 'Failed to complete setup');
     }
-  }),
-
-  // Reset setup (for development/testing)
-  resetSetup: publicProcedure.mutation(async () => {
-    // TODO: Implement setup reset logic
-    // Clear database, remove instance config, etc.
-
-    return {
-      success: true,
-      message: 'Setup has been reset successfully',
-    };
   }),
 });

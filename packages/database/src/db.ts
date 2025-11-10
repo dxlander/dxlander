@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator';
 import { schema } from './schema';
+import type { DatabaseStats, DatabaseTableStats } from './types';
 import * as path from 'path';
 import * as fs from 'fs';
 import { homedir } from 'os';
@@ -484,6 +485,41 @@ export async function markSetupComplete(): Promise<void> {
   }
 }
 
+// Reset setup state for development/testing
+export async function resetSetupState(): Promise<void> {
+  try {
+    // Clear runtime tables first to avoid foreign key issues
+    await db.delete(schema.auditLogs);
+    await db.delete(schema.deploymentCredentials);
+    await db.delete(schema.deployments);
+    await db.delete(schema.buildRuns);
+    await db.delete(schema.configActivityLogs);
+    await db.delete(schema.configOptimizations);
+    await db.delete(schema.configFiles);
+    await db.delete(schema.configSets);
+    await db.delete(schema.analysisActivityLogs);
+    await db.delete(schema.analysisRuns);
+    await db.delete(schema.integrations);
+    await db.delete(schema.aiProviders);
+    try {
+      sqlite.prepare('DELETE FROM encryption_keys;').run();
+    } catch (error) {
+      console.warn('Failed to clear encryption_keys table during reset:', error);
+    }
+    await db.delete(schema.projects);
+    await db.delete(schema.settings);
+    await db.delete(schema.users);
+
+    // Re-initialize database defaults (settings, etc.)
+    await initializeDatabase();
+
+    console.log('✅ Setup state has been reset');
+  } catch (error) {
+    console.error('Failed to reset setup state:', error);
+    throw error;
+  }
+}
+
 export default db;
 
 /**
@@ -523,13 +559,7 @@ const VALID_TABLE_NAMES = new Set([
  *   - totalRecords: sum of row counts across all user tables
  *   - perTable: array of { name, count } for each table
  */
-export async function getDatabaseStats(): Promise<{
-  dbPath: string;
-  fileSizeBytes: number;
-  tablesCount: number;
-  totalRecords: number;
-  perTable: Array<{ name: string; count: number }>;
-}> {
+export async function getDatabaseStats(): Promise<DatabaseStats> {
   try {
     // Use async file stat to avoid blocking event loop
     const stats = await fs.promises.stat(dbPath);
@@ -540,7 +570,7 @@ export async function getDatabaseStats(): Promise<{
       .all() as Array<{ name: string }>;
 
     let totalRecords = 0;
-    const perTable: Array<{ name: string; count: number }> = [];
+    const perTable: DatabaseTableStats[] = [];
 
     for (const t of tables) {
       // Security: Validate table name against whitelist to prevent SQL injection
