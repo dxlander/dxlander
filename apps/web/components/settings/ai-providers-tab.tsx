@@ -248,8 +248,7 @@ export function AIProvidersTab() {
     {
       enabled:
         (formData.provider === 'openrouter' || formData.provider === 'groq') &&
-        (!!formData.apiKey ||
-          providers.some((p) => p.provider === 'openrouter' || p.provider === 'groq')),
+        (!!formData.apiKey || providers.some((p) => p.provider === formData.provider)),
     }
   );
 
@@ -264,13 +263,13 @@ export function AIProvidersTab() {
   const handleProviderChange = (value: string) => {
     setFormData({ ...formData, provider: value as ProviderType, model: '' });
 
+    // Clear detailed models when provider changes to prevent stale data
+    setDetailedModels([]);
+
     // If changing to OpenRouter or Groq, fetch detailed models
     if (value === 'openrouter' || value === 'groq') {
       // Trigger refetch of detailed models
       refetch();
-    } else {
-      // Clear detailed models for other providers
-      setDetailedModels([]);
     }
   };
 
