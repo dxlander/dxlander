@@ -1101,35 +1101,35 @@ export class GroqProvider implements IAIProvider {
         id: 'moonshotai/kimi-k2-instruct',
         name: 'Kimi K2 Instruct',
         pricing: { prompt: 'Free', completion: 'Free' },
-        contextLength: 8192,
+        contextLength: 128000, // Native: 128000-256000 range
         isFree: true,
       },
       {
         id: 'openai/gpt-oss-120b',
         name: 'GPT OSS 120B',
         pricing: { prompt: 'Free', completion: 'Free' },
-        contextLength: 8192,
+        contextLength: 131072,
         isFree: true,
       },
       {
         id: 'llama-3.3-70b-versatile',
         name: 'LLaMA 3.3 70B Versatile',
         pricing: { prompt: 'Free', completion: 'Free' },
-        contextLength: 8192,
+        contextLength: 131072,
         isFree: true,
       },
       {
         id: 'llama-3.1-8b-instant',
         name: 'LLaMA 3.1 8B Instant',
         pricing: { prompt: 'Free', completion: 'Free' },
-        contextLength: 8192,
+        contextLength: 131072,
         isFree: true,
       },
       {
         id: 'qwen/qwen3-32b',
         name: 'Qwen3 32B',
         pricing: { prompt: 'Free', completion: 'Free' },
-        contextLength: 8192,
+        contextLength: 32768, // Native: 32768, ~131072 with YaRN scaling
         isFree: true,
       },
     ];
