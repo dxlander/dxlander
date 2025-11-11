@@ -6,7 +6,15 @@ import { z } from 'zod';
 
 const AIProviderSchema = z.object({
   name: z.string().min(1, 'Provider name is required'),
-  provider: z.enum(['claude-agent-sdk', 'openai', 'anthropic', 'ollama', 'lmstudio', 'openrouter']),
+  provider: z.enum([
+    'claude-agent-sdk',
+    'openai',
+    'anthropic',
+    'ollama',
+    'lmstudio',
+    'openrouter',
+    'groq',
+  ]),
   apiKey: z.string().optional(),
   settings: z
     .object({

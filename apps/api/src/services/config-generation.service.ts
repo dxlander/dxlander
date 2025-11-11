@@ -6,8 +6,6 @@
  */
 
 import { db, schema } from '@dxlander/database';
-import { eq, and, desc } from 'drizzle-orm';
-import { randomUUID } from 'crypto';
 import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
@@ -17,6 +15,8 @@ import {
   getProjectConfigsDir,
   isPathSafe,
 } from '@dxlander/shared';
+import { randomUUID } from 'crypto';
+import { and, desc, eq } from 'drizzle-orm';
 import { AIProviderService } from './ai-provider.service';
 
 export class ConfigGenerationService {
@@ -55,6 +55,9 @@ export class ConfigGenerationService {
       if (!aiProvider) {
         throw new Error('No default AI provider configured');
       }
+
+      // TODO: Implement Groq rate limiting (1 config per 3 hours) and token limit validation
+      // See AIProviderService.checkGroqRateLimit() for implementation reference
 
       // Get latest config version
       const latestConfig = await db.query.configSets.findFirst({

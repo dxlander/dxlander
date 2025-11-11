@@ -48,6 +48,9 @@ export class AIAnalysisService {
         );
       }
 
+      // TODO: Implement Groq rate limiting (1 analysis per 3 hours)
+      // See AIProviderService.checkGroqRateLimit() for implementation reference
+
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.projectId, projectId),

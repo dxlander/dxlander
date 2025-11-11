@@ -101,6 +101,7 @@ export const AI_PROVIDERS = [
   'lmstudio',
   'anthropic',
   'openrouter',
+  'groq',
 ] as const;
 
 /**

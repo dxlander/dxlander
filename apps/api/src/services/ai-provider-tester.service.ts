@@ -232,6 +232,76 @@ class OpenRouterTester implements IProviderTester {
 }
 
 /**
+ * Groq Provider Tester
+ */
+class GroqTester implements IProviderTester {
+  validateConfig(config: ProviderTestConfig): void {
+    if (!config.apiKey) {
+      throw new Error('API key is required for Groq');
+    }
+
+    if (!config.settings?.model) {
+      throw new Error('Model selection is required for Groq');
+    }
+  }
+
+  async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
+    this.validateConfig(config);
+
+    const model = config.settings!.model!;
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { GroqProvider, AI_PROVIDER_TIMEOUTS } = await import('@dxlander/shared');
+      const provider = new GroqProvider();
+
+      // Initialize with a timeout to prevent hanging
+      await Promise.race([
+        provider.initialize({
+          provider: 'groq',
+          apiKey: config.apiKey!,
+          model,
+          baseUrl: config.settings?.baseUrl, // Extract baseUrl to top level
+          settings: config.settings,
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Groq initialization timed out')),
+            AI_PROVIDER_TIMEOUTS.CONNECTION_TEST
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        message: 'Successfully connected to Groq API',
+        model,
+        details: {
+          provider: 'groq',
+          model,
+          note: 'API key validated and connection successful',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `Groq connection failed: ${error.message}`,
+        model,
+        details: {
+          error: error.message,
+          errorStack: error.stack,
+          provider: 'groq',
+          model,
+          timestamp: new Date().toISOString(),
+          isTimeout: error.message.includes('timed out'),
+        },
+      };
+    }
+  }
+}
+
+/**
  * Provider Registry
  *
  * Central registry for all provider testers.
@@ -247,6 +317,7 @@ class ProviderTesterRegistry {
     this.register('ollama', new OllamaTester());
     this.register('lmstudio', new LMStudioTester());
     this.register('openrouter', new OpenRouterTester());
+    this.register('groq', new GroqTester());
   }
 
   /**
