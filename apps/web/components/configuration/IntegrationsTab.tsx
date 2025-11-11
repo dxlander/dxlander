@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { ExternalLink, Database, Shield, Zap, Key, CheckCircle2, Copy } from 'lucide-react';
 
 // Type definitions for integrations
-interface Integration {
+interface DetectedIntegration {
   name: string;
   type: string;
   detectedFrom: string;
@@ -19,7 +19,7 @@ interface Integration {
 
 interface IntegrationsSummary {
   integrations?: {
-    detected?: Integration[];
+    detected?: DetectedIntegration[];
   };
 }
 

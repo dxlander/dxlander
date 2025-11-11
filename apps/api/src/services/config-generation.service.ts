@@ -9,6 +9,8 @@ import { db, schema } from '@dxlander/database';
 import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
+  type ConfigType,
+  type GenerateConfigOptions,
   getConfigDir,
   getProjectConfigsDir,
   isPathSafe,
@@ -16,15 +18,6 @@ import {
 import { randomUUID } from 'crypto';
 import { and, desc, eq } from 'drizzle-orm';
 import { AIProviderService } from './ai-provider.service';
-
-export type ConfigType = 'docker' | 'docker-compose' | 'kubernetes' | 'bash';
-
-interface GenerateConfigOptions {
-  projectId: string;
-  analysisId: string;
-  configType: ConfigType;
-  userId: string;
-}
 
 export class ConfigGenerationService {
   /**

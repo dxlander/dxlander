@@ -104,6 +104,23 @@ export default [
         },
     },
 
+    // Type Architecture Governance for apps and database package only
+    // Prevents duplicate domain type definitions outside of shared package
+    {
+        files: ['apps/**/*.{ts,tsx}', 'packages/database/**/*.{ts,tsx}'],
+        rules: {
+            // Prevent interface declarations with domain type names
+            // Note: Type aliases are allowed (e.g., type Project = SerializedProject) as they're often used for convenience
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'TSInterfaceDeclaration[id.name=/^(Project|Deployment|User|Integration|DeploymentCredential|ConfigSet|ProviderTestResult|ProviderTestConfig|ProjectFile)$/]',
+                    message: '❌ Do not redefine domain types as interfaces. Import from @dxlander/shared instead. See type-architecture-refactoring.md for details.',
+                },
+            ],
+        },
+    },
+
     // React/Next.js specific configuration for web app
     {
         files: ['apps/web/**/*.{ts,tsx}'],

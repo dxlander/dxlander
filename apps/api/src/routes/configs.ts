@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { router, protectedProcedure, IdSchema } from '@dxlander/shared';
-import { ConfigGenerationService, type ConfigType } from '../services/config-generation.service';
+import { router, protectedProcedure, IdSchema, type ConfigType } from '@dxlander/shared';
+import { ConfigGenerationService } from '../services/config-generation.service';
 
 const GenerateConfigSchema = z.object({
   projectId: z.string(),

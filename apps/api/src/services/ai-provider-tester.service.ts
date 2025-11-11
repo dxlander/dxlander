@@ -5,26 +5,11 @@
  * Each provider has its own dedicated testing logic.
  */
 
-import { ClaudeAgentProvider } from '@dxlander/shared';
-
-// Test result interface
-export interface ProviderTestResult {
-  success: boolean;
-  message: string;
-  model: string;
-  details: Record<string, any>;
-}
-
-// Test configuration interface
-export interface ProviderTestConfig {
-  provider: string;
-  apiKey?: string;
-  settings?: {
-    model?: string;
-    baseUrl?: string;
-    [key: string]: any;
-  };
-}
+import {
+  ClaudeAgentProvider,
+  type ProviderTestResult,
+  type ProviderTestConfig,
+} from '@dxlander/shared';
 
 /**
  * Base provider tester interface
