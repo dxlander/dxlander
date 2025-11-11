@@ -261,6 +261,7 @@ class GroqTester implements IProviderTester {
           provider: 'groq',
           apiKey: config.apiKey!,
           model,
+          baseUrl: config.settings?.baseUrl, // Extract baseUrl to top level
           settings: config.settings,
         }),
         new Promise<void>((_, reject) =>

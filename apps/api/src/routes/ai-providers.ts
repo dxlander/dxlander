@@ -560,6 +560,7 @@ export const aiProvidersRouter = router({
         let apiKey = input.apiKey;
 
         // If no API key provided, try to get from existing provider
+        let baseUrl: string | undefined;
         if (!apiKey) {
           const existingProvider = await db.query.aiProviders.findFirst({
             where: and(
@@ -572,6 +573,18 @@ export const aiProvidersRouter = router({
           if (existingProvider?.encryptedApiKey) {
             apiKey = encryptionService.decryptFromStorage(existingProvider.encryptedApiKey);
           }
+
+          // Extract baseUrl from existing provider settings if available
+          if (existingProvider?.settings) {
+            try {
+              const parsedSettings = JSON.parse(existingProvider.settings);
+              if (parsedSettings?.baseUrl) {
+                baseUrl = parsedSettings.baseUrl;
+              }
+            } catch {
+              // Ignore JSON parse errors
+            }
+          }
         }
 
         if (!apiKey) {
@@ -581,6 +594,7 @@ export const aiProvidersRouter = router({
         await provider.initialize({
           provider: providerType,
           apiKey,
+          baseUrl, // Pass baseUrl if available from existing provider settings
         });
 
         // Check if provider has getDetailedModels method before calling it

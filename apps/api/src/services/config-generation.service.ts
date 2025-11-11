@@ -56,18 +56,8 @@ export class ConfigGenerationService {
         throw new Error('No default AI provider configured');
       }
 
-      // Check rate limits for Groq provider (disabled for testing)
-      // if (aiProvider.provider === 'groq') {
-      //   const isRateLimited = await AIProviderService.checkGroqRateLimit(userId);
-      //   if (isRateLimited) {
-      //     throw new Error('Groq provider rate limit exceeded. Please wait 3 hours between configurations.');
-      //   }
-      //
-      //   // Check token limit - only bash config generation is allowed
-      //   if (configType !== 'bash') {
-      //     throw new Error('Groq provider only supports basic bash configuration generation due to token limits.');
-      //   }
-      // }
+      // TODO: Implement Groq rate limiting (1 config per 3 hours) and token limit validation
+      // See AIProviderService.checkGroqRateLimit() for implementation reference
 
       // Get latest config version
       const latestConfig = await db.query.configSets.findFirst({

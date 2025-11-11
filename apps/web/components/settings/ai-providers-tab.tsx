@@ -67,6 +67,23 @@ const PROVIDER_INFO = {
     borderColor: 'border-purple-200',
     description: 'Anthropic Claude Agent SDK with file system tools',
   },
+  groq: {
+    name: 'Groq',
+    icon: Zap,
+    requiresApiKey: true,
+    requiresBaseUrl: false,
+    models: [
+      'moonshotai/kimi-k2-instruct',
+      'openai/gpt-oss-120b',
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'qwen/qwen3-32b',
+      'whisper-large-v3',
+    ],
+    color: 'bg-yellow-100 text-yellow-700',
+    borderColor: 'border-yellow-200',
+    description: 'Groq for fast inference with open-source models',
+  },
   openai: {
     name: 'OpenAI',
     icon: Sparkles,
@@ -106,23 +123,6 @@ const PROVIDER_INFO = {
     color: 'bg-orange-100 text-orange-700',
     borderColor: 'border-orange-200',
     description: 'OpenRouter unified API for multiple AI models',
-  },
-  groq: {
-    name: 'Groq',
-    icon: Zap,
-    requiresApiKey: true,
-    requiresBaseUrl: false,
-    models: [
-      'moonshotai/kimi-k2-instruct',
-      'openai/gpt-oss-120b',
-      'llama-3.3-70b-versatile',
-      'llama-3.1-8b-instant',
-      'qwen/qwen3-32b',
-      'whisper-large-v3',
-    ],
-    color: 'bg-yellow-100 text-yellow-700',
-    borderColor: 'border-yellow-200',
-    description: 'Groq for fast inference with open-source models',
   },
 } as const;
 

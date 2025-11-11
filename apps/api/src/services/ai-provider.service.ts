@@ -150,6 +150,7 @@ export class AIProviderService {
           apiKey: config.apiKey || '',
           model: config.model,
           provider: config.provider,
+          baseUrl: config.settings?.baseUrl, // Extract baseUrl to top level
           settings: config.settings,
         });
         await this.updateLastUsed(providerId);

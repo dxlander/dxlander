@@ -48,13 +48,8 @@ export class AIAnalysisService {
         );
       }
 
-      // Check rate limits for Groq provider (disabled for testing)
-      // if (aiProvider.provider === 'groq') {
-      //   const isRateLimited = await AIProviderService.checkGroqRateLimit(userId);
-      //   if (isRateLimited) {
-      //     throw new Error('Groq provider rate limit exceeded. Please wait 3 hours between analyses.');
-      //   }
-      // }
+      // TODO: Implement Groq rate limiting (1 analysis per 3 hours)
+      // See AIProviderService.checkGroqRateLimit() for implementation reference
 
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
