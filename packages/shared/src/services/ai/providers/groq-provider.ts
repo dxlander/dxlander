@@ -39,15 +39,6 @@ export class GroqProvider implements IAIProvider {
       this.baseUrl = config.baseUrl;
     }
 
-    // Check token limit during initialization
-    const maxTokens = config.settings?.maxTokens || 4096;
-    const tokenLimit = (config.settings?.configType as string) === 'bash' ? 20000 : 30000;
-    if (maxTokens > tokenLimit) {
-      throw new Error(
-        `Groq provider has a maximum token limit of ${tokenLimit} per run for ${(config.settings?.configType as string) || 'unknown'} configurations.`
-      );
-    }
-
     // Test connection to validate API key with timeout
     try {
       const isConnected = await Promise.race([
@@ -390,17 +381,17 @@ export class GroqProvider implements IAIProvider {
 
     // Remove common tool-calling patterns that might appear at the start
     cleanedContent = cleanedContent.replace(
-      /^I'll\s+analyze[^]*?(?=<write_file>|<write>|###|```)/i,
+      /^I'll\s+analyze[\s\S]*?(?=<write_file>|<write>|###|```)/i,
       ''
     );
     cleanedContent = cleanedContent.replace(
-      /^I\s+will\s+analyze[^]*?(?=<write_file>|<write>|###|```)/i,
+      /^I\s+will\s+analyze[\s\S]*?(?=<write_file>|<write>|###|```)/i,
       ''
     );
 
     // Remove any <glob>, <read>, or other tool-calling tags that aren't file writes
-    cleanedContent = cleanedContent.replace(/<glob>[^]*?<\/glob>/gi, '');
-    cleanedContent = cleanedContent.replace(/<read>[^]*?<\/read>/gi, '');
+    cleanedContent = cleanedContent.replace(/<glob>[\s\S]*?<\/glob>/gi, '');
+    cleanedContent = cleanedContent.replace(/<read>[\s\S]*?<\/read>/gi, '');
 
     // Try to extract just the script content if there's analysis text
     const scriptMatch = cleanedContent.match(/(?:```(?:bash|sh)?\s*\n?)([\s\S]*?)(?:\n?```|$)/);
@@ -539,15 +530,6 @@ export class GroqProvider implements IAIProvider {
   ): Promise<DeploymentConfigResult> {
     if (!this.ready || !this.config) {
       throw new Error('Provider not initialized');
-    }
-
-    // Validate token limit
-    const maxTokens = this.config.settings?.maxTokens || 4096;
-    const tokenLimit = request.configType === 'bash' ? 20000 : 30000;
-    if (maxTokens > tokenLimit) {
-      throw new Error(
-        `Groq provider has a maximum token limit of ${tokenLimit} per run for ${request.configType} configurations.`
-      );
     }
 
     try {
