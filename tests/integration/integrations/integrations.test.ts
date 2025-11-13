@@ -5,7 +5,9 @@ import { IntegrationService } from '../../../apps/api/src/services/integration.s
 import { randomUUID } from 'crypto';
 import { eq } from 'drizzle-orm';
 
-describe('Integration CRUD Operations', () => {
+// FIXME: This test file uses outdated API methods that no longer exist
+// The updated tests are in tests/integration/api/integration.service.test.ts
+describe.skip('Integration CRUD Operations (Outdated)', () => {
   const testUserId = randomUUID();
   const integrationService = new IntegrationService();
   const createdIntegrationIds: string[] = [];
