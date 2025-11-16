@@ -300,8 +300,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
             <>
               {analysisProgress ? (
                 <AIActivityMonitor
-                  progress={analysisProgress.progress || 0}
-                  currentActivity={analysisProgress.currentAction || 'Starting discovery...'}
+                  currentActivity={analysisProgress.currentAction || 'Starting analysis...'}
                   activityLog={analysisProgress.activityLog || []}
                   status={
                     analysisProgress.status === 'complete'
@@ -310,12 +309,13 @@ export default function NewConfigurationPage({ params }: PageProps) {
                         ? 'error'
                         : 'analyzing'
                   }
+                  error={analysisProgress.error}
                 />
               ) : (
                 <Card variant="elevated">
                   <CardContent className="p-8 text-center">
                     <Loader2 className="h-8 w-8 animate-spin text-ocean-600 mx-auto mb-4" />
-                    <p className="text-gray-600">Initializing AI analysis...</p>
+                    <p className="text-gray-600">Initializing analysis...</p>
                   </CardContent>
                 </Card>
               )}
