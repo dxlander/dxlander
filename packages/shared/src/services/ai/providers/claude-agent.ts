@@ -9,6 +9,20 @@
  * - MCP extensibility
  *
  * Perfect for deep project analysis.
+ *
+ * NOTE: This provider does NOT extend BaseToolProvider because the
+ * Claude Agent SDK has its own built-in tool system that is more
+ * powerful than the Vercel AI SDK tools. We keep this implementation
+ * separate to leverage the full power of the Claude Agent SDK's
+ * native capabilities.
+ *
+ * The SDK provides:
+ * - Read/Write/Edit tools (not just Read like our custom tools)
+ * - Bash execution (can run commands, not just read files)
+ * - Built-in web search
+ * - MCP server integration
+ *
+ * Using BaseToolProvider would actually REDUCE functionality here.
  */
 
 import { query, type Options } from '@anthropic-ai/claude-agent-sdk';

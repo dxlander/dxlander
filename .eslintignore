@@ -6,3 +6,5 @@ dist
 *.config.mjs
 dxlander-original*
 **/dxlander-original*/**
+.claude
+**/.claude/**
