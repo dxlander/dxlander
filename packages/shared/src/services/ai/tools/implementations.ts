@@ -74,7 +74,9 @@ export async function grepSearchImpl(
   matches: Array<{ file: string; line: string; lineNumber: number }>;
   count: number;
 }> {
-  const { execFileSync } = await import('child_process');
+  const { execFile } = await import('child_process');
+  const { promisify } = await import('util');
+  const execFileAsync = promisify(execFile);
 
   try {
     // Build ripgrep arguments
@@ -95,13 +97,13 @@ export async function grepSearchImpl(
     // Add pattern and search path
     args.push(pattern, context.projectPath);
 
-    const result = execFileSync('rg', args, {
+    const { stdout } = await execFileAsync('rg', args, {
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024, // 10MB max
     });
 
     // Parse rg output: "file:lineNumber:line content"
-    const matches = result
+    const matches = stdout
       .split('\n')
       .filter(Boolean)
       .map((line) => {
@@ -126,7 +128,7 @@ export async function grepSearchImpl(
     };
   } catch (error: any) {
     // ripgrep returns exit code 1 if no matches found (not an error)
-    if (error.status === 1) {
+    if (error.code === 1) {
       return {
         pattern,
         matches: [],
@@ -134,8 +136,8 @@ export async function grepSearchImpl(
       };
     }
 
-    // Check if ripgrep is not installed
-    if (error.message?.includes('command not found') || error.message?.includes('rg')) {
+    // Check if ripgrep is not installed (ENOENT = command not found)
+    if (error.code === 'ENOENT') {
       throw new Error(
         'ripgrep (rg) is not installed. Please install ripgrep or use a different search method.'
       );
@@ -153,18 +155,26 @@ export async function globFindImpl(
   context: ToolContext
 ): Promise<{ pattern: string; files: string[]; count: number }> {
   const glob = await import('fast-glob');
+  const pathModule = await import('path');
 
   try {
-    const files = await glob.default(pattern, {
+    const rawFiles = await glob.default(pattern, {
       cwd: context.projectPath,
       dot: false, // Don't include hidden files by default
       ignore: ['**/node_modules/**', '**/.git/**', '**/dist/**', '**/build/**'], // Common ignore patterns
     });
 
+    const safeFiles = rawFiles.filter((file) => {
+      const absolutePath = pathModule.resolve(context.projectPath, file);
+      return isPathSafe(context.projectPath, absolutePath);
+    });
+
+    const sortedFiles = safeFiles.sort();
+
     return {
       pattern,
-      files: files.sort(),
-      count: files.length,
+      files: sortedFiles,
+      count: sortedFiles.length,
     };
   } catch (error: any) {
     throw new Error(`Glob search failed for pattern "${pattern}": ${error.message}`);
