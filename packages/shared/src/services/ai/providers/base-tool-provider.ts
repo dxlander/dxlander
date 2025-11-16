@@ -84,21 +84,22 @@ export abstract class BaseToolProvider implements IAIProvider {
     try {
       const model = await this.getLanguageModel();
 
-      // Convert messages to prompt
       const systemMessages = request.messages
         .filter((m) => m.role === 'system')
         .map((m) => m.content)
         .join('\n\n');
 
-      const userMessages = request.messages
-        .filter((m) => m.role === 'user')
-        .map((m) => m.content)
-        .join('\n\n');
+      const conversationMessages = request.messages
+        .filter((m) => m.role === 'user' || m.role === 'assistant')
+        .map((m) => ({
+          role: m.role as 'user' | 'assistant',
+          content: m.content,
+        }));
 
       const result = await streamText({
         model,
         system: systemMessages || undefined,
-        prompt: userMessages,
+        messages: conversationMessages,
         temperature: request.temperature,
         maxOutputTokens: request.maxTokens,
       });

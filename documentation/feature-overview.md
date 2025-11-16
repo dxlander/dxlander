@@ -131,7 +131,7 @@ This document provides a comprehensive overview of DXLander's current features a
   - Source files: `{projectId}/files/` (imported code)
   - Configurations: `{projectId}/configs/{configId}/` (generated configs)
 - **Migration system:** Drizzle ORM with version management
-- **Consistent imports:** All import methods (GitHub, GitLab, Bitbucket, ZIP) use the same directory structure
+- **Consistent imports:** All import methods (GitHub, ZIP) currently use the same directory structure
 
 #### Data Models
 

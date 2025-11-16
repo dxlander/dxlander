@@ -180,7 +180,6 @@ These use their own built-in tool systems:
 
 - `llama-3.3-70b-versatile` (Best quality, free)
 - `llama-3.1-8b-instant` (Fastest, free)
-- `moonshotai/kimi-k2-instruct` (Good for code, free)
 - `openai/gpt-oss-120b` (Large model, free)
 - `qwen/qwen3-32b` (Balanced, free)
 

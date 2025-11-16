@@ -5,6 +5,7 @@
  * These are the "hands" of the AI - allowing it to read files, search code, etc.
  */
 
+import path from 'path';
 import { isPathSafe } from '../../file-storage';
 
 /**
@@ -22,23 +23,25 @@ export async function readFileImpl(
   context: ToolContext
 ): Promise<{ filePath: string; content: string; size: number; lines: number }> {
   const fs = await import('fs/promises');
-  const path = await import('path');
+  const pathModule = await import('path');
 
   // Security: Validate path is within project
   if (!isPathSafe(context.projectPath, filePath)) {
     throw new Error(`Path traversal detected: ${filePath}`);
   }
 
-  const fullPath = path.join(context.projectPath, filePath);
+  const fullPath = pathModule.join(context.projectPath, filePath);
 
   try {
     const content = await fs.readFile(fullPath, 'utf-8');
-    const lines = content.split('\n').length;
+    // Handle line counting: empty file = 0 lines, account for trailing newlines
+    const lines =
+      content === '' ? 0 : content.split('\n').length - (content.endsWith('\n') ? 1 : 0);
 
     return {
       filePath,
       content,
-      size: content.length,
+      size: Buffer.byteLength(content, 'utf-8'),
       lines,
     };
   } catch (error: any) {
@@ -71,31 +74,30 @@ export async function grepSearchImpl(
   matches: Array<{ file: string; line: string; lineNumber: number }>;
   count: number;
 }> {
-  const { execSync } = await import('child_process');
+  const { execFileSync } = await import('child_process');
 
   try {
-    // Build ripgrep command
-    const flags: string[] = [];
+    // Build ripgrep arguments
+    const args: string[] = [];
 
     if (!caseSensitive) {
-      flags.push('-i');
+      args.push('-i');
     }
 
     // Add line numbers
-    flags.push('-n');
+    args.push('-n');
 
     // Add glob filter if provided
     if (glob) {
-      flags.push(`--glob "${glob}"`);
+      args.push('--glob', glob);
     }
 
-    // Use ripgrep (rg) if available, fallback to grep
-    const command = `rg ${flags.join(' ')} "${pattern.replace(/"/g, '\\"')}" "${context.projectPath}"`;
+    // Add pattern and search path
+    args.push(pattern, context.projectPath);
 
-    const result = execSync(command, {
+    const result = execFileSync('rg', args, {
       encoding: 'utf-8',
       maxBuffer: 10 * 1024 * 1024, // 10MB max
-      stdio: ['pipe', 'pipe', 'pipe'], // Capture stderr separately
     });
 
     // Parse rg output: "file:lineNumber:line content"
@@ -110,7 +112,7 @@ export async function grepSearchImpl(
 
         const [, file, lineNumberStr, content] = match;
         return {
-          file: file.replace(`${context.projectPath}/`, ''), // Make path relative
+          file: path.relative(context.projectPath, file), // Make path relative
           line: content,
           lineNumber: parseInt(lineNumberStr, 10),
         };
@@ -177,14 +179,14 @@ export async function listDirectoryImpl(
   context: ToolContext
 ): Promise<{ path: string; files: string[]; directories: string[]; totalItems: number }> {
   const fs = await import('fs/promises');
-  const path = await import('path');
+  const pathModule = await import('path');
 
   // Security: Validate path is within project
   if (!isPathSafe(context.projectPath, dirPath)) {
     throw new Error(`Path traversal detected: ${dirPath}`);
   }
 
-  const fullPath = path.join(context.projectPath, dirPath);
+  const fullPath = pathModule.join(context.projectPath, dirPath);
 
   try {
     const entries = await fs.readdir(fullPath, { withFileTypes: true });
