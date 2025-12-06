@@ -18,6 +18,7 @@ import {
   Key,
   ExternalLink,
   Eye,
+  Terminal,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { format } from 'date-fns';
@@ -28,7 +29,9 @@ import {
   DependenciesTab,
   IntegrationsTab,
   DeploymentTab,
+  LogsTab,
 } from '@/components/configuration';
+import { useConfigProgress } from '@/lib/hooks/useSSE';
 
 // Import types for proper typing
 type EnvironmentVariables = {
@@ -77,20 +80,32 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
     id: resolvedParams.configId,
   });
 
+  // Fetch config generation logs
+  const { data: configLogs } = trpc.configs.getLogs.useQuery({
+    id: resolvedParams.configId,
+  });
+
   // Mutations for updating config data
   const updateMetadataMutation = trpc.configs.updateMetadata.useMutation();
   const updateFileMutation = trpc.configs.updateFile.useMutation();
 
-  // Poll for updates while generating
-  useEffect(() => {
-    if (configSet?.status === 'generating') {
-      const interval = setInterval(() => {
-        refetch();
-      }, 2000); // Poll every 2 seconds
+  // Real-time config generation progress via Server-Sent Events (enterprise-grade approach)
+  const { data: configProgressSSE } = useConfigProgress(
+    resolvedParams.configId,
+    configSet?.status === 'generating'
+  );
 
-      return () => clearInterval(interval);
+  // Refresh config data when generation completes or fails
+  useEffect(() => {
+    if (configProgressSSE?.status === 'complete' || configProgressSSE?.status === 'failed') {
+      refetch();
+
+      // If failed, automatically switch to logs tab to show error details
+      if (configProgressSSE?.status === 'failed') {
+        setActiveTab('logs');
+      }
     }
-  }, [configSet?.status, refetch]);
+  }, [configProgressSSE?.status, refetch]);
 
   const isLoading = projectLoading || configLoading;
 
@@ -235,7 +250,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
 
           {/* Main Tabs Navigation */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6 bg-white border">
+            <TabsList className="grid w-full grid-cols-7 bg-white border">
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <Eye className="h-4 w-4" />
                 Overview
@@ -281,6 +296,15 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                   </Badge>
                 )}
               </TabsTrigger>
+              <TabsTrigger value="logs" className="flex items-center gap-2">
+                <Terminal className="h-4 w-4" />
+                Logs
+                {configLogs?.activityLog && configLogs.activityLog.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 bg-gray-100 text-gray-700">
+                    {configLogs.activityLog.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
               <TabsTrigger value="deployment" className="flex items-center gap-2">
                 <Rocket className="h-4 w-4" />
                 Deployment
@@ -319,6 +343,14 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
             {/* Integrations Tab */}
             <TabsContent value="integrations" className="space-y-6">
               <IntegrationsTab summary={summary} integrationsCount={integrationsCount} />
+            </TabsContent>
+
+            {/* Logs Tab */}
+            <TabsContent value="logs" className="space-y-6">
+              <LogsTab
+                logs={configLogs?.activityLog || []}
+                configStatus={configSet?.status || 'unknown'}
+              />
             </TabsContent>
 
             {/* Deployment Instructions Tab */}

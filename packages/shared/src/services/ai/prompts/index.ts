@@ -516,14 +516,25 @@ For each detected integration, provide COMPLETE information:
 - Link environment variables to their integrations via \`linkedIntegration\` field
 
 **IMPORTANT:**
-- Return ONLY the JSON object
+- Return ONLY the JSON object - NO explanatory text before or after
+- Do NOT start with "I'll analyze..." or any preamble
+- Your response must be PURE JSON starting with { and ending with }
 - Base everything on evidence (files, code, patterns)
 - If uncertain, lower confidence score
 - Be thorough but accurate
 - Work efficiently - each tool use should maximize information gain
 - Be STRICT about integration detection - when in doubt, it's probably a built-in capability
 
-**BEGIN EXPLORATION NOW.**
+**OUTPUT FORMAT EXAMPLES:**
+
+❌ WRONG (has preamble text):
+I'll analyze this project systematically to understand its structure...
+{ "summary": { ... } }
+
+✅ CORRECT (pure JSON only):
+{ "summary": { ... } }
+
+**BEGIN EXPLORATION NOW. Remember: Return ONLY JSON, no other text.**
 `.trim();
 }
 
@@ -1021,19 +1032,34 @@ export function extractJsonFromResponse(response: string): any {
     );
   }
 
-  // Try to extract JSON from markdown code blocks
-  const jsonMatch = response.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  const jsonStr = jsonMatch ? jsonMatch[1] : response;
+  const trimmed = response.trim();
 
-  try {
-    const trimmed = jsonStr.trim();
-
-    if (trimmed.length === 0) {
-      throw new Error('JSON content is empty after trimming');
+  // Strategy 1: Try to extract JSON from markdown code blocks
+  const codeBlockMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
+  if (codeBlockMatch) {
+    try {
+      return JSON.parse(codeBlockMatch[1].trim());
+    } catch (error) {
+      // Continue to next strategy
     }
+  }
 
+  // Strategy 2: Find JSON object by looking for { ... } pattern
+  // This handles cases where AI adds preamble text like "I'll analyze..."
+  const jsonObjectMatch = trimmed.match(/(\{[\s\S]*\})/);
+  if (jsonObjectMatch) {
+    try {
+      return JSON.parse(jsonObjectMatch[1].trim());
+    } catch (error) {
+      // Continue to next strategy
+    }
+  }
+
+  // Strategy 3: Try parsing the entire response as JSON (pure JSON case)
+  try {
     return JSON.parse(trimmed);
   } catch (error) {
+    // All strategies failed
     throw new Error(
       `Failed to parse JSON response: ${error}\n\nRaw response (length: ${response.length}):\n${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`
     );

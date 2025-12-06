@@ -238,6 +238,28 @@ export const configsRouter = router({
     }),
 
   /**
+   * Get config generation logs
+   */
+  getLogs: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
+    try {
+      const { userId } = ctx;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      const logs = await ConfigGenerationService.getConfigProgress(input.id);
+
+      return logs;
+    } catch (error) {
+      console.error('Failed to get config logs:', error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to retrieve configuration logs');
+    }
+  }),
+
+  /**
    * Update config metadata (environment variables, integrations, etc.)
    * This updates the _summary.json file on disk
    */
