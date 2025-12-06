@@ -24,6 +24,19 @@ interface SSEClient {
 }
 
 /**
+ * Safely parse JSON, returning undefined on parse failure
+ */
+function safeJsonParse(value: unknown): unknown {
+  if (!value) return undefined;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * SSE Service for managing real-time connections
  */
 export class SSEService {
@@ -32,10 +45,33 @@ export class SSEService {
   /**
    * Create SSE connection and stream analysis progress
    */
-  static async streamAnalysisProgress(c: Context, analysisId: string): Promise<Response> {
+  static async streamAnalysisProgress(
+    c: Context,
+    analysisId: string,
+    userId: string
+  ): Promise<Response> {
     const encoder = new TextEncoder();
     let intervalId: NodeJS.Timeout | null = null;
     let closed = false;
+
+    // Verify ownership before starting stream
+    const analysisCheck = await db.query.analysisRuns.findFirst({
+      where: eq(schema.analysisRuns.id, analysisId),
+    });
+
+    if (!analysisCheck) {
+      return new Response(JSON.stringify({ error: 'Analysis not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (analysisCheck.userId !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You do not have access to this analysis' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -76,11 +112,7 @@ export class SSEService {
                 action: log.action,
                 status: log.status,
                 result: log.result || undefined,
-                details: log.details
-                  ? typeof log.details === 'string'
-                    ? JSON.parse(log.details)
-                    : log.details
-                  : undefined,
+                details: safeJsonParse(log.details),
                 timestamp: log.timestamp.toISOString(),
               }))
               .reverse(); // Oldest first
@@ -93,7 +125,7 @@ export class SSEService {
               currentAction: logs[0]?.action || 'Starting...',
               currentResult: logs[0]?.result || 'Initializing analysis',
               activityLog,
-              results: analysis.results ? JSON.parse(analysis.results) : null,
+              results: safeJsonParse(analysis.results),
               error: analysis.errorMessage,
             };
 
@@ -148,10 +180,33 @@ export class SSEService {
   /**
    * Create SSE connection and stream config generation progress
    */
-  static async streamConfigProgress(c: Context, configSetId: string): Promise<Response> {
+  static async streamConfigProgress(
+    c: Context,
+    configSetId: string,
+    userId: string
+  ): Promise<Response> {
     const encoder = new TextEncoder();
     let intervalId: NodeJS.Timeout | null = null;
     let closed = false;
+
+    // Verify ownership before starting stream
+    const configCheck = await db.query.configSets.findFirst({
+      where: eq(schema.configSets.id, configSetId),
+    });
+
+    if (!configCheck) {
+      return new Response(JSON.stringify({ error: 'Config set not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (configCheck.userId !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You do not have access to this configuration' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -192,7 +247,7 @@ export class SSEService {
                 action: log.action,
                 status: log.status,
                 result: log.result || undefined,
-                details: log.details ? JSON.parse(log.details) : undefined,
+                details: safeJsonParse(log.details),
                 timestamp: log.timestamp.toISOString(),
               }))
               .reverse(); // Oldest first

@@ -247,6 +247,22 @@ export const configsRouter = router({
         throw new Error('User not authenticated');
       }
 
+      // Verify ownership before returning logs
+      const { db, schema } = await import('@dxlander/database');
+      const { eq } = await import('drizzle-orm');
+
+      const configSet = await db.query.configSets.findFirst({
+        where: eq(schema.configSets.id, input.id),
+      });
+
+      if (!configSet) {
+        throw new Error('Configuration not found');
+      }
+
+      if (configSet.userId !== userId) {
+        throw new Error('Unauthorized: You do not have access to this configuration');
+      }
+
       const logs = await ConfigGenerationService.getConfigProgress(input.id);
 
       return logs;
