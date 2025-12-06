@@ -84,6 +84,40 @@ export type SerializedConfigSet = Omit<
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
+  fileCount?: number; // Added by service layer
+};
+
+/**
+ * Serialized AnalysisRun type for API responses
+ *
+ * All Date fields are converted to ISO string format.
+ * Matches the database schema from analysisRuns table.
+ */
+export type SerializedAnalysisRun = {
+  id: string;
+  projectId: string;
+  userId: string;
+  version: number;
+  status: string;
+  progress: number | null;
+  aiModel: string | null;
+  aiProvider: string | null;
+  confidence: number | null;
+  results: string | null;
+  errorMessage: string | null;
+  errorDetails: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  duration: number | null;
+  createdAt: string;
+  activityLog?: Array<{
+    id: string;
+    action: string;
+    status: string;
+    result?: string;
+    details?: any;
+    timestamp: string;
+  }>; // Added by service layer
 };
 
 /**

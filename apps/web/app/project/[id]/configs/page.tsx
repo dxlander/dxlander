@@ -19,6 +19,7 @@ import {
   Pencil,
   Plus,
   Rocket,
+  Terminal,
   Trash2,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -111,6 +112,12 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
         <Button variant="ghost" size="sm">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Project
+        </Button>
+      </Link>
+      <Link href={`/project/${resolvedParams.id}/logs`}>
+        <Button variant="outline" size="sm">
+          <Terminal className="h-4 w-4 mr-2" />
+          View Logs
         </Button>
       </Link>
       <Link href={`/project/${resolvedParams.id}/configs/new`}>

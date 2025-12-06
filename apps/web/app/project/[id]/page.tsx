@@ -26,6 +26,7 @@ import {
   HardDrive,
   Files,
   FolderTree,
+  Terminal,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { formatDistanceToNow, format } from 'date-fns';
@@ -171,6 +172,12 @@ export default function ProjectDetailPage({ params }: PageProps) {
             </div>
 
             <div className="flex items-center gap-2">
+              <Link href={`/project/${resolvedParams.id}/logs`}>
+                <Button variant="ghost" size="sm">
+                  <Terminal className="h-4 w-4 mr-2" />
+                  View Logs
+                </Button>
+              </Link>
               <Button variant="ghost" size="sm">
                 <FolderTree className="h-4 w-4 mr-2" />
                 Files

@@ -1,9 +1,10 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download, CheckCircle2, XCircle } from 'lucide-react';
+import { Download, CheckCircle2, XCircle, ExternalLink } from 'lucide-react';
 import { ActivityLogEntry } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 
@@ -14,6 +15,8 @@ interface AIActivityMonitorProps {
   error?: string;
   onExportLogs?: () => void;
   className?: string;
+  projectId?: string;
+  analysisId?: string;
 }
 
 const ActivityLogItem: React.FC<{ entry: ActivityLogEntry }> = ({ entry }) => {
@@ -44,6 +47,8 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
   error,
   onExportLogs,
   className,
+  projectId,
+  analysisId,
 }) => {
   return (
     <Card variant="elevated" className={cn('', className)}>
@@ -90,7 +95,17 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
             <XCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-red-900 mb-1">Analysis Failed</p>
-              <p className="text-sm text-red-700">{error || 'An error occurred during analysis'}</p>
+              <p className="text-sm text-red-700 mb-3">
+                {error || 'An error occurred during analysis'}
+              </p>
+              {projectId && analysisId && (
+                <Link href={`/project/${projectId}/logs?run=${analysisId}`}>
+                  <Button variant="outline" size="sm" className="bg-white">
+                    <ExternalLink className="h-3 w-3 mr-2" />
+                    View Detailed Logs
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

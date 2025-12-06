@@ -1,0 +1,164 @@
+/**
+ * useSSE Hook - Real-time Server-Sent Events
+ *
+ * Enterprise-grade hook for subscribing to real-time server updates.
+ * Handles reconnection, error handling, and cleanup automatically.
+ */
+
+/* eslint-disable no-undef */
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { config } from '@/lib/config';
+
+interface SSEOptions {
+  enabled?: boolean;
+  onMessage?: (data: any) => void;
+  onError?: (error: Event) => void;
+  onOpen?: () => void;
+  reconnectInterval?: number;
+}
+
+interface SSEState<T> {
+  data: T | null;
+  isConnected: boolean;
+  error: string | null;
+}
+
+/**
+ * Hook to subscribe to Server-Sent Events
+ */
+export function useSSE<T = any>(url: string, options: SSEOptions = {}): SSEState<T> {
+  const { enabled = true, onMessage, onError, onOpen, reconnectInterval = 3000 } = options;
+
+  const [data, setData] = useState<T | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const shouldReconnectRef = useRef(true);
+
+  const cleanup = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    setIsConnected(false);
+  }, []);
+
+  const connect = useCallback(() => {
+    if (!enabled || eventSourceRef.current) return;
+
+    try {
+      // Get auth token
+      const token = localStorage.getItem('dxlander-token');
+      if (!token) {
+        setError('No authentication token found');
+        return;
+      }
+
+      // Create EventSource with auth header (via query param since EventSource doesn't support headers)
+      const fullUrl = `${config.apiUrl}${url}?token=${encodeURIComponent(token)}`;
+      const eventSource = new EventSource(fullUrl);
+
+      eventSource.onopen = () => {
+        console.log('[SSE] Connection opened:', url);
+        setIsConnected(true);
+        setError(null);
+        shouldReconnectRef.current = true;
+        onOpen?.();
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const parsedData = JSON.parse(event.data);
+
+          // Handle different message types
+          switch (parsedData.type) {
+            case 'connected':
+              console.log('[SSE] Connected to stream:', parsedData);
+              break;
+
+            case 'progress':
+              setData(parsedData);
+              onMessage?.(parsedData);
+              break;
+
+            case 'done':
+              console.log('[SSE] Stream completed:', parsedData.status);
+              shouldReconnectRef.current = false; // Don't reconnect after completion
+              cleanup();
+              break;
+
+            case 'error':
+              console.error('[SSE] Server error:', parsedData.error);
+              setError(parsedData.error);
+              break;
+
+            case 'heartbeat':
+              // Heartbeat to keep connection alive
+              break;
+
+            default:
+              console.log('[SSE] Unknown message type:', parsedData.type);
+          }
+        } catch (err) {
+          console.error('[SSE] Failed to parse message:', err, event.data);
+        }
+      };
+
+      eventSource.onerror = (event) => {
+        console.error('[SSE] Connection error:', event);
+        setError('Connection error');
+        setIsConnected(false);
+        onError?.(event);
+
+        // Attempt to reconnect if we should
+        if (shouldReconnectRef.current) {
+          cleanup();
+          reconnectTimeoutRef.current = setTimeout(() => {
+            console.log('[SSE] Attempting to reconnect...');
+            connect();
+          }, reconnectInterval);
+        }
+      };
+
+      eventSourceRef.current = eventSource;
+    } catch (err) {
+      console.error('[SSE] Failed to create connection:', err);
+      setError(err instanceof Error ? err.message : 'Failed to connect');
+    }
+  }, [url, enabled, onMessage, onError, onOpen, cleanup, reconnectInterval]);
+
+  // Connect when enabled
+  useEffect(() => {
+    if (enabled) {
+      connect();
+    }
+
+    return cleanup;
+  }, [enabled, connect, cleanup]);
+
+  return { data, isConnected, error };
+}
+
+/**
+ * Hook specifically for analysis progress
+ */
+export function useAnalysisProgress(analysisId: string | null, enabled = true) {
+  return useSSE(`/sse/analysis/${analysisId}`, {
+    enabled: enabled && !!analysisId,
+  });
+}
+
+/**
+ * Hook specifically for config generation progress
+ */
+export function useConfigProgress(configSetId: string | null, enabled = true) {
+  return useSSE(`/sse/config/${configSetId}`, {
+    enabled: enabled && !!configSetId,
+  });
+}

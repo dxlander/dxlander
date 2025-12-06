@@ -16,6 +16,7 @@ import { errorHandler } from './middleware/error';
 // Import auth routes
 import authRoutes from './routes/auth';
 import uploadRoutes from './routes/upload';
+import { sseApp } from './routes/sse';
 
 // Initialize encryption service on startup
 initializeEncryptionService();
@@ -143,6 +144,10 @@ app.route('/auth', authRoutes);
 // Upload routes (file upload)
 app.route('/upload', uploadRoutes);
 
+// SSE routes (real-time progress streaming)
+// Note: SSE routes have their own auth middleware that supports query params
+app.route('/sse', sseApp);
+
 // tRPC route
 app.use(
   '/trpc/*',
@@ -166,6 +171,10 @@ app.get('/', (c) => {
         verify: '/auth/verify',
       },
       trpc: '/trpc',
+      sse: {
+        analysis: '/sse/analysis/:analysisId',
+        config: '/sse/config/:configSetId',
+      },
     },
   });
 });

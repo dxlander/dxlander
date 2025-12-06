@@ -73,6 +73,47 @@ export abstract class BaseToolProvider implements IAIProvider {
   abstract testConnection(): Promise<boolean>;
 
   /**
+   * Extract detailed error message from AI SDK error structures
+   * This helps surface rate limit messages and other provider errors that get wrapped
+   */
+  protected extractDetailedError(error: any): string | null {
+    // Try multiple paths where detailed errors might be hiding
+    const paths = [
+      error.lastError?.data?.error?.metadata?.raw,
+      error.lastError?.responseBody,
+      error.data?.error?.metadata?.raw,
+      error.responseBody,
+      error.cause?.responseBody,
+    ];
+
+    for (const path of paths) {
+      if (typeof path === 'string') {
+        try {
+          // Try to parse JSON if it's a string
+          const parsed = JSON.parse(path);
+          const raw = parsed?.error?.metadata?.raw;
+          if (raw && typeof raw === 'string') {
+            return raw;
+          }
+        } catch {
+          // If not JSON, check if it's a useful string
+          if (path.length > 10 && path.length < 500) {
+            return path;
+          }
+        }
+      } else if (path && typeof path === 'object') {
+        // Already an object
+        const raw = path?.error?.metadata?.raw;
+        if (raw && typeof raw === 'string') {
+          return raw;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Send basic chat completion request (no tools)
    */
   async chat(request: AICompletionRequest): Promise<AICompletionResponse> {
@@ -160,7 +201,7 @@ export abstract class BaseToolProvider implements IAIProvider {
       console.log(`🤖 Starting ${this.name} analysis with tool-calling...`);
 
       // Use streaming with comprehensive error handling
-      const result = await streamText({
+      const result = streamText({
         model,
         system: systemPrompt,
         prompt: analysisPrompt,
@@ -202,16 +243,23 @@ export abstract class BaseToolProvider implements IAIProvider {
         },
       });
 
-      // Await the full text response (this automatically consumes the stream)
-      // Using result.text instead of manually iterating ensures errors are propagated correctly
-      const fullResponse = await result.text;
+      let fullResponse: string;
+      try {
+        fullResponse = await result.text;
+      } catch (textError: any) {
+        console.error(
+          'Full error object:',
+          JSON.stringify(textError, Object.getOwnPropertyNames(textError), 2)
+        );
+        throw textError;
+      }
 
       console.log(`✅ ${this.name} analysis complete (${fullResponse.length} chars)`);
 
       // Check if we got an empty response
       if (!fullResponse || fullResponse.trim().length === 0) {
         throw new Error(
-          'Received empty response from AI. The model may not have completed its response.'
+          'AI returned empty response. The model may have encountered an error or been rate limited. Check the logs for more details.'
         );
       }
 
@@ -231,6 +279,25 @@ export abstract class BaseToolProvider implements IAIProvider {
       const errorData = error.data?.error;
       const responseBody = error.responseBody;
       const lastError = error.lastError || error.errors?.[0];
+
+      if (errorMessage.includes('No output generated')) {
+        console.log('Error object keys:', Object.keys(error));
+        console.log('Error lastError:', error.lastError);
+        console.log('Error errors:', error.errors);
+
+        // Try to extract detailed error
+        const detailedError = this.extractDetailedError(error);
+
+        if (detailedError) {
+          console.log('Found detailed error:', detailedError);
+          throw new Error(detailedError);
+        }
+
+        // If no detailed error found, provide a helpful generic message
+        throw new Error(
+          'AI model did not generate output. This could be due to rate limiting, model errors, or network issues. Please try again or select a different model.'
+        );
+      }
 
       // Provide helpful error messages for common issues
       if (errorMessage.includes('No endpoints found that support tool use')) {

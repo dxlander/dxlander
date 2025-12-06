@@ -238,6 +238,44 @@ export const configsRouter = router({
     }),
 
   /**
+   * Get config generation logs
+   */
+  getLogs: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
+    try {
+      const { userId } = ctx;
+      if (!userId) {
+        throw new Error('User not authenticated');
+      }
+
+      // Verify ownership before returning logs
+      const { db, schema } = await import('@dxlander/database');
+      const { eq } = await import('drizzle-orm');
+
+      const configSet = await db.query.configSets.findFirst({
+        where: eq(schema.configSets.id, input.id),
+      });
+
+      if (!configSet) {
+        throw new Error('Configuration not found');
+      }
+
+      if (configSet.userId !== userId) {
+        throw new Error('Unauthorized: You do not have access to this configuration');
+      }
+
+      const logs = await ConfigGenerationService.getConfigProgress(input.id);
+
+      return logs;
+    } catch (error) {
+      console.error('Failed to get config logs:', error);
+      if (error instanceof Error) {
+        throw new Error(error.message);
+      }
+      throw new Error('Failed to retrieve configuration logs');
+    }
+  }),
+
+  /**
    * Update config metadata (environment variables, integrations, etc.)
    * This updates the _summary.json file on disk
    */

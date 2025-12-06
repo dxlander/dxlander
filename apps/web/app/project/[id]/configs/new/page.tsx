@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
+import { useAnalysisProgress } from '@/lib/hooks/useSSE';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -81,24 +82,34 @@ export default function NewConfigurationPage({ params }: PageProps) {
   // Mutation for generating config
   const generateConfigMutation = trpc.configs.generate.useMutation();
 
-  // Poll analysis progress (faster for better UX)
-  const { data: analysisProgress } = trpc.analysis.getProgress.useQuery(
-    { analysisId: analysisId! },
-    {
-      enabled: !!analysisId && stage === 'analyzing',
-      refetchInterval: 500, // Poll every 500ms for real-time feel
-      refetchIntervalInBackground: true, // Keep polling even when tab is not focused
-    }
+  // Real-time analysis progress via Server-Sent Events (enterprise-grade approach)
+  const { data: analysisProgressSSE, isConnected: _isSSEConnected } = useAnalysisProgress(
+    analysisId,
+    stage === 'analyzing'
   );
 
-  // Watch for analysis completion and start config generation
+  // Use SSE data as the analysis progress
+  const analysisProgress = analysisProgressSSE;
+
+  // Watch for analysis completion/failure and start config generation or handle error
   useEffect(() => {
-    if (
-      analysisProgress?.status === 'complete' &&
-      stage === 'analyzing' &&
-      analysisId &&
-      selectedType
-    ) {
+    if (!analysisProgress || stage !== 'analyzing') return;
+
+    // Handle analysis failure - redirect to logs page
+    if (analysisProgress.status === 'failed') {
+      console.error('Analysis failed:', analysisProgress.error);
+      setIsGenerating(false);
+      setStage('select');
+
+      // Redirect to logs page to show detailed error information
+      if (analysisId) {
+        router.push(`/project/${resolvedParams.id}/logs?run=${analysisId}`);
+      }
+      return;
+    }
+
+    // Handle analysis completion
+    if (analysisProgress.status === 'complete' && analysisId && selectedType) {
       setStage('generating');
 
       // Start config generation
@@ -117,12 +128,16 @@ export default function NewConfigurationPage({ params }: PageProps) {
             console.error('Config generation failed:', error);
             setStage('select');
             setIsGenerating(false);
+
+            // Note: Config generation errors will show in the config detail page's logs tab
+            // We don't redirect here because the config record was already created
           },
         }
       );
     }
   }, [
     analysisProgress?.status,
+    analysisProgress?.error,
     stage,
     analysisId,
     selectedType,
@@ -310,6 +325,8 @@ export default function NewConfigurationPage({ params }: PageProps) {
                         : 'analyzing'
                   }
                   error={analysisProgress.error}
+                  projectId={resolvedParams.id}
+                  analysisId={analysisId || undefined}
                 />
               ) : (
                 <Card variant="elevated">

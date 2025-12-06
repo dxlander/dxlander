@@ -445,4 +445,57 @@ export class AIAnalysisService {
 
     return JSON.parse(analysis.results);
   }
+
+  /**
+   * Get analysis history for a project
+   */
+  static async getAnalysisHistory(projectId: string, userId: string): Promise<any[]> {
+    // Verify user owns the project
+    const project = await db.query.projects.findFirst({
+      where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
+    });
+
+    if (!project) {
+      throw new Error('Project not found');
+    }
+
+    // Get all analysis runs for the project
+    const analysisRuns = await db.query.analysisRuns.findMany({
+      where: eq(schema.analysisRuns.projectId, projectId),
+      orderBy: [desc(schema.analysisRuns.createdAt)],
+    });
+
+    // For each analysis run, get activity logs
+    const analysisWithLogs = await Promise.all(
+      analysisRuns.map(async (run) => {
+        // Get activity logs for this run
+        const logs = await db.query.analysisActivityLogs.findMany({
+          where: eq(schema.analysisActivityLogs.analysisRunId, run.id),
+          orderBy: [desc(schema.analysisActivityLogs.timestamp)],
+          limit: 100, // Limit to last 100 logs
+        });
+
+        // Map logs to expected frontend format
+        const activityLog = logs.map((log) => ({
+          id: log.id,
+          action: log.action,
+          status: log.status,
+          result: log.result || undefined,
+          details: log.details
+            ? typeof log.details === 'string'
+              ? JSON.parse(log.details)
+              : log.details
+            : undefined,
+          timestamp: log.timestamp.toISOString(),
+        }));
+
+        return {
+          ...run,
+          activityLog: activityLog.reverse(), // Oldest first
+        };
+      })
+    );
+
+    return analysisWithLogs;
+  }
 }

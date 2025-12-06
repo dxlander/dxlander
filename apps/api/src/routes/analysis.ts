@@ -84,4 +84,31 @@ export const analysisRouter = router({
       throw new Error('Failed to retrieve analysis results');
     }
   }),
+
+  /**
+   * Get analysis history for a project
+   */
+  getHistory: protectedProcedure
+    .input(
+      z.object({
+        projectId: z.string(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      try {
+        const { userId } = ctx;
+        if (!userId) {
+          throw new Error('User not authenticated');
+        }
+
+        const history = await AIAnalysisService.getAnalysisHistory(input.projectId, userId);
+        return history;
+      } catch (error) {
+        console.error('Failed to get analysis history:', error);
+        if (error instanceof Error) {
+          throw new Error(error.message);
+        }
+        throw new Error('Failed to retrieve analysis history');
+      }
+    }),
 });
