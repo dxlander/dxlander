@@ -18,7 +18,7 @@ Skip the configuration hassle. Import any project, get deployment-ready instantl
 [![CI](https://github.com/dxlander/dxlander/actions/workflows/ci.yml/badge.svg)](https://github.com/dxlander/dxlander/actions/workflows/ci.yml)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.4-blue)](https://www.typescriptlang.org/)
-[![Next.js](https://img.shields.io/badge/Next.js-15-black)](https://nextjs.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16-black)](https://nextjs.org/)
 [![Development Status](https://img.shields.io/badge/Status-Heavy%20Development-red)](#current-status)
 
 [Features](#key-features) • [Quick Start](#quick-start) • [Documentation](#documentation) • [Contributing](#contributing)
@@ -139,7 +139,7 @@ DXLander supports two database options:
 ### Backend
 
 - **Hono**
-- **Node.js 18+**
+- **Node.js 20.9+**
 - **tRPC**
 
 ### Infrastructure
@@ -153,7 +153,7 @@ DXLander supports two database options:
 
 ### Prerequisites
 
-- **Node.js 18+** (for npm/source installation)
+- **Node.js 20.9+** (required by Next.js 16)
 - **pnpm** (for development)
 - **Docker** (optional, for containerized deployment)
 

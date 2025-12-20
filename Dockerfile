@@ -8,7 +8,7 @@
 #
 # Or use docker-compose: docker-compose up
 
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Install only essential runtime dependencies
 RUN apk add --no-cache curl dumb-init

@@ -65,7 +65,7 @@ Help improve our documentation:
 #### Development Setup
 
 1. **Prerequisites**
-   - Node.js 18+
+   - Node.js 20.9+
    - pnpm 8+
    - Git
 

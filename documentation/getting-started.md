@@ -6,7 +6,7 @@ This guide will get you up and running with DXLander locally for development.
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js** 18.0.0 or higher
+- **Node.js** 20.9.0 or higher (required by Next.js 16)
 - **pnpm** 8.0.0 or higher - Install with `npm install -g pnpm`
 - **Git** - For version control
 
@@ -274,7 +274,7 @@ chmod 755 ~/.dxlander
 Verify Node.js version meets the minimum requirement:
 
 ```bash
-node --version  # Required: 18.0.0 or higher
+node --version  # Required: 20.9.0 or higher
 ```
 
 ## Next Steps

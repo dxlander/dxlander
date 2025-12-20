@@ -32,7 +32,7 @@ assignees: ''
 ## Environment
 
 - **OS:** [e.g., macOS, Windows, Linux]
-- **Node Version:** [e.g., 18.0.0]
+- **Node Version:** [e.g., 20.9.0]
 - **pnpm Version:** [e.g., 8.15.0]
 - **Browser:** [e.g., Chrome, Safari] (if applicable)
 - **DXLander Version:** [e.g., 0.1.0-alpha.1]
