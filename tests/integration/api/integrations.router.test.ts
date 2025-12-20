@@ -27,7 +27,7 @@ describe.skip('IntegrationsRouter', () => {
     for (const id of createdIntegrationIds) {
       try {
         await db.delete(schema.integrations).where(eq(schema.integrations.id, id));
-      } catch (error) {
+      } catch (_error) {
         // Integration might already be deleted
       }
     }

@@ -107,12 +107,12 @@
     "@playwright/test": "^1.43.0",
     "@types/bun": "latest",
     "@types/node": "^20.11.30",
-    "@typescript-eslint/eslint-plugin": "^7.0.0",
-    "@typescript-eslint/parser": "^7.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
     "@vitest/ui": "^1.6.1",
     "concurrently": "^9.2.1",
     "esbuild": "^0.19.12",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.2",
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.0",
@@ -121,7 +121,7 @@
     "vitest": "^1.6.1"
   },
   "engines": {
-    "node": ">=18.0.0",
+    "node": ">=20.9.0",
     "pnpm": ">=8.0.0"
   },
   "packageManager": "pnpm@8.15.1",

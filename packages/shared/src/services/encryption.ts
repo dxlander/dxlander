@@ -75,7 +75,7 @@ export class EncryptionService {
       if (this.masterKey.length !== KEY_LENGTH) {
         throw new Error(`Invalid key length: expected ${KEY_LENGTH} bytes`);
       }
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Invalid master key format');
     }
   }
@@ -124,7 +124,7 @@ export class EncryptionService {
       decrypted += decipher.final('utf8');
 
       return decrypted;
-    } catch (error) {
+    } catch (_error) {
       throw new Error('Decryption failed: invalid data or wrong key');
     }
   }

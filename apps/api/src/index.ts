@@ -149,10 +149,11 @@ app.route('/upload', uploadRoutes);
 app.route('/sse', sseApp);
 
 // tRPC route
+// Note: Type assertion needed due to @hono/trpc-server not yet supporting tRPC v11.8 error codes
 app.use(
   '/trpc/*',
   trpcServer({
-    router: appRouter,
+    router: appRouter as Parameters<typeof trpcServer>[0]['router'],
     createContext,
   })
 );

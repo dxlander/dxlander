@@ -1039,7 +1039,7 @@ export function extractJsonFromResponse(response: string): any {
   if (codeBlockMatch) {
     try {
       return JSON.parse(codeBlockMatch[1].trim());
-    } catch (error) {
+    } catch (_error) {
       // Continue to next strategy
     }
   }
@@ -1050,7 +1050,7 @@ export function extractJsonFromResponse(response: string): any {
   if (jsonObjectMatch) {
     try {
       return JSON.parse(jsonObjectMatch[1].trim());
-    } catch (error) {
+    } catch (_error) {
       // Continue to next strategy
     }
   }

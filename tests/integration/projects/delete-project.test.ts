@@ -52,7 +52,7 @@ describe('Delete Project Implementation Verification', () => {
         const sharedPath = join(process.cwd(), 'packages/shared/src/services/file-storage.ts');
         const content = readFileSync(sharedPath, 'utf8');
         expect(content).toContain('export function deleteProjectFiles');
-      } catch (error) {
+      } catch (_error) {
         // If file doesn't exist in this location, check alternatives
         const files = ['packages/shared/src/index.ts', 'packages/shared/dist/index.js'];
 
@@ -64,7 +64,7 @@ describe('Delete Project Implementation Verification', () => {
               found = true;
               break;
             }
-          } catch (e) {
+          } catch (_e) {
             // Continue checking
           }
         }

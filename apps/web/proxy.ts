@@ -1,9 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 /**
- * DXLander Middleware
+ * DXLander Proxy
  * Handles setup detection, authentication, and routing logic
- * Following Next.js 13+ best practices
+ * Following Next.js 16+ best practices
  */
 
 interface SetupStatus {
@@ -93,7 +93,7 @@ function isProtectedRoute(pathname: string): boolean {
   return PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isDev = process.env.NODE_ENV !== 'production';
   const previewParam = isDev && request.nextUrl.searchParams.has('previewSetup');
@@ -103,7 +103,7 @@ export async function middleware(request: NextRequest) {
   const shouldPersistPreview = Boolean(previewParam && isDev);
   const shouldClearPreview = Boolean(clearPreviewParam && isDev);
 
-  // Skip middleware for static files and API routes we don't want to protect
+  // Skip proxy for static files and API routes we don't want to protect
   if (
     pathname.startsWith('/_next/') ||
     pathname.startsWith('/favicon.ico') ||
@@ -194,7 +194,7 @@ export async function middleware(request: NextRequest) {
 
     return response;
   } catch (error) {
-    console.error('Middleware error:', error);
+    console.error('Proxy error:', error);
 
     // On error, redirect to setup for safety
     if (pathname !== '/setup') {

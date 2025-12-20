@@ -165,7 +165,7 @@ export const setupRouter = router({
           isValid: Object.keys(errors).length === 0,
           errors: Object.keys(errors).length > 0 ? errors : undefined,
         };
-      } catch (error) {
+      } catch (_error) {
         throw new Error(`Failed to validate ${step} step`);
       }
     }),
@@ -194,7 +194,7 @@ export const setupRouter = router({
         } else {
           return { success: true, message: `Successfully connected to ${input.dbType} database` };
         }
-      } catch (error) {
+      } catch (_error) {
         return { success: false, message: 'Failed to connect to database' };
       }
     }),
@@ -223,7 +223,7 @@ export const setupRouter = router({
         await new Promise((resolve) => setTimeout(resolve, 1500));
 
         return { success: true, message: `Successfully connected to ${input.provider} API` };
-      } catch (error) {
+      } catch (_error) {
         return { success: false, message: 'Failed to connect to AI service' };
       }
     }),

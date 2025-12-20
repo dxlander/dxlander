@@ -37,7 +37,7 @@ async function bundleAPI() {
         try {
             const pkgJson = JSON.parse(await readFile(pkgJsonPath, 'utf-8'));
             Object.keys(pkgJson.dependencies || {}).forEach(dep => allDeps.add(dep));
-        } catch (error) {
+        } catch (_error) {
             // Package might not exist, skip
         }
     }

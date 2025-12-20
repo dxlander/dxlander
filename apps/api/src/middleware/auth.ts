@@ -62,7 +62,7 @@ function verifyJWT(token: string): AuthUser {
       role: decoded.role,
       name: decoded.name,
     };
-  } catch (error) {
+  } catch (_error) {
     throw new HTTPException(401, {
       message: 'Invalid or expired token',
       cause: 'INVALID_TOKEN',

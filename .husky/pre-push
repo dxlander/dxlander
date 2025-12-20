@@ -1,6 +1,3 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "🚀 Pre-push validation..."
 
 # Note: Skipping clean/rebuild due to environment-specific build behavior

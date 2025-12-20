@@ -206,7 +206,7 @@ async function build() {
             cleanDeps[name] = version;
           }
         });
-      } catch (error) {
+      } catch (_error) {
         // Package might not exist, skip
       }
     }
