@@ -338,7 +338,7 @@ export class AIAnalysisService {
                 size: stats.size,
                 isDirectory: false,
               });
-            } catch (error) {
+            } catch (_error) {
               // Skip files that can't be read
               console.warn(`Could not read file: ${relativePath}`);
             }

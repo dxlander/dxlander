@@ -66,7 +66,7 @@ export async function extractZipFile(
       const dir = path.dirname(fullPath);
       ensureDir(dir);
       fs.writeFileSync(fullPath, content, 'utf-8');
-    } catch (error) {
+    } catch (_error) {
       // Skip files that can't be read as text (binary files)
       console.log(`Skipping binary file: ${entry.entryName}`);
     }
@@ -121,7 +121,7 @@ export function validateZipFile(
       valid: true,
       size: buffer.length,
     };
-  } catch (error) {
+  } catch (_error) {
     return {
       valid: false,
       error: 'Invalid ZIP file format',

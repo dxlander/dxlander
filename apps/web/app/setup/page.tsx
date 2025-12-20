@@ -208,7 +208,7 @@ function SetupPageContent() {
         confirmPassword: 'admin123456',
         useDefaults: true,
       });
-    } catch (error) {
+    } catch (_error) {
       // Error handled in mutation onError
     } finally {
       setLoading(false);

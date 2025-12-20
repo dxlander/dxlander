@@ -384,7 +384,7 @@ export class ConfigGenerationService {
         const summaryPath = path.join(configSet.localPath, '_summary.json');
         const summaryContent = await fs.readFile(summaryPath, 'utf-8');
         metadata = JSON.parse(summaryContent);
-      } catch (error) {
+      } catch (_error) {
         // File doesn't exist or couldn't be read - that's okay
         console.log('_summary.json not found or unreadable for config:', configSetId);
       }

@@ -101,7 +101,7 @@ auth.get('/verify', async (c) => {
         role: decoded.role,
       },
     });
-  } catch (error) {
+  } catch (_error) {
     return c.json({ success: false, message: 'Invalid or expired token' }, 401);
   }
 });
