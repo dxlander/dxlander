@@ -11,14 +11,13 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { trpc, type AppRouter } from '@/lib/trpc';
-import type { ConfigSet } from '@dxlander/shared';
-import type { inferRouterOutputs } from '@trpc/server';
+import { trpc } from '@/lib/trpc';
+import type { ConfigSet, SerializedProject } from '@dxlander/shared';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Define types for our data
-type Project = inferRouterOutputs<AppRouter>['projects']['get'];
+// Use serialized project type from shared package
+type Project = SerializedProject;
 
 export interface DeleteConfigDialogProps {
   config: ConfigSet;

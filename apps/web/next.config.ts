@@ -11,10 +11,6 @@ const nextConfig: NextConfig = {
     // TODO: Fix workspace package resolution for production builds
     ignoreBuildErrors: true,
   },
-  eslint: {
-    // Temporarily ignore during builds for alpha release
-    ignoreDuringBuilds: true,
-  },
 };
 
 export default nextConfig;
