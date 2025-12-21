@@ -50,12 +50,25 @@ interface ProjectStructure {
   hasDocumentation: boolean;
 }
 
+// Recommendation can be a string or an object with various properties
+type RecommendationItem =
+  | string
+  | {
+      recommendation?: string;
+      message?: string;
+      action?: string;
+      priority?: string;
+      category?: string;
+      severity?: string;
+    };
+
 interface ConfigSummary {
   projectSummary?: ProjectSummary;
   builtInCapabilities?: BuiltInCapability[];
   language?: Language;
   projectStructure?: ProjectStructure;
-  recommendations?: string[];
+  recommendations?: RecommendationItem[];
+  warnings?: RecommendationItem[];
   dependencies?: {
     totalCount: number;
   };
@@ -66,6 +79,15 @@ interface ConfigSummary {
       description: string;
     }>;
   };
+}
+
+// Helper to extract text from recommendation item
+function getRecommendationText(item: RecommendationItem): string {
+  if (typeof item === 'string') {
+    return item;
+  }
+  // Try various properties that might contain the text
+  return item.recommendation || item.message || item.action || JSON.stringify(item);
 }
 
 interface OverviewTabProps {
@@ -320,10 +342,10 @@ export function OverviewTab({
           </CardHeader>
           <CardContent>
             <ul className="space-y-3">
-              {summary.recommendations.map((rec: string, idx: number) => (
+              {summary.recommendations.map((rec: RecommendationItem, idx: number) => (
                 <li key={idx} className="flex items-start gap-3 text-sm text-amber-900">
                   <CheckCircle2 className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-600" />
-                  <span>{rec}</span>
+                  <span>{getRecommendationText(rec)}</span>
                 </li>
               ))}
             </ul>

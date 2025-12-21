@@ -129,17 +129,10 @@ export const analysisActivityLogs = sqliteTable(
     // Log entry details
     timestamp: integer('timestamp', { mode: 'timestamp' }).notNull(),
     action: text('action').notNull(),
-    status: text('status').notNull(), // pending, in_progress, complete, error
 
     // Results
     result: text('result'),
-    details: text('details'), // JSON array
-
-    // File tracking
-    fileName: text('file_name'),
-
-    // Performance
-    duration: integer('duration'), // milliseconds
+    details: text('details'), // JSON: tool input/output, file content, etc.
 
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
@@ -213,9 +206,8 @@ export const configActivityLogs = sqliteTable(
 
     // Activity details
     action: text('action').notNull(), // 'write_file', 'read_file', 'thinking', 'planning'
-    status: text('status').notNull(), // 'started', 'completed', 'failed'
     result: text('result'), // Result/output of the action
-    details: text('details'), // JSON: additional context
+    details: text('details'), // JSON: tool input/output, file content, etc.
 
     timestamp: integer('timestamp', { mode: 'timestamp' })
       .notNull()

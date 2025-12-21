@@ -124,6 +124,16 @@ const PROVIDER_INFO = {
     borderColor: 'border-orange-200',
     description: 'OpenRouter unified API for multiple AI models',
   },
+  'openai-compatible': {
+    name: 'OpenAI Compatible',
+    icon: Server,
+    requiresApiKey: false,
+    requiresBaseUrl: true,
+    models: [],
+    color: 'bg-cyan-100 text-cyan-700',
+    borderColor: 'border-cyan-200',
+    description: 'Any OpenAI-compatible API (LM Studio, Ollama, vLLM, etc.)',
+  },
 } as const;
 
 type ProviderType = keyof typeof PROVIDER_INFO;
@@ -163,6 +173,14 @@ export function AIProvidersTab() {
       isFree: boolean;
     }>
   >([]);
+  // State for OpenAI-compatible models fetched from the /v1/models endpoint
+  const [compatibleModels, setCompatibleModels] = useState<
+    Array<{ id: string; name: string; owned_by: string }>
+  >([]);
+  const [compatibleModelsStatus, setCompatibleModelsStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [compatibleModelsMessage, setCompatibleModelsMessage] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -251,6 +269,31 @@ export function AIProvidersTab() {
         (!!formData.apiKey || providers.some((p) => p.provider === formData.provider)),
     }
   );
+  const fetchCompatibleModelsMutation = trpc.aiProviders.fetchCompatibleModels.useMutation({
+    onSuccess: (result) => {
+      if (result.success) {
+        setCompatibleModels(result.models);
+        setCompatibleModelsStatus('success');
+        setCompatibleModelsMessage(result.message);
+        toast.success(result.message);
+        // Auto-select first model if available and no model is selected
+        if (result.models.length > 0 && !formData.model) {
+          setFormData((prev) => ({ ...prev, model: result.models[0].id }));
+        }
+      } else {
+        setCompatibleModels([]);
+        setCompatibleModelsStatus('error');
+        setCompatibleModelsMessage(result.message);
+        toast.error(result.message);
+      }
+    },
+    onError: (error) => {
+      setCompatibleModels([]);
+      setCompatibleModelsStatus('error');
+      setCompatibleModelsMessage(error.message);
+      toast.error(`Failed to fetch models: ${error.message}`);
+    },
+  });
 
   // Update detailed models when data changes
   useEffect(() => {
@@ -265,6 +308,11 @@ export function AIProvidersTab() {
 
     // Clear detailed models when provider changes to prevent stale data
     setDetailedModels([]);
+
+    // Clear compatible models state when provider changes
+    setCompatibleModels([]);
+    setCompatibleModelsStatus('idle');
+    setCompatibleModelsMessage('');
 
     // If changing to OpenRouter or Groq, fetch detailed models
     if (value === 'openrouter' || value === 'groq') {
@@ -332,6 +380,26 @@ export function AIProvidersTab() {
     setShowApiKey(false);
     setTestStatus('idle');
     setTestMessage('');
+    // Reset compatible models state
+    setCompatibleModels([]);
+    setCompatibleModelsStatus('idle');
+    setCompatibleModelsMessage('');
+  };
+
+  // Handle fetching models from OpenAI-compatible endpoint
+  const handleFetchCompatibleModels = () => {
+    if (!formData.baseUrl) {
+      toast.error('Please enter a Base URL first');
+      return;
+    }
+
+    setCompatibleModelsStatus('loading');
+    setCompatibleModelsMessage('Fetching models...');
+
+    fetchCompatibleModelsMutation.mutate({
+      baseUrl: formData.baseUrl,
+      apiKey: formData.apiKey || undefined,
+    });
   };
 
   const handleTestConnection = () => {
@@ -701,11 +769,16 @@ export function AIProvidersTab() {
               </p>
             </div>
 
-            {/* API Key (if required) */}
-            {PROVIDER_INFO[formData.provider].requiresApiKey && (
+            {/* API Key (required for most providers, optional for openai-compatible local models) */}
+            {(PROVIDER_INFO[formData.provider].requiresApiKey ||
+              formData.provider === 'openai-compatible') && (
               <div className="space-y-2">
                 <FloatingInput
-                  label="API Key"
+                  label={
+                    formData.provider === 'openai-compatible'
+                      ? 'API Key (optional for local models)'
+                      : 'API Key'
+                  }
                   type={showApiKey ? 'text' : 'password'}
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
@@ -721,7 +794,9 @@ export function AIProvidersTab() {
                   }
                 />
                 <p className="text-xs text-gray-500">
-                  Your API key will be encrypted with AES-256-GCM
+                  {formData.provider === 'openai-compatible'
+                    ? 'Required for remote services (Together, Cloudflare, etc.). Leave empty for local models.'
+                    : 'Your API key will be encrypted with AES-256-GCM'}
                 </p>
               </div>
             )}
@@ -744,37 +819,122 @@ export function AIProvidersTab() {
             {/* Model Selection */}
             <div className="space-y-2">
               <Label htmlFor="model">Model</Label>
-              <Select
-                value={formData.model}
-                onValueChange={(value) => setFormData({ ...formData, model: value })}
-              >
-                <SelectTrigger id="model">
-                  <SelectValue placeholder="Select a model" />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
-                  {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
-                  detailedModels.length > 0
-                    ? detailedModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{model.name}</span>
-                            <Badge
-                              variant="secondary"
-                              className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                            >
-                              {model.isFree ? 'Free' : 'Paid'}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))
-                    : PROVIDER_INFO[formData.provider].models.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                </SelectContent>
-              </Select>
+              {/* For openai-compatible, show fetch button and dropdown/text input */}
+              {formData.provider === 'openai-compatible' ? (
+                <div className="space-y-3">
+                  {/* Fetch Models Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFetchCompatibleModels}
+                    disabled={!formData.baseUrl || fetchCompatibleModelsMutation.isPending}
+                    className="w-full"
+                  >
+                    {fetchCompatibleModelsMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching Models...
+                      </>
+                    ) : compatibleModelsStatus === 'success' ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                        Refresh Models
+                      </>
+                    ) : (
+                      <>
+                        <Server className="h-4 w-4 mr-2" />
+                        Fetch Available Models
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Status message */}
+                  {compatibleModelsStatus !== 'idle' && compatibleModelsMessage && (
+                    <div
+                      className={`p-2 rounded-lg border text-sm ${
+                        compatibleModelsStatus === 'success'
+                          ? 'bg-green-50 border-green-200 text-green-700'
+                          : compatibleModelsStatus === 'error'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                      }`}
+                    >
+                      {compatibleModelsMessage}
+                    </div>
+                  )}
+
+                  {/* Model selection - dropdown if models fetched, otherwise text input */}
+                  {compatibleModels.length > 0 ? (
+                    <Select
+                      value={formData.model}
+                      onValueChange={(value) => setFormData({ ...formData, model: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {compatibleModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{model.name}</span>
+                              {model.owned_by && model.owned_by !== 'unknown' && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {model.owned_by}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <>
+                      <FloatingInput
+                        label="Model Name"
+                        value={formData.model}
+                        onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                        leftIcon={<Brain className="h-4 w-4" />}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Enter the model name manually, or click &quot;Fetch Available Models&quot;
+                        to discover models from your server
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Select
+                  value={formData.model}
+                  onValueChange={(value) => setFormData({ ...formData, model: value })}
+                >
+                  <SelectTrigger id="model">
+                    <SelectValue placeholder="Select a model" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
+                    {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
+                    detailedModels.length > 0
+                      ? detailedModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{model.name}</span>
+                              <Badge
+                                variant="secondary"
+                                className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                              >
+                                {model.isFree ? 'Free' : 'Paid'}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))
+                      : PROVIDER_INFO[formData.provider].models.map((model) => (
+                          <SelectItem key={model} value={model}>
+                            {model}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             {/* Test Connection Button */}
@@ -903,11 +1063,16 @@ export function AIProvidersTab() {
               />
             </div>
 
-            {/* API Key (if required) */}
-            {PROVIDER_INFO[formData.provider].requiresApiKey && (
+            {/* API Key (required for most providers, optional for openai-compatible local models) */}
+            {(PROVIDER_INFO[formData.provider].requiresApiKey ||
+              formData.provider === 'openai-compatible') && (
               <div className="space-y-2">
                 <FloatingInput
-                  label="API Key (leave empty to keep current)"
+                  label={
+                    formData.provider === 'openai-compatible'
+                      ? 'API Key (optional, leave empty to keep current)'
+                      : 'API Key (leave empty to keep current)'
+                  }
                   type={showApiKey ? 'text' : 'password'}
                   value={formData.apiKey}
                   onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
@@ -922,7 +1087,11 @@ export function AIProvidersTab() {
                     </button>
                   }
                 />
-                <p className="text-xs text-gray-500">Leave empty to keep the existing API key</p>
+                <p className="text-xs text-gray-500">
+                  {formData.provider === 'openai-compatible'
+                    ? 'Required for remote services. Leave empty for local models or to keep existing key.'
+                    : 'Leave empty to keep the existing API key'}
+                </p>
               </div>
             )}
 
@@ -941,37 +1110,124 @@ export function AIProvidersTab() {
             {/* Model Selection */}
             <div className="space-y-2">
               <Label htmlFor="edit-model">Model</Label>
-              <Select
-                value={formData.model}
-                onValueChange={(value) => setFormData({ ...formData, model: value })}
-              >
-                <SelectTrigger id="edit-model">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
-                  {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
-                  detailedModels.length > 0
-                    ? detailedModels.map((model) => (
-                        <SelectItem key={model.id} value={model.id}>
-                          <div className="flex items-center justify-between w-full">
-                            <span>{model.name}</span>
-                            <Badge
-                              variant="secondary"
-                              className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
-                            >
-                              {model.isFree ? 'Free' : 'Paid'}
-                            </Badge>
-                          </div>
-                        </SelectItem>
-                      ))
-                    : PROVIDER_INFO[formData.provider].models.map((model) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                </SelectContent>
-              </Select>
+              {/* For openai-compatible, show fetch button and dropdown/text input */}
+              {formData.provider === 'openai-compatible' ? (
+                <div className="space-y-3">
+                  {/* Fetch Models Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleFetchCompatibleModels}
+                    disabled={!formData.baseUrl || fetchCompatibleModelsMutation.isPending}
+                    className="w-full"
+                  >
+                    {fetchCompatibleModelsMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Fetching Models...
+                      </>
+                    ) : compatibleModelsStatus === 'success' ? (
+                      <>
+                        <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                        Refresh Models
+                      </>
+                    ) : (
+                      <>
+                        <Server className="h-4 w-4 mr-2" />
+                        Fetch Available Models
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Status message */}
+                  {compatibleModelsStatus !== 'idle' && compatibleModelsMessage && (
+                    <div
+                      className={`p-2 rounded-lg border text-sm ${
+                        compatibleModelsStatus === 'success'
+                          ? 'bg-green-50 border-green-200 text-green-700'
+                          : compatibleModelsStatus === 'error'
+                            ? 'bg-amber-50 border-amber-200 text-amber-700'
+                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                      }`}
+                    >
+                      {compatibleModelsMessage}
+                    </div>
+                  )}
+
+                  {/* Model selection - dropdown if models fetched, otherwise text input */}
+                  {compatibleModels.length > 0 ? (
+                    <Select
+                      value={formData.model}
+                      onValueChange={(value) => setFormData({ ...formData, model: value })}
+                    >
+                      <SelectTrigger id="edit-model">
+                        <SelectValue placeholder="Select a model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {compatibleModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{model.name}</span>
+                              {model.owned_by && model.owned_by !== 'unknown' && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {model.owned_by}
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  ) : (
+                    <>
+                      <FloatingInput
+                        label="Model Name"
+                        value={formData.model}
+                        onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+                        leftIcon={<Brain className="h-4 w-4" />}
+                      />
+                      <p className="text-xs text-gray-500">
+                        Enter the model name manually, or click &quot;Fetch Available Models&quot;
+                        to discover models. Note: Some providers (e.g., Cloudflare Workers AI)
+                        don&apos;t expose /v1/models. For Cloudflare, use format like:
+                        @cf/meta/llama-3.1-8b-instruct
+                      </p>
+                    </>
+                  )}
+                </div>
+              ) : (
+                <Select
+                  value={formData.model}
+                  onValueChange={(value) => setFormData({ ...formData, model: value })}
+                >
+                  <SelectTrigger id="edit-model">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {/* Use detailed models for OpenRouter and Groq, otherwise use default models */}
+                    {(formData.provider === 'openrouter' || formData.provider === 'groq') &&
+                    detailedModels.length > 0
+                      ? detailedModels.map((model) => (
+                          <SelectItem key={model.id} value={model.id}>
+                            <div className="flex items-center justify-between w-full">
+                              <span>{model.name}</span>
+                              <Badge
+                                variant="secondary"
+                                className={`ml-2 ${model.isFree ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}
+                              >
+                                {model.isFree ? 'Free' : 'Paid'}
+                              </Badge>
+                            </div>
+                          </SelectItem>
+                        ))
+                      : PROVIDER_INFO[formData.provider].models.map((model) => (
+                          <SelectItem key={model} value={model}>
+                            {model}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
           </div>
 

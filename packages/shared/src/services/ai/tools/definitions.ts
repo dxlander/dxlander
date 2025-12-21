@@ -18,6 +18,7 @@ import {
   grepSearchImpl,
   globFindImpl,
   listDirectoryImpl,
+  writeFileImpl,
   type ToolContext,
 } from './implementations';
 
@@ -134,11 +135,32 @@ export function createProjectAnalysisTools(context: ToolContext) {
  * Deployment Config Generation Tools
  *
  * These tools are used when generating deployment configurations.
- * Currently, we only provide Write tool (handled separately in BaseToolProvider).
+ * Provides a Write tool for the AI to create configuration files.
  */
-export function createConfigGenerationTools(_context: ToolContext) {
+export function createConfigGenerationTools(context: ToolContext) {
   return {
-    // Future: Add Write tool here when we migrate config generation to tool-calling
-    // For now, we'll keep the Claude Agent SDK's Write tool for config generation
+    /**
+     * Write a file to the config directory
+     *
+     * Use this to create configuration files like:
+     * - Dockerfile
+     * - docker-compose.yml
+     * - .dockerignore
+     * - kubernetes manifests
+     * - deployment scripts
+     * - _summary.json (metadata)
+     */
+    writeFile: tool({
+      description: `Write a file to the configuration directory. Use this to create Dockerfile, docker-compose.yml, .dockerignore, kubernetes manifests, deployment scripts, and _summary.json. The file will be created in the current working directory.`,
+      inputSchema: z.object({
+        filePath: z
+          .string()
+          .describe(
+            'Relative file path (e.g., "Dockerfile", ".dockerignore", "docker-compose.yml", "_summary.json")'
+          ),
+        content: z.string().describe('The full content to write to the file'),
+      }),
+      execute: async ({ filePath, content }) => writeFileImpl({ filePath, content }, context),
+    }),
   };
 }

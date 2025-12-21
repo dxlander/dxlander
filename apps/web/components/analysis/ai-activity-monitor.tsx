@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,6 +50,15 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
   projectId,
   analysisId,
 }) => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when new log entries are added during analysis
+  useEffect(() => {
+    if (status === 'analyzing' && scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
+  }, [activityLog.length, status]);
+
   return (
     <Card variant="elevated" className={cn('', className)}>
       <CardHeader>
@@ -69,7 +78,10 @@ export const AIActivityMonitor: React.FC<AIActivityMonitorProps> = ({
 
       <CardContent className="space-y-4">
         {/* Activity Log */}
-        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+        <div
+          ref={scrollContainerRef}
+          className="space-y-2 max-h-[400px] overflow-y-auto scroll-smooth"
+        >
           {activityLog.length === 0 ? (
             <div className="text-center py-8 text-gray-400">
               <p className="text-sm">Waiting for analysis to start...</p>

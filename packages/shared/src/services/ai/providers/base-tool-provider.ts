@@ -10,7 +10,7 @@
  * The Claude Agent SDK does NOT use this - it has its own built-in tools.
  */
 
-import { streamText, type LanguageModel } from 'ai';
+import { streamText, stepCountIs, type LanguageModel } from 'ai';
 import type {
   IAIProvider,
   AIProviderConfig,
@@ -23,7 +23,7 @@ import type {
   DeploymentConfigResult,
 } from '../types';
 import { PromptTemplates, extractJsonFromResponse, validateAnalysisResult } from '../prompts';
-import { createProjectAnalysisTools } from '../tools';
+import { createProjectAnalysisTools, createConfigGenerationTools } from '../tools';
 
 /**
  * Base class for AI providers using Vercel AI SDK tool-calling
@@ -198,31 +198,52 @@ export abstract class BaseToolProvider implements IAIProvider {
       // Create tools with project context
       const tools = createProjectAnalysisTools({ projectPath: context.projectPath });
 
-      console.log(`🤖 Starting ${this.name} analysis with tool-calling...`);
+      // Analysis started - tools available: readFile, grepSearch, globFind, listDirectory
 
       // Use streaming with comprehensive error handling
+      // stopWhen allows multi-turn tool usage: model calls tools, receives results, then produces final output
       const result = streamText({
         model,
         system: systemPrompt,
         prompt: analysisPrompt,
         tools,
-        temperature: 0.7,
-        maxOutputTokens: 4000,
+        stopWhen: stepCountIs(50), // Allow up to 50 tool call rounds for thorough exploration + final output
+        maxOutputTokens: 8000, // Increased to ensure complete JSON output (analysis results can be large)
+        // Try to enforce JSON mode where supported (OpenAI, some OpenRouter models)
+        // Note: Not all providers support this with tools, but it helps when available
+        providerOptions: {
+          openai: {
+            response_format: { type: 'json_object' },
+          },
+          openrouter: {
+            response_format: { type: 'json_object' },
+          },
+        },
         onStepFinish: async (step) => {
-          // Report progress for each tool call
+          // Report progress for each tool call with results
           if (context.onProgress && step.toolCalls && step.toolCalls.length > 0) {
-            for (const toolCall of step.toolCalls) {
-              // In v5, tool calls have .input instead of .args
+            for (let i = 0; i < step.toolCalls.length; i++) {
+              const toolCall = step.toolCalls[i];
               const toolName = toolCall.toolName;
-              const toolInput = toolCall.input;
+              const toolInput = toolCall.input as Record<string, unknown>;
+
+              // Get tool result if available (toolResults is an array matching toolCalls)
+              let resultData: unknown = null;
+              if (step.toolResults && step.toolResults[i]) {
+                // Access the result property from the tool result object
+                resultData = (step.toolResults[i] as { result?: unknown }).result;
+              }
 
               const message = this.formatToolMessage(toolName, toolInput);
-              console.log(`  🔧 ${message}`);
 
+              // Include both input and result in details for logging
               await context.onProgress({
                 type: 'tool_use',
                 action: toolName,
-                details: JSON.stringify(toolInput),
+                details: JSON.stringify({
+                  input: toolInput,
+                  result: resultData,
+                }),
                 message,
               });
             }
@@ -232,8 +253,6 @@ export abstract class BaseToolProvider implements IAIProvider {
           if (context.onProgress && step.text) {
             const preview = step.text.substring(0, 150);
             if (preview.trim()) {
-              console.log(`  💭 Thinking: ${preview}...`);
-
               await context.onProgress({
                 type: 'thinking',
                 message: preview,
@@ -243,24 +262,23 @@ export abstract class BaseToolProvider implements IAIProvider {
         },
       });
 
-      let fullResponse: string;
-      try {
-        fullResponse = await result.text;
-      } catch (textError: any) {
-        console.error(
-          'Full error object:',
-          JSON.stringify(textError, Object.getOwnPropertyNames(textError), 2)
-        );
-        throw textError;
-      }
+      // Add timeout to prevent indefinite hanging (30 minutes max for analysis)
+      // Local models can be slow, especially with large prompts and tool calling
+      const ANALYSIS_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-      console.log(`✅ ${this.name} analysis complete (${fullResponse.length} chars)`);
+      const fullResponse = await Promise.race([
+        result.text,
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Analysis timed out after 30 minutes.`)),
+            ANALYSIS_TIMEOUT
+          )
+        ),
+      ]);
 
       // Check if we got an empty response
       if (!fullResponse || fullResponse.trim().length === 0) {
-        throw new Error(
-          'AI returned empty response. The model may have encountered an error or been rate limited. Check the logs for more details.'
-        );
+        throw new Error(`AI returned empty response. Check the model logs for errors.`);
       }
 
       // Parse and validate
@@ -272,8 +290,6 @@ export abstract class BaseToolProvider implements IAIProvider {
 
       return analysisResult;
     } catch (error: any) {
-      console.error(`❌ ${this.name} analysis failed:`, error);
-
       // Extract detailed error information from various error structures
       const errorMessage = error.message || 'Unknown error';
       const errorData = error.data?.error;
@@ -281,15 +297,10 @@ export abstract class BaseToolProvider implements IAIProvider {
       const lastError = error.lastError || error.errors?.[0];
 
       if (errorMessage.includes('No output generated')) {
-        console.log('Error object keys:', Object.keys(error));
-        console.log('Error lastError:', error.lastError);
-        console.log('Error errors:', error.errors);
-
         // Try to extract detailed error
         const detailedError = this.extractDetailedError(error);
 
         if (detailedError) {
-          console.log('Found detailed error:', detailedError);
           throw new Error(detailedError);
         }
 
@@ -324,8 +335,8 @@ export abstract class BaseToolProvider implements IAIProvider {
             if (parsed.error?.metadata?.raw) {
               rateLimitMessage = parsed.error.metadata.raw;
             }
-          } catch (e) {
-            console.error('Failed to parse lastError response body:', e);
+          } catch {
+            // Ignore JSON parse errors - continue with other fallbacks
           }
         }
 
@@ -339,8 +350,8 @@ export abstract class BaseToolProvider implements IAIProvider {
             if (parsed.error?.metadata?.raw) {
               rateLimitMessage = parsed.error.metadata.raw;
             }
-          } catch (e) {
-            console.error('Failed to parse error response body:', e);
+          } catch {
+            // Ignore JSON parse errors
           }
         }
 
@@ -385,8 +396,7 @@ export abstract class BaseToolProvider implements IAIProvider {
   /**
    * Generate deployment configuration
    *
-   * NOTE: For now, this still uses the old prompt-based approach.
-   * We may migrate this to tool-calling in the future (using Write tool).
+   * Uses tool-calling with writeFile tool so AI can create files directly.
    */
   async generateDeploymentConfig(
     request: DeploymentConfigRequest
@@ -395,50 +405,104 @@ export abstract class BaseToolProvider implements IAIProvider {
       throw new Error('Provider not initialized');
     }
 
+    if (!request.projectContext.projectPath) {
+      throw new Error('Project path is required for config generation');
+    }
+
     try {
       const model = await this.getLanguageModel();
       const configPrompt = PromptTemplates.buildConfigPrompt(request);
       const systemPrompt = PromptTemplates.getConfigGenerationSystemPrompt();
 
-      console.log(`🤖 Starting ${this.name} config generation...`);
+      // Create tools with config folder as project path
+      const tools = createConfigGenerationTools({
+        projectPath: request.projectContext.projectPath,
+      });
 
-      // For config generation, we use basic text generation (no tools yet)
-      // In the future, we could add a Write tool here
-      const result = await streamText({
+      // Track files written by the tool
+      const filesWritten: Array<{ fileName: string; description?: string }> = [];
+
+      // Use tool-calling for config generation
+      // stopWhen allows multi-turn tool usage for writing multiple files
+      const result = streamText({
         model,
         system: systemPrompt,
         prompt: configPrompt,
-        temperature: 0.7,
-        maxOutputTokens: 6000,
+        tools,
+        stopWhen: stepCountIs(50), // Allow up to 50 tool call rounds for multi-file generation
+        maxOutputTokens: 8000,
+        // Try to enforce JSON mode where supported
+        providerOptions: {
+          openai: {
+            response_format: { type: 'json_object' },
+          },
+          openrouter: {
+            response_format: { type: 'json_object' },
+          },
+        },
+        onStepFinish: async (step) => {
+          // Log tool calls and report progress
+          if (step.toolCalls && step.toolCalls.length > 0) {
+            for (const toolCall of step.toolCalls) {
+              if (toolCall.toolName === 'writeFile') {
+                const input = toolCall.input as { filePath: string; content: string };
+                filesWritten.push({ fileName: input.filePath });
+
+                // Report progress if callback available
+                if (request.projectContext.onProgress) {
+                  await request.projectContext.onProgress({
+                    type: 'tool_use',
+                    action: 'writeFile',
+                    details: JSON.stringify({
+                      filePath: input.filePath,
+                      size: input.content.length,
+                    }),
+                    message: `Writing file: ${input.filePath}`,
+                  });
+                }
+              }
+            }
+          }
+        },
       });
 
-      // Collect response
-      let fullResponse = '';
-      for await (const chunk of result.textStream) {
-        fullResponse += chunk;
+      // Wait for completion with timeout
+      const CONFIG_TIMEOUT = 10 * 60 * 1000; // 10 minutes for config generation
+
+      const fullResponse = await Promise.race([
+        result.text,
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Config generation timed out after 10 minutes.`)),
+            CONFIG_TIMEOUT
+          )
+        ),
+      ]);
+
+      // Try to parse any JSON response for metadata
+      let configResult: DeploymentConfigResult = {
+        configType: request.configType,
+        files: filesWritten,
+      };
+
+      // If there's a text response, try to parse it as JSON for additional metadata
+      if (fullResponse && fullResponse.trim().length > 0) {
+        try {
+          const parsed = extractJsonFromResponse(fullResponse);
+          if (parsed && typeof parsed === 'object') {
+            configResult = {
+              ...configResult,
+              ...parsed,
+              files: filesWritten.length > 0 ? filesWritten : parsed.files || [],
+            };
+          }
+        } catch {
+          // No JSON response is fine - files were written via tool
+        }
       }
 
-      console.log(`✅ ${this.name} config generation complete (${fullResponse.length} chars)`);
-
-      // Parse response
-      const configResult = extractJsonFromResponse(fullResponse);
-
-      if (!configResult || typeof configResult !== 'object') {
-        throw new Error('Config result is not a valid object');
-      }
-
-      // Ensure required fields
-      if (!configResult.configType) {
-        configResult.configType = request.configType;
-      }
-
-      if (!configResult.files) {
-        configResult.files = [];
-      }
-
-      return configResult as DeploymentConfigResult;
+      return configResult;
     } catch (error: any) {
-      console.error(`❌ ${this.name} config generation failed:`, error.message);
       throw new Error(`Deployment config generation failed: ${error.message}`);
     }
   }

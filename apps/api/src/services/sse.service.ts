@@ -110,7 +110,6 @@ export class SSEService {
               .map((log) => ({
                 id: log.id,
                 action: log.action,
-                status: log.status,
                 result: log.result || undefined,
                 details: safeJsonParse(log.details),
                 timestamp: log.timestamp.toISOString(),
@@ -245,7 +244,6 @@ export class SSEService {
               .map((log) => ({
                 id: log.id,
                 action: log.action,
-                status: log.status,
                 result: log.result || undefined,
                 details: safeJsonParse(log.details),
                 timestamp: log.timestamp.toISOString(),

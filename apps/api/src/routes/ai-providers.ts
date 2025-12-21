@@ -630,4 +630,125 @@ export const aiProvidersRouter = router({
       settings: input.settings,
     });
   }),
+
+  /**
+   * Fetch models from an OpenAI-compatible endpoint
+   * This queries the /v1/models endpoint to get available models
+   */
+  fetchCompatibleModels: protectedProcedure
+    .input(
+      z.object({
+        baseUrl: z.string().min(1, 'Base URL is required'),
+        apiKey: z.string().optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { baseUrl, apiKey } = input;
+
+      try {
+        // Normalize the base URL
+        let normalizedUrl = baseUrl.trim();
+        if (normalizedUrl.endsWith('/')) {
+          normalizedUrl = normalizedUrl.slice(0, -1);
+        }
+
+        // Build the models endpoint URL
+        const modelsUrl = `${normalizedUrl}/models`;
+
+        // Prepare headers
+        const headers: Record<string, string> = {
+          'Content-Type': 'application/json',
+        };
+
+        if (apiKey) {
+          headers['Authorization'] = `Bearer ${apiKey}`;
+        }
+
+        // Fetch models with timeout
+        const fetchWithTimeout = async (
+          url: string,
+          options: Parameters<typeof fetch>[1],
+          timeout: number
+        ) => {
+          const controller = new globalThis.AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+          try {
+            const response = await fetch(url, { ...options, signal: controller.signal });
+            clearTimeout(timeoutId);
+            return response;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            throw error;
+          }
+        };
+
+        const response = await fetchWithTimeout(modelsUrl, { method: 'GET', headers }, 10000);
+
+        if (!response.ok) {
+          if (response.status === 401 || response.status === 403) {
+            throw new Error('Authentication failed. Please check your API key.');
+          }
+          throw new Error(`Failed to fetch models: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        // Parse the OpenAI-compatible response format
+        // Expected format: { data: [{ id: string, object: string, owned_by: string }], object: "list" }
+        if (!data.data || !Array.isArray(data.data)) {
+          throw new Error('Invalid response format from models endpoint');
+        }
+
+        // Extract and format models
+        // OpenAI format: { id, object, created, owned_by }
+        // Some providers may include additional fields like context_length, pricing, etc.
+        const models = data.data
+          .filter((model: any) => model.id && typeof model.id === 'string')
+          .filter((model: any) => {
+            // Filter out embedding-only models for chat providers
+            const id = model.id.toLowerCase();
+            const isEmbeddingOnly =
+              id.includes('embedding') && !id.includes('text-') && !id.includes('chat');
+            return !isEmbeddingOnly;
+          })
+          .map((model: any) => ({
+            id: model.id,
+            name: model.id, // Use ID as name since OpenAI format doesn't have a separate name
+            owned_by: model.owned_by || 'unknown',
+            created: model.created || null, // Unix timestamp
+            context_length: model.context_length || model.context_window || null, // Some providers include this
+          }))
+          .sort((a: any, b: any) => a.id.localeCompare(b.id));
+
+        return {
+          success: true,
+          models,
+          message: `Found ${models.length} model(s)`,
+        };
+      } catch (error: any) {
+        // Handle abort error
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            models: [],
+            message: 'Request timed out. The server may be unreachable.',
+          };
+        }
+
+        // Handle network errors
+        if (error.cause?.code === 'ECONNREFUSED') {
+          return {
+            success: false,
+            models: [],
+            message: 'Connection refused. Make sure the server is running.',
+          };
+        }
+
+        return {
+          success: false,
+          models: [],
+          message: error.message || 'Failed to fetch models',
+        };
+      }
+    }),
 });

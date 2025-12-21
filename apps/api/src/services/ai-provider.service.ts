@@ -10,6 +10,8 @@ import {
   ClaudeAgentProvider,
   encryptionService,
   GroqProvider,
+  OpenAICompatibleProvider,
+  OpenAIProvider,
   OpenRouterProvider,
   type IAIProvider,
 } from '@dxlander/shared';
@@ -21,13 +23,22 @@ interface GetProviderOptions {
 }
 
 interface ProviderConfig {
-  provider: 'claude-code' | 'openai' | 'anthropic' | 'ollama' | 'lmstudio' | 'openrouter' | 'groq';
+  provider:
+    | 'claude-code'
+    | 'openai'
+    | 'openai-compatible'
+    | 'anthropic'
+    | 'ollama'
+    | 'lmstudio'
+    | 'openrouter'
+    | 'groq';
   apiKey?: string;
   model: string;
   settings?: {
     temperature?: number;
     maxTokens?: number;
     baseUrl?: string;
+    headers?: Record<string, string>;
   };
 }
 
@@ -126,8 +137,28 @@ export class AIProviderService {
       }
 
       case 'openai': {
-        // TODO: Implement OpenAI provider
-        throw new Error('OpenAI provider not yet implemented');
+        const provider = new OpenAIProvider();
+        await provider.initialize({
+          apiKey: config.apiKey || '',
+          model: config.model,
+          provider: config.provider,
+          settings: config.settings,
+        });
+        await this.updateLastUsed(providerId);
+        return provider;
+      }
+
+      case 'openai-compatible': {
+        const provider = new OpenAICompatibleProvider();
+        await provider.initialize({
+          apiKey: config.apiKey, // Optional for local models
+          baseUrl: config.settings?.baseUrl || '',
+          model: config.model,
+          provider: config.provider,
+          settings: config.settings,
+        });
+        await this.updateLastUsed(providerId);
+        return provider;
       }
 
       case 'openrouter': {

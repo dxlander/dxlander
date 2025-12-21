@@ -220,3 +220,41 @@ export async function listDirectoryImpl(
     }
   }
 }
+
+/**
+ * Write a file to the project (used for config generation)
+ */
+export async function writeFileImpl(
+  { filePath, content }: { filePath: string; content: string },
+  context: ToolContext
+): Promise<{ filePath: string; size: number; success: boolean }> {
+  const fs = await import('fs/promises');
+  const pathModule = await import('path');
+
+  // Security: Validate path is within project
+  if (!isPathSafe(context.projectPath, filePath)) {
+    throw new Error(`Path traversal detected: ${filePath}`);
+  }
+
+  const fullPath = pathModule.join(context.projectPath, filePath);
+
+  try {
+    // Ensure parent directory exists
+    const parentDir = pathModule.dirname(fullPath);
+    await fs.mkdir(parentDir, { recursive: true });
+
+    // Write file
+    await fs.writeFile(fullPath, content, 'utf-8');
+    const size = Buffer.byteLength(content, 'utf-8');
+
+    console.log(`  📝 Wrote file: ${filePath} (${size} bytes)`);
+
+    return {
+      filePath,
+      size,
+      success: true,
+    };
+  } catch (error: any) {
+    throw new Error(`Failed to write file ${filePath}: ${error.message}`);
+  }
+}

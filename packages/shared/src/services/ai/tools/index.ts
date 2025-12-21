@@ -6,4 +6,10 @@
 
 export { createProjectAnalysisTools, createConfigGenerationTools } from './definitions';
 export type { ToolContext } from './implementations';
-export { readFileImpl, grepSearchImpl, globFindImpl, listDirectoryImpl } from './implementations';
+export {
+  readFileImpl,
+  grepSearchImpl,
+  globFindImpl,
+  listDirectoryImpl,
+  writeFileImpl,
+} from './implementations';

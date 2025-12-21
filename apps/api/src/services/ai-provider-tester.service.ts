@@ -68,7 +68,88 @@ class ClaudeAgentTester implements IProviderTester {
 }
 
 /**
- * OpenAI Provider Tester (Placeholder)
+ * OpenAI Compatible Provider Tester
+ * Tests any OpenAI-compatible API endpoint
+ */
+class OpenAICompatibleTester implements IProviderTester {
+  validateConfig(config: ProviderTestConfig): void {
+    if (!config.settings?.baseUrl) {
+      throw new Error('Base URL is required for OpenAI Compatible provider');
+    }
+
+    try {
+      new URL(config.settings.baseUrl);
+    } catch {
+      throw new Error('Invalid base URL format');
+    }
+
+    if (!config.settings?.model) {
+      throw new Error('Model selection is required for OpenAI Compatible provider');
+    }
+  }
+
+  async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
+    this.validateConfig(config);
+
+    const model = config.settings!.model!;
+    const baseUrl = config.settings!.baseUrl!;
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { OpenAICompatibleProvider, AI_PROVIDER_TIMEOUTS } = await import('@dxlander/shared');
+      const provider = new OpenAICompatibleProvider();
+
+      // Initialize with a timeout to prevent hanging
+      await Promise.race([
+        provider.initialize({
+          provider: 'openai-compatible',
+          apiKey: config.apiKey, // Optional for local models
+          baseUrl,
+          model,
+          settings: config.settings,
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('OpenAI Compatible initialization timed out')),
+            AI_PROVIDER_TIMEOUTS.CONNECTION_TEST
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        message: 'Successfully connected to OpenAI Compatible API',
+        model,
+        details: {
+          provider: 'openai-compatible',
+          baseUrl,
+          model,
+          note: 'Connection successful',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `OpenAI Compatible connection failed: ${error.message}`,
+        model,
+        details: {
+          error: error.message,
+          errorStack: error.stack,
+          provider: 'openai-compatible',
+          baseUrl,
+          model,
+          timestamp: new Date().toISOString(),
+          isTimeout: error.message.includes('timed out'),
+        },
+      };
+    }
+  }
+}
+
+/**
+ * OpenAI Provider Tester
+ * Uses the dedicated OpenAI provider with OpenAI-specific validation
  */
 class OpenAITester implements IProviderTester {
   validateConfig(config: ProviderTestConfig): void {
@@ -79,21 +160,64 @@ class OpenAITester implements IProviderTester {
     if (!config.apiKey.startsWith('sk-')) {
       throw new Error('Invalid OpenAI API key format (should start with sk-)');
     }
+
+    if (!config.settings?.model) {
+      throw new Error('Model selection is required for OpenAI');
+    }
   }
 
   async test(config: ProviderTestConfig): Promise<ProviderTestResult> {
     this.validateConfig(config);
 
-    // TODO: Implement actual OpenAI API test when provider is ready
-    return {
-      success: true,
-      message: 'OpenAI API key format is valid (full connection test pending)',
-      model: config.settings?.model || 'gpt-4-turbo',
-      details: {
-        provider: 'openai',
-        note: 'Format validated, full API test pending implementation',
-      },
-    };
+    const model = config.settings!.model!;
+
+    try {
+      // Dynamically import to avoid circular dependencies
+      const { OpenAIProvider, AI_PROVIDER_TIMEOUTS } = await import('@dxlander/shared');
+      const provider = new OpenAIProvider();
+
+      // Initialize with a timeout to prevent hanging
+      await Promise.race([
+        provider.initialize({
+          provider: 'openai',
+          apiKey: config.apiKey!,
+          model,
+          settings: config.settings,
+        }),
+        new Promise<void>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('OpenAI initialization timed out')),
+            AI_PROVIDER_TIMEOUTS.CONNECTION_TEST
+          )
+        ),
+      ]);
+
+      return {
+        success: true,
+        message: 'Successfully connected to OpenAI API',
+        model,
+        details: {
+          provider: 'openai',
+          model,
+          note: 'API key validated and connection successful',
+          timestamp: new Date().toISOString(),
+        },
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        message: `OpenAI connection failed: ${error.message}`,
+        model,
+        details: {
+          error: error.message,
+          errorStack: error.stack,
+          provider: 'openai',
+          model,
+          timestamp: new Date().toISOString(),
+          isTimeout: error.message.includes('timed out'),
+        },
+      };
+    }
   }
 }
 
@@ -314,6 +438,7 @@ class ProviderTesterRegistry {
     // Register all available provider testers
     this.register('claude-code', new ClaudeAgentTester());
     this.register('openai', new OpenAITester());
+    this.register('openai-compatible', new OpenAICompatibleTester());
     this.register('ollama', new OllamaTester());
     this.register('lmstudio', new LMStudioTester());
     this.register('openrouter', new OpenRouterTester());

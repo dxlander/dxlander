@@ -97,6 +97,7 @@ export const AI_MODELS = {
 export const AI_PROVIDERS = [
   'claude-code',
   'openai',
+  'openai-compatible',
   'ollama',
   'lmstudio',
   'anthropic',

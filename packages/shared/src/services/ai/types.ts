@@ -13,7 +13,8 @@ import type { ProjectFile } from '../../types';
 export type AIProviderType =
   | 'claude-agent-sdk' // Official Claude Agent SDK (most powerful)
   | 'claude-code' // Legacy name (alias for claude-agent-sdk)
-  | 'openai'
+  | 'openai' // OpenAI API (extends openai-compatible)
+  | 'openai-compatible' // Any OpenAI-compatible API endpoint
   | 'anthropic'
   | 'ollama'
   | 'lmstudio'
