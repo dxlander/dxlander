@@ -98,27 +98,14 @@ export class AIAnalysisService {
   ): Promise<void> {
     try {
       // Log: Reading project files
-      await this.logActivity(
-        analysisId,
-        'read_files',
-        'in_progress',
-        'Reading project files from disk'
-      );
+      await this.logActivity(analysisId, 'read_files', 'Reading project files from disk');
 
       // Read project files from files directory (not configs)
       // project.localPath is the project root, we need to read from /files subdirectory
       const filesDirectory = getProjectFilesDir(project.id);
       const projectFiles = await this.readProjectFiles(filesDirectory);
 
-      await this.logActivity(
-        analysisId,
-        'read_files',
-        'complete',
-        `Read ${projectFiles.length} files`,
-        {
-          fileCount: projectFiles.length,
-        }
-      );
+      await this.logActivity(analysisId, 'read_files', `Read ${projectFiles.length} files`);
 
       // Update progress
       await this.updateProgress(analysisId, 20);
@@ -139,9 +126,19 @@ export class AIAnalysisService {
         }) => {
           // Log real-time progress to database
           const action = event.action || event.type;
-          const result = event.message || event.details || 'Processing...';
+          const result = event.message || 'Processing...';
 
-          await this.logActivity(analysisId, action, 'in_progress', result);
+          // Parse details if it's a JSON string
+          let parsedDetails = null;
+          if (event.details) {
+            try {
+              parsedDetails = JSON.parse(event.details);
+            } catch {
+              parsedDetails = { raw: event.details };
+            }
+          }
+
+          await this.logActivity(analysisId, action, result, parsedDetails);
 
           // Update progress incrementally (30% to 90%)
           const currentProgress = await db.query.analysisRuns.findFirst({
@@ -161,12 +158,7 @@ export class AIAnalysisService {
       };
 
       // Log: Initializing AI provider
-      await this.logActivity(
-        analysisId,
-        'init_ai',
-        'in_progress',
-        `Initializing ${aiProvider.provider}`
-      );
+      await this.logActivity(analysisId, 'init_ai', `Initializing ${aiProvider.provider}`);
 
       // Initialize AI provider using the AIProviderService
       let provider;
@@ -179,26 +171,16 @@ export class AIAnalysisService {
         throw new Error(`Failed to initialize AI provider: ${error.message}`);
       }
 
-      await this.logActivity(
-        analysisId,
-        'init_ai',
-        'complete',
-        'AI provider initialized successfully'
-      );
+      await this.logActivity(analysisId, 'init_ai', 'AI provider initialized successfully');
       await this.updateProgress(analysisId, 30);
 
       // Log: Running AI analysis
-      await this.logActivity(
-        analysisId,
-        'ai_analysis',
-        'in_progress',
-        'AI is analyzing project structure...'
-      );
+      await this.logActivity(analysisId, 'ai_analysis', 'AI is analyzing project structure...');
 
       // Run AI analysis
       const analysisResult: ProjectAnalysisResult = await provider.analyzeProject(context);
 
-      await this.logActivity(analysisId, 'ai_analysis', 'complete', 'AI analysis completed', {
+      await this.logActivity(analysisId, 'ai_analysis', 'AI analysis completed', {
         frameworks: analysisResult.frameworks.map((f) => f.name),
         language: analysisResult.language.primary,
       });
@@ -232,25 +214,10 @@ export class AIAnalysisService {
         })
         .where(eq(schema.projects.id, project.id));
 
-      await this.logActivity(
-        analysisId,
-        'save_results',
-        'complete',
-        'Analysis results saved successfully'
-      );
-
-      console.log(
-        `✅ Analysis completed for project: ${project.name} (v${
-          (await db.query.analysisRuns.findFirst({
-            where: eq(schema.analysisRuns.id, analysisId),
-          }))!.version
-        })`
-      );
+      await this.logActivity(analysisId, 'save_results', 'Analysis results saved successfully');
     } catch (error: any) {
-      console.error('Analysis execution failed:', error);
-
       // Log error
-      await this.logActivity(analysisId, 'error', 'error', error.message);
+      await this.logActivity(analysisId, 'error', error.message);
 
       // Update analysis run with error
       await db
@@ -357,7 +324,6 @@ export class AIAnalysisService {
   private static async logActivity(
     analysisRunId: string,
     action: string,
-    status: string,
     result: string,
     details?: any
   ): Promise<void> {
@@ -368,7 +334,6 @@ export class AIAnalysisService {
       analysisRunId,
       timestamp: new Date(),
       action,
-      status,
       result,
       details: details ? JSON.stringify(details) : null,
       createdAt: new Date(),
@@ -404,11 +369,10 @@ export class AIAnalysisService {
       limit: 50, // Limit to last 50 logs for performance
     });
 
-    // Map logs to expected frontend format
+    // Map logs to expected frontend format (status removed as deprecated)
     const activityLog = logs.map((log) => ({
       id: log.id,
       action: log.action,
-      status: log.status,
       result: log.result || undefined,
       details: log.details
         ? typeof log.details === 'string'
@@ -416,7 +380,6 @@ export class AIAnalysisService {
           : log.details
         : undefined,
       timestamp: log.timestamp.toISOString(),
-      duration: undefined, // TODO: Calculate duration if needed
     }));
 
     return {
@@ -475,11 +438,10 @@ export class AIAnalysisService {
           limit: 100, // Limit to last 100 logs
         });
 
-        // Map logs to expected frontend format
+        // Map logs to expected frontend format (status removed as deprecated)
         const activityLog = logs.map((log) => ({
           id: log.id,
           action: log.action,
-          status: log.status,
           result: log.result || undefined,
           details: log.details
             ? typeof log.details === 'string'

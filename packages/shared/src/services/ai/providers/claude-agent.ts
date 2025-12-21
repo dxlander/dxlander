@@ -194,188 +194,125 @@ export class ClaudeAgentProvider implements IAIProvider {
       throw new Error('Provider not initialized');
     }
 
-    try {
-      // Use absolute path from context, fallback to current directory
-      const projectPath = context.projectPath || process.cwd();
+    // Use absolute path from context, fallback to current directory
+    const projectPath = context.projectPath || process.cwd();
 
-      // Use centralized prompt template
-      const analysisPrompt = PromptTemplates.buildAnalysisPrompt(context);
+    // Use centralized prompt template
+    const analysisPrompt = PromptTemplates.buildAnalysisPrompt(context);
 
-      // Debug: Log environment PATH
-      console.log('🔍 SDK Environment Check:');
-      console.log('  process.execPath:', process.execPath);
-      console.log('  process.env.PATH:', process.env.PATH?.substring(0, 200));
-      console.log('  cwd (absolute):', projectPath);
+    const options: Options = {
+      model: this.config.model || 'claude-sonnet-4-5-20250929',
+      cwd: projectPath,
+      permissionMode: 'bypassPermissions',
+      maxTurns: 50, // Increased from 20 to handle complex projects (Nuxt, monorepos, etc.)
+      allowedTools: ['Read', 'Grep', 'Glob'], // Only file reading tools
+      systemPrompt: {
+        type: 'preset',
+        preset: 'claude_code',
+        append: PromptTemplates.getAnalysisSystemPrompt(),
+      },
+      env: {
+        ...process.env, // Spread all environment variables
+        ANTHROPIC_API_KEY: this.config.apiKey, // Override with API key
+      },
+    };
 
-      const options: Options = {
-        model: this.config.model || 'claude-sonnet-4-5-20250929',
-        cwd: projectPath,
-        permissionMode: 'bypassPermissions',
-        maxTurns: 50, // Increased from 20 to handle complex projects (Nuxt, monorepos, etc.)
-        allowedTools: ['Read', 'Grep', 'Glob'], // Only file reading tools
-        systemPrompt: {
-          type: 'preset',
-          preset: 'claude_code',
-          append: PromptTemplates.getAnalysisSystemPrompt(),
-        },
-        env: {
-          ...process.env, // Spread all environment variables
-          ANTHROPIC_API_KEY: this.config.apiKey, // Override with API key
-        },
-      };
+    const queryResult = query({ prompt: analysisPrompt, options });
 
-      const queryResult = query({ prompt: analysisPrompt, options });
+    let analysisJson = '';
+    let allTextContent = ''; // Collect all text content as fallback
 
-      let analysisJson = '';
-      let messageCount = 0;
-      let allTextContent = ''; // Collect all text content as fallback
+    for await (const message of queryResult) {
+      // Stream progress events to caller
+      if (context.onProgress) {
+        if (message.type === 'assistant') {
+          // Check for tool usage in assistant message
+          const msg = message as any;
+          const toolUses =
+            msg.message?.content?.filter((block: any) => block.type === 'tool_use') || [];
 
-      console.log('🤖 Starting Claude Agent SDK stream...');
+          for (const toolUse of toolUses) {
+            const toolName = toolUse.name || 'unknown';
+            const toolInput = toolUse.input || {};
 
-      for await (const message of queryResult) {
-        messageCount++;
+            let details = '';
+            if (toolName === 'Read') {
+              details = `Reading: ${toolInput.file_path || 'unknown file'}`;
+            } else if (toolName === 'Grep') {
+              details = `Searching for: ${toolInput.pattern || 'pattern'}`;
+            } else if (toolName === 'Glob') {
+              details = `Finding files: ${toolInput.pattern || 'pattern'}`;
+            } else {
+              details = JSON.stringify(toolInput).substring(0, 100);
+            }
 
-        // Log all message types for debugging
-        console.log(
-          `  [${messageCount}] Message type: ${message.type}${message.type === 'result' ? ` (subtype: ${(message as any).subtype})` : ''}`
-        );
+            await context.onProgress({
+              type: 'tool_use',
+              action: toolName.toLowerCase(),
+              details,
+              message: details,
+            });
+          }
 
-        // Stream progress events to caller
-        if (context.onProgress) {
-          if (message.type === 'assistant') {
-            // Check for tool usage in assistant message
-            const msg = message as any;
-            const toolUses =
-              msg.message?.content?.filter((block: any) => block.type === 'tool_use') || [];
-
-            for (const toolUse of toolUses) {
-              const toolName = toolUse.name || 'unknown';
-              const toolInput = toolUse.input || {};
-
-              let details = '';
-              if (toolName === 'Read') {
-                details = `Reading: ${toolInput.file_path || 'unknown file'}`;
-              } else if (toolName === 'Grep') {
-                details = `Searching for: ${toolInput.pattern || 'pattern'}`;
-              } else if (toolName === 'Glob') {
-                details = `Finding files: ${toolInput.pattern || 'pattern'}`;
-              } else {
-                details = JSON.stringify(toolInput).substring(0, 100);
-              }
-
-              console.log(`    🔧 Tool: ${toolName} - ${details}`);
+          // Also capture thinking (text content)
+          const textBlocks =
+            msg.message?.content?.filter((block: any) => block.type === 'text') || [];
+          if (textBlocks.length > 0) {
+            const textContent = textBlocks.map((block: any) => block.text).join('\n');
+            if (textContent.trim()) {
+              // Collect all text content as fallback
+              allTextContent += `${textContent}\n`;
 
               await context.onProgress({
-                type: 'tool_use',
-                action: toolName.toLowerCase(),
-                details,
-                message: details,
+                type: 'thinking',
+                message: textContent.substring(0, 200), // First 200 chars
               });
             }
-
-            // Also capture thinking (text content)
-            const textBlocks =
-              msg.message?.content?.filter((block: any) => block.type === 'text') || [];
-            if (textBlocks.length > 0) {
-              const textContent = textBlocks.map((block: any) => block.text).join('\n');
-              if (textContent.trim()) {
-                const preview = textContent.substring(0, 100);
-                console.log(`    💭 Thinking: ${preview}...`);
-
-                // Collect all text content as fallback
-                allTextContent += `${textContent}\n`;
-
-                await context.onProgress({
-                  type: 'thinking',
-                  message: textContent.substring(0, 200), // First 200 chars
-                });
-              }
-            }
-          }
-        }
-
-        if (message.type === 'result') {
-          const resultMsg = message as any;
-          console.log(`  ✅ Result: ${resultMsg.subtype} (error: ${resultMsg.is_error})`);
-
-          // Log the full result object for debugging
-          console.log(`  📦 Result object keys:`, Object.keys(resultMsg));
-          console.log(`  📦 Result content:`, JSON.stringify(resultMsg, null, 2).substring(0, 500));
-
-          if (resultMsg.subtype === 'success') {
-            analysisJson = resultMsg.result || '';
-            console.log(`  📄 Response length: ${analysisJson.length} characters`);
-
-            if (analysisJson.length === 0) {
-              console.error(
-                '  ⚠️  WARNING: Result message has subtype "success" but result field is empty!'
-              );
-            }
-
-            break;
-          } else if (resultMsg.subtype === 'error_max_turns') {
-            console.error('  ❌ ERROR: Model hit maximum turns limit');
-            console.error(`     Used ${resultMsg.num_turns} turns out of maximum allowed`);
-            console.error(`     Cost: $${resultMsg.total_cost_usd?.toFixed(4) || '0.00'}`);
-            console.error(
-              `     Consider increasing maxTurns in claude-agent.ts or simplifying the analysis`
-            );
-
-            // Try to use collected text as fallback
-            if (allTextContent.trim().length > 0) {
-              console.warn(`  ⚠️  Attempting to use collected text content as fallback...`);
-              analysisJson = allTextContent;
-              console.log(`     Collected content length: ${analysisJson.length} characters`);
-              break; // Don't throw, try to parse what we have
-            }
-
-            throw new Error(
-              `Analysis exceeded maximum turns (${resultMsg.num_turns}/${options.maxTurns}). The project may be too complex or needs more turns. Cost: $${resultMsg.total_cost_usd?.toFixed(4)}`
-            );
-          } else if (resultMsg.subtype === 'error_during_execution') {
-            console.error('  ❌ ERROR: Error during execution');
-            throw new Error('Analysis failed during execution. Check logs for details.');
           }
         }
       }
 
-      console.log(`🏁 Stream completed. Total messages: ${messageCount}`);
+      if (message.type === 'result') {
+        const resultMsg = message as any;
 
-      // Check if we got a response
-      if (!analysisJson || analysisJson.trim().length === 0) {
-        console.warn('⚠️  WARNING: Result field is empty, checking text content fallback...');
-        console.log(`   Collected text content length: ${allTextContent.length} characters`);
+        if (resultMsg.subtype === 'success') {
+          analysisJson = resultMsg.result || '';
+          break;
+        } else if (resultMsg.subtype === 'error_max_turns') {
+          // Try to use collected text as fallback
+          if (allTextContent.trim().length > 0) {
+            analysisJson = allTextContent;
+            break; // Don't throw, try to parse what we have
+          }
 
-        if (allTextContent.trim().length > 0) {
-          console.log('   ✅ Using text content as fallback');
-          analysisJson = allTextContent;
-        } else {
-          console.error('❌ ERROR: Claude Agent SDK returned empty response');
-          console.error('   This usually means:');
-          console.error('   1. The model did not complete its response');
-          console.error('   2. The model hit token limit (maxTurns)');
-          console.error('   3. The model was interrupted');
-          console.error('   4. API key is invalid or rate-limited');
           throw new Error(
-            'Claude Agent SDK returned empty response. Check console logs for details.'
+            `Analysis exceeded maximum turns (${resultMsg.num_turns}/${options.maxTurns}). The project may be too complex or needs more turns. Cost: $${resultMsg.total_cost_usd?.toFixed(4)}`
           );
+        } else if (resultMsg.subtype === 'error_during_execution') {
+          throw new Error('Analysis failed during execution.');
         }
       }
-
-      console.log(`📝 Parsing JSON response (${analysisJson.length} chars)...`);
-
-      // Parse and validate
-      const analysisResult = extractJsonFromResponse(analysisJson);
-
-      if (!validateAnalysisResult(analysisResult)) {
-        throw new Error('Analysis result does not match expected structure');
-      }
-
-      return analysisResult;
-    } catch (error) {
-      console.error('❌ Analysis failed:', error);
-      throw error;
     }
+
+    // Check if we got a response
+    if (!analysisJson || analysisJson.trim().length === 0) {
+      if (allTextContent.trim().length > 0) {
+        analysisJson = allTextContent;
+      } else {
+        throw new Error(
+          'Claude Agent SDK returned empty response. The model may have hit token limits or encountered an error.'
+        );
+      }
+    }
+
+    // Parse and validate
+    const analysisResult = extractJsonFromResponse(analysisJson);
+
+    if (!validateAnalysisResult(analysisResult)) {
+      throw new Error('Analysis result does not match expected structure');
+    }
+
+    return analysisResult;
   }
 
   /**
@@ -388,128 +325,103 @@ export class ClaudeAgentProvider implements IAIProvider {
       throw new Error('Provider not initialized');
     }
 
-    try {
-      // Use centralized prompt template
-      const configPrompt = PromptTemplates.buildConfigPrompt(request);
+    // Use centralized prompt template
+    const configPrompt = PromptTemplates.buildConfigPrompt(request);
 
-      const options: Options = {
-        model: this.config.model || 'claude-sonnet-4-5-20250929',
-        cwd: request.projectContext.projectPath || process.cwd(), // Set working directory to project path
-        permissionMode: 'bypassPermissions',
-        maxTurns: 20, // Increased for file writing operations
-        allowedTools: ['Write', 'Read', 'Glob'], // Allow Write to create config files
-        systemPrompt: PromptTemplates.getConfigGenerationSystemPrompt(),
-        env: {
-          ...process.env, // Spread all environment variables
-          ANTHROPIC_API_KEY: this.config.apiKey, // Override with API key
-        },
-      };
+    const options: Options = {
+      model: this.config.model || 'claude-sonnet-4-5-20250929',
+      cwd: request.projectContext.projectPath || process.cwd(), // Set working directory to project path
+      permissionMode: 'bypassPermissions',
+      maxTurns: 20, // Increased for file writing operations
+      allowedTools: ['Write', 'Read', 'Glob'], // Allow Write to create config files
+      systemPrompt: PromptTemplates.getConfigGenerationSystemPrompt(),
+      env: {
+        ...process.env, // Spread all environment variables
+        ANTHROPIC_API_KEY: this.config.apiKey, // Override with API key
+      },
+    };
 
-      const result = query({ prompt: configPrompt, options });
+    const result = query({ prompt: configPrompt, options });
 
-      const filesCreated: string[] = [];
+    const filesCreated: string[] = [];
 
-      console.log('🤖 Starting config generation...');
+    for await (const message of result) {
+      // Track files being created
+      if (message.type === 'assistant') {
+        const msg = message as any;
+        const toolUses =
+          msg.message?.content?.filter((block: any) => block.type === 'tool_use') || [];
 
-      for await (const message of result) {
-        // Track files being created
-        if (message.type === 'assistant') {
-          const msg = message as any;
-          const toolUses =
-            msg.message?.content?.filter((block: any) => block.type === 'tool_use') || [];
-
-          for (const toolUse of toolUses) {
-            if (toolUse.name === 'Write') {
-              const filePath = toolUse.input?.file_path;
-              if (filePath) {
-                filesCreated.push(filePath);
-                console.log(`  📝 Creating: ${filePath}`);
-              }
+        for (const toolUse of toolUses) {
+          if (toolUse.name === 'Write') {
+            const filePath = toolUse.input?.file_path;
+            if (filePath) {
+              filesCreated.push(filePath);
             }
           }
         }
-
-        if (message.type === 'result') {
-          if (message.subtype === 'success') {
-            console.log(
-              `✅ Config generation stream completed. Files queued: ${filesCreated.length}`
-            );
-            break;
-          } else if (message.subtype === 'error_max_turns') {
-            console.warn(
-              `⚠️  Config generation hit max turns. Files queued: ${filesCreated.length}`
-            );
-            break;
-          }
-        }
       }
 
-      // Now wait for ALL files to be written to disk
-      // The AI writes _summary.json last, so we use it as the completion signal
-      const fs = await import('fs/promises');
-      const path = await import('path');
-      const projectPath = request.projectContext.projectPath || process.cwd();
-
-      console.log('⏳ Verifying all files have been written to disk...');
-
-      // Wait for all tracked files to exist with exponential backoff
-      const maxAttempts = 20; // 20 attempts
-      const baseDelay = 250; // Start with 250ms
-
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const missingFiles: string[] = [];
-
-        // Check if all files exist
-        for (const file of filesCreated) {
-          const filePath = path.isAbsolute(file) ? file : path.join(projectPath, file);
-          try {
-            await fs.access(filePath);
-          } catch {
-            missingFiles.push(path.basename(file));
-          }
-        }
-
-        if (missingFiles.length === 0) {
-          console.log(`✅ All ${filesCreated.length} files verified (attempt ${attempt})`);
+      if (message.type === 'result') {
+        if (message.subtype === 'success' || message.subtype === 'error_max_turns') {
           break;
         }
+      }
+    }
 
-        // Exponential backoff: 250ms, 500ms, 1000ms, 2000ms, then cap at 2000ms
-        const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 2000);
-        console.log(
-          `  ⏳ Waiting for ${missingFiles.length} files... (attempt ${attempt}/${maxAttempts}, delay: ${delay}ms)`
-        );
+    // Now wait for ALL files to be written to disk
+    // The AI writes _summary.json last, so we use it as the completion signal
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const projectPath = request.projectContext.projectPath || process.cwd();
 
-        if (attempt === maxAttempts) {
-          console.warn(`⚠️  Timeout waiting for files: ${missingFiles.join(', ')}`);
-        } else {
-          await new Promise((resolve) => setTimeout(resolve, delay));
+    // Wait for all tracked files to exist with exponential backoff
+    const maxAttempts = 20; // 20 attempts
+    const baseDelay = 250; // Start with 250ms
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      const missingFiles: string[] = [];
+
+      // Check if all files exist
+      for (const file of filesCreated) {
+        const filePath = path.isAbsolute(file) ? file : path.join(projectPath, file);
+        try {
+          await fs.access(filePath);
+        } catch {
+          missingFiles.push(path.basename(file));
         }
       }
 
-      // Read and parse _summary.json
-      const summaryPath = path.join(projectPath, '_summary.json');
-
-      try {
-        const summaryContent = await fs.readFile(summaryPath, 'utf-8');
-        const configResult = JSON.parse(summaryContent);
-        console.log(`📄 Successfully read summary with ${configResult.files?.length || 0} files`);
-        return configResult;
-      } catch (error) {
-        console.error(`❌ Failed to read _summary.json: ${error}`);
-
-        // Fallback: construct result from tracked files
-        return {
-          configType: request.configType,
-          files: filesCreated.map((filePath) => ({
-            fileName: path.basename(filePath),
-            description: `Generated ${path.basename(filePath)}`,
-          })),
-        };
+      if (missingFiles.length === 0) {
+        break;
       }
-    } catch (error) {
-      console.error('❌ Config generation failed:', error);
-      throw error;
+
+      // Exponential backoff: 250ms, 500ms, 1000ms, 2000ms, then cap at 2000ms
+      const delay = Math.min(baseDelay * Math.pow(2, attempt - 1), 2000);
+
+      if (attempt === maxAttempts) {
+        // Timeout reached, continue anyway
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    }
+
+    // Read and parse _summary.json
+    const summaryPath = path.join(projectPath, '_summary.json');
+
+    try {
+      const summaryContent = await fs.readFile(summaryPath, 'utf-8');
+      const configResult = JSON.parse(summaryContent);
+      return configResult;
+    } catch {
+      // Fallback: construct result from tracked files
+      return {
+        configType: request.configType,
+        files: filesCreated.map((filePath) => ({
+          fileName: path.basename(filePath),
+          description: `Generated ${path.basename(filePath)}`,
+        })),
+      };
     }
   }
 

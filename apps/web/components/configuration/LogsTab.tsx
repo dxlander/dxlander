@@ -8,10 +8,31 @@ import { format } from 'date-fns';
 interface LogEntry {
   id: string;
   action: string;
-  status: string;
+  status?: string; // Status is now optional - derived from action if not provided
   result?: string;
   details?: any;
   timestamp: string;
+}
+
+/**
+ * Derive status from action name if status is not provided
+ */
+function deriveStatusFromAction(action: string): string {
+  const actionLower = action.toLowerCase();
+  if (actionLower.includes('error') || actionLower.includes('failed')) {
+    return 'failed';
+  }
+  if (
+    actionLower.includes('complete') ||
+    actionLower.includes('success') ||
+    actionLower.includes('save')
+  ) {
+    return 'completed';
+  }
+  if (actionLower.includes('start') || actionLower.includes('init')) {
+    return 'started';
+  }
+  return 'processing';
 }
 
 interface LogsTabProps {
@@ -106,15 +127,20 @@ export function LogsTab({ logs, configStatus }: LogsTabProps) {
                   <div className="flex items-start justify-between gap-3 mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <h4 className="font-semibold text-gray-900">{formatAction(log.action)}</h4>
-                      <Badge
-                        variant="secondary"
-                        className={`text-xs ${getStatusBadgeVariant(log.status)}`}
-                      >
-                        <span className="flex items-center gap-1">
-                          {getStatusIcon(log.status)}
-                          {log.status}
-                        </span>
-                      </Badge>
+                      {(() => {
+                        const status = log.status || deriveStatusFromAction(log.action);
+                        return (
+                          <Badge
+                            variant="secondary"
+                            className={`text-xs ${getStatusBadgeVariant(status)}`}
+                          >
+                            <span className="flex items-center gap-1">
+                              {getStatusIcon(status)}
+                              {status}
+                            </span>
+                          </Badge>
+                        );
+                      })()}
                     </div>
                     <span className="text-xs text-gray-500 whitespace-nowrap">
                       {format(new Date(log.timestamp), 'HH:mm:ss')}

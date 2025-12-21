@@ -5,88 +5,7 @@
  * This ensures consistent results regardless of which AI service is used.
  *
  * WHY THIS EXISTS:
- * - S  "environmentVariables": [
-    // ALL environment variables needed during deploymen}
-\`\`\`
-
----
-
-## ⚠️ STOP! READ THIS BEFORE DETECTING INTEGRATIONS
-
-**CRITICAL: These are NOT integrations. DO NOT add them to the integrations array:**
-
-❌ **localStorage** - Browser API, no credentials needed
-❌ **sessionStorage** - Browser API, no credentials needed
-❌ **IndexedDB** - Browser API, no credentials needed
-❌ **cookies** - Browser API, no credentials needed
-❌ **Iconify** - Icon library, no external service, no credentials
-❌ **Material Design Icons** - Icon library, CDN-based, no account needed
-❌ **Font Awesome** - Icon library (unless Pro version with credentials)
-❌ **Google Fonts** - Public CDN, no credentials
-❌ **Any npm/pip/gem package** that doesn't connect to an external API requiring credentials
-
-**If you see these in the code, put them in "builtInCapabilities", NOT "integrations".**
-
-**REAL integration examples (DO include these):**
-✅ **Supabase** - Requires SUPABASE_URL + SUPABASE_ANON_KEY
-✅ **Stripe** - Requires STRIPE_SECRET_KEY
-✅ **SendGrid** - Requires SENDGRID_API_KEY
-✅ **PostgreSQL** - Requires DATABASE_URL with credentials
-✅ **Redis** - Requires REDIS_URL with password
-✅ **OpenAI** - Requires OPENAI_API_KEY
-
-**The test: "Would a developer need to sign up for an account and get API keys/credentials to use this?"**
-- localStorage: NO → Not an integration
-- Iconify: NO → Not an integration
-- Supabase: YES → Integration
-- Stripe: YES → Integration
-
----
-
-## 🎯 CRITICAL: INTEGRATION DETECTION GUIDE
-
-### **ENVIRONMENT VARIABLES vs INTEGRATIONS - KEY DISTINCTION**ration + non-integration)
-    {
-      "name": "SUPABASE_URL",
-      "required": true,
-      "description": "Supabase project URL",
-      "example": "https://xxx.supabase.co",
-      "detectedIn": ["lib/supabase.ts"],
-      "linkedIntegration": "supabase"  // Links to Supabase integration
-    },
-    {
-      "name": "SUPABASE_ANON_KEY",
-      "required": true,
-      "description": "Supabase anonymous key",
-      "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-      "detectedIn": ["lib/supabase.ts"],
-      "linkedIntegration": "supabase"  // Links to Supabase integration
-    },
-    {
-      "name": "PORT",
-      "required": false,
-      "description": "Server port number",
-      "example": "3000",
-      "detectedIn": ["src/server.ts"],
-      "linkedIntegration": null  // Non-integration variable (app configuration)
-    },
-    {
-      "name": "NODE_ENV",
-      "required": false,
-      "description": "Node environment",
-      "example": "production",
-      "detectedIn": ["multiple files"],
-      "linkedIntegration": null  // Non-integration variable (runtime configuration)
-    },
-    {
-      "name": "ENCRYPTION_KEY",
-      "required": true,
-      "description": "Encryption key for sensitive data",
-      "example": "generate-secure-random-key",
-      "detectedIn": ["src/encryption.ts"],
-      "linkedIntegration": null  // Non-integration variable (security configuration)
-    }
-  ],uth for prompts
+ * - Single source of truth for prompts
  * - Easy to update and maintain
  * - Consistent across all providers
  * - Version-controllable
@@ -113,28 +32,32 @@ Provide accurate, production-ready solutions.`,
   /**
    * Project analysis specialist
    */
-  projectAnalysis: `You are an expert DevOps engineer and project analyst specializing in:
-- Framework detection and version identification
-- Dependency analysis and security auditing
-- Integration detection (databases, APIs, services)
-- Build configuration optimization
-- Environment variable extraction
-- Best practices and recommendations
+  projectAnalysis: `You are an expert DevOps engineer and project analyst.
 
-Your analysis must be thorough, accurate, and actionable.`,
+CRITICAL RULES FOR TOOL-CALLING MODE:
+1. You have a MAXIMUM of 50 steps - plan your exploration wisely
+2. Use tools (readFile, listDirectory, globFind, grepSearch) to explore the project
+3. DO NOT output any text while exploring - only use tools silently
+4. Reserve your LAST step to output the final JSON result
+5. Your FINAL output must be PURE JSON starting with { and ending with }
+6. NO thinking text, NO explanations, NO markdown - ONLY the final JSON object
+
+STRATEGY: Use ~40-45 steps for exploration, then output JSON in your final step. Do not use all 50 steps for tools!`,
 
   /**
    * Configuration generation specialist
    */
-  configGeneration: `You are a DevOps expert specializing in:
-- Docker and containerization best practices
-- Kubernetes orchestration
-- CI/CD pipeline design
-- Production-ready configurations
-- Security hardening
-- Performance optimization
+  configGeneration: `You are a DevOps expert specializing in Docker, Kubernetes, and CI/CD.
 
-Generate production-ready, well-documented configurations.`,
+CRITICAL RULES FOR TOOL-CALLING MODE:
+1. You have a MAXIMUM of 50 steps - plan your file creation wisely
+2. Use the writeFile tool to create configuration files
+3. DO NOT output any text while writing files - work SILENTLY
+4. You MUST create a _summary.json file as the LAST file you write
+5. After writing all files (including _summary.json), output a brief JSON confirmation
+6. NO thinking text, NO explanations during file creation
+
+STRATEGY: Write all config files first, then _summary.json, then output confirmation. Reserve your last step for output!`,
 } as const;
 
 /**
@@ -160,7 +83,7 @@ Explore and understand this project. Determine:
 - **Grep**: Search for patterns in code
 
 **STRATEGIC APPROACH:**
-Work smart, not hard. You have up to 50 turns - use them wisely:
+You have a MAXIMUM of 50 steps. Use ~40-45 for exploration, then OUTPUT JSON in your final step:
 
 1. **Start with high-signal files**: Manifest files, config files, and README typically contain the most critical information about a project's tech stack, build process, and architecture.
 
@@ -515,9 +438,12 @@ For each detected integration, provide COMPLETE information:
 - \`detectedFrom\` should provide comprehensive evidence (multiple sources)
 - Link environment variables to their integrations via \`linkedIntegration\` field
 
-**IMPORTANT:**
+**CRITICAL OUTPUT RULES:**
+- DO NOT output any text while using tools - explore SILENTLY
+- ONLY output text when you are COMPLETELY DONE with all exploration
+- Your ONLY output should be the final JSON object
 - Return ONLY the JSON object - NO explanatory text before or after
-- Do NOT start with "I'll analyze..." or any preamble
+- Do NOT start with "I'll analyze...", thinking, or any preamble
 - Your response must be PURE JSON starting with { and ending with }
 - Base everything on evidence (files, code, patterns)
 - If uncertain, lower confidence score
@@ -527,14 +453,18 @@ For each detected integration, provide COMPLETE information:
 
 **OUTPUT FORMAT EXAMPLES:**
 
-❌ WRONG (has preamble text):
-I'll analyze this project systematically to understand its structure...
+❌ WRONG (thinking text during exploration):
+The package.json shows this is a Node.js project...
 { "summary": { ... } }
 
-✅ CORRECT (pure JSON only):
+❌ WRONG (preamble before JSON):
+I'll analyze this project...
 { "summary": { ... } }
 
-**BEGIN EXPLORATION NOW. Remember: Return ONLY JSON, no other text.**
+✅ CORRECT (pure JSON only, after silent exploration):
+{ "summary": { ... } }
+
+**BEGIN EXPLORATION NOW. You have 50 steps max - use tools silently, then return ONLY the final JSON before step 50.**
 `.trim();
 }
 
@@ -1022,7 +952,152 @@ export function validateAnalysisResult(result: any): result is ProjectAnalysisRe
 }
 
 /**
+ * Find valid JSON object using bracket matching
+ * More reliable than regex for nested JSON
+ * Returns { json, isTruncated } to indicate if JSON was incomplete
+ */
+function findJsonByBracketMatching(text: string): {
+  json: string | null;
+  isTruncated: boolean;
+  missingBraces: number;
+} {
+  const startIndex = text.indexOf('{');
+  if (startIndex === -1) return { json: null, isTruncated: false, missingBraces: 0 };
+
+  let depth = 0;
+  let maxDepth = 0;
+  let inString = false;
+  let escapeNext = false;
+  let _lastValidIndex = startIndex;
+
+  for (let i = startIndex; i < text.length; i++) {
+    const char = text[i];
+
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+
+    if (char === '\\' && inString) {
+      escapeNext = true;
+      continue;
+    }
+
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+
+    if (inString) continue;
+
+    if (char === '{') {
+      depth++;
+      maxDepth = Math.max(maxDepth, depth);
+    } else if (char === '}') {
+      depth--;
+      _lastValidIndex = i;
+      if (depth === 0) {
+        return { json: text.substring(startIndex, i + 1), isTruncated: false, missingBraces: 0 };
+      }
+    }
+  }
+
+  // If we get here, JSON is incomplete (truncated)
+  // Return the partial JSON and indicate how many braces are missing
+  if (depth > 0 && maxDepth > 0) {
+    return {
+      json: text.substring(startIndex),
+      isTruncated: true,
+      missingBraces: depth,
+    };
+  }
+
+  return { json: null, isTruncated: false, missingBraces: 0 };
+}
+
+/**
+ * Attempt to repair truncated JSON by closing open structures
+ */
+function repairTruncatedJson(partialJson: string, _missingBraces: number): string | null {
+  let repaired = partialJson.trim();
+
+  // Remove trailing incomplete elements
+  // Common patterns: incomplete string, trailing comma, incomplete key
+  repaired = repaired
+    .replace(/,\s*$/, '') // Remove trailing comma
+    .replace(/,\s*"[^"]*$/, '') // Remove incomplete key-value
+    .replace(/"[^"]*$/, '""') // Close incomplete string
+    .replace(/:\s*$/, ': null') // Add null for incomplete value
+    .replace(/:\s*"[^"]*$/, ': ""'); // Close incomplete string value
+
+  // Count current open structures
+  let braceCount = 0;
+  let bracketCount = 0;
+  let inString = false;
+  let escapeNext = false;
+
+  for (const char of repaired) {
+    if (escapeNext) {
+      escapeNext = false;
+      continue;
+    }
+    if (char === '\\' && inString) {
+      escapeNext = true;
+      continue;
+    }
+    if (char === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (char === '{') braceCount++;
+    else if (char === '}') braceCount--;
+    else if (char === '[') bracketCount++;
+    else if (char === ']') bracketCount--;
+  }
+
+  // Close open structures
+  while (bracketCount > 0) {
+    repaired += ']';
+    bracketCount--;
+  }
+  while (braceCount > 0) {
+    repaired += '}';
+    braceCount--;
+  }
+
+  return repaired;
+}
+
+/**
+ * Check if parsed JSON contains expected analysis fields
+ */
+function hasExpectedAnalysisFields(obj: any): boolean {
+  if (typeof obj !== 'object' || obj === null) return false;
+
+  // Check for key fields that indicate this is our analysis result
+  const hasAnalysisFields =
+    obj.summary !== undefined ||
+    obj.frameworks !== undefined ||
+    obj.language !== undefined ||
+    obj.projectType !== undefined ||
+    obj.buildConfig !== undefined ||
+    obj.dependencies !== undefined;
+
+  // Check for config generation fields
+  const hasConfigFields =
+    obj.configType !== undefined ||
+    obj.projectSummary !== undefined ||
+    obj.files !== undefined ||
+    obj.deployment !== undefined;
+
+  return hasAnalysisFields || hasConfigFields;
+}
+
+/**
  * Parse AI response and extract JSON
+ * Uses multiple strategies to handle various response formats
  */
 export function extractJsonFromResponse(response: string): any {
   // Handle empty or undefined responses
@@ -1034,34 +1109,164 @@ export function extractJsonFromResponse(response: string): any {
 
   const trimmed = response.trim();
 
-  // Strategy 1: Try to extract JSON from markdown code blocks
-  const codeBlockMatch = trimmed.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/);
-  if (codeBlockMatch) {
+  // Strategy 1: Try parsing the entire response as pure JSON first
+  if (trimmed.startsWith('{')) {
     try {
-      return JSON.parse(codeBlockMatch[1].trim());
-    } catch (_error) {
+      const parsed = JSON.parse(trimmed);
+      if (hasExpectedAnalysisFields(parsed)) {
+        return parsed;
+      }
+    } catch {
       // Continue to next strategy
     }
   }
 
-  // Strategy 2: Find JSON object by looking for { ... } pattern
-  // This handles cases where AI adds preamble text like "I'll analyze..."
-  const jsonObjectMatch = trimmed.match(/(\{[\s\S]*\})/);
-  if (jsonObjectMatch) {
+  // Strategy 2: Extract JSON from markdown code blocks (```json ... ```)
+  const codeBlockPatterns = [
+    /```json\s*\n([\s\S]*?)\n```/, // Standard json code block
+    /```\s*\n(\{[\s\S]*?\})\n```/, // Generic code block with JSON object
+    /```(?:json)?\s*([\s\S]*?)```/, // Any code block
+  ];
+
+  for (const pattern of codeBlockPatterns) {
+    const match = trimmed.match(pattern);
+    if (match && match[1]) {
+      try {
+        const parsed = JSON.parse(match[1].trim());
+        if (hasExpectedAnalysisFields(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // Continue to next pattern
+      }
+    }
+  }
+
+  // Strategy 3: Use bracket matching to find complete JSON object
+  // This is more reliable than regex for nested JSON with preamble text
+  const bracketResult = findJsonByBracketMatching(trimmed);
+
+  if (bracketResult.json && !bracketResult.isTruncated) {
     try {
-      return JSON.parse(jsonObjectMatch[1].trim());
-    } catch (_error) {
+      const parsed = JSON.parse(bracketResult.json);
+      if (hasExpectedAnalysisFields(parsed)) {
+        return parsed;
+      }
+    } catch {
       // Continue to next strategy
     }
   }
 
-  // Strategy 3: Try parsing the entire response as JSON (pure JSON case)
-  try {
-    return JSON.parse(trimmed);
-  } catch (error) {
-    // All strategies failed
+  // Strategy 3b: If JSON was truncated, try to repair it
+  if (bracketResult.json && bracketResult.isTruncated) {
+    const repaired = repairTruncatedJson(bracketResult.json, bracketResult.missingBraces);
+    if (repaired) {
+      try {
+        const parsed = JSON.parse(repaired);
+        if (hasExpectedAnalysisFields(parsed)) {
+          return parsed;
+        }
+      } catch {
+        // Repair failed, continue to next strategy
+      }
+    }
+  }
+
+  // Strategy 4: Try to find JSON starting after common preamble patterns
+  const preamblePatterns = [
+    /(?:here(?:'s| is) (?:the|my) (?:analysis|json|result)[:\s]*)/i,
+    /(?:final (?:analysis|json|result)[:\s]*)/i,
+    /(?:json (?:analysis|output|result)[:\s]*)/i,
+    /(?:let me (?:provide|compile|create)[^{]*)/i,
+    /(?:now i (?:have|will|can)[^{]*)/i,
+  ];
+
+  for (const pattern of preamblePatterns) {
+    const match = trimmed.match(pattern);
+    if (match) {
+      const afterPreamble = trimmed.substring(match.index! + match[0].length);
+      const preambleResult = findJsonByBracketMatching(afterPreamble);
+      if (preambleResult.json && !preambleResult.isTruncated) {
+        try {
+          const parsed = JSON.parse(preambleResult.json);
+          if (hasExpectedAnalysisFields(parsed)) {
+            return parsed;
+          }
+        } catch {
+          // Continue to next pattern
+        }
+      }
+      // Try repair if truncated
+      if (preambleResult.json && preambleResult.isTruncated) {
+        const repaired = repairTruncatedJson(preambleResult.json, preambleResult.missingBraces);
+        if (repaired) {
+          try {
+            const parsed = JSON.parse(repaired);
+            if (hasExpectedAnalysisFields(parsed)) {
+              return parsed;
+            }
+          } catch {
+            // Continue to next pattern
+          }
+        }
+      }
+    }
+  }
+
+  // Strategy 5: Last resort - try all possible JSON objects in the response
+  let searchStart = 0;
+  while (searchStart < trimmed.length) {
+    const nextBrace = trimmed.indexOf('{', searchStart);
+    if (nextBrace === -1) break;
+
+    const potentialResult = findJsonByBracketMatching(trimmed.substring(nextBrace));
+    if (potentialResult.json) {
+      // Try complete JSON first
+      if (!potentialResult.isTruncated) {
+        try {
+          const parsed = JSON.parse(potentialResult.json);
+          if (hasExpectedAnalysisFields(parsed)) {
+            return parsed;
+          }
+        } catch {
+          // Try next occurrence
+        }
+      } else {
+        // Try repair
+        const repaired = repairTruncatedJson(potentialResult.json, potentialResult.missingBraces);
+        if (repaired) {
+          try {
+            const parsed = JSON.parse(repaired);
+            if (hasExpectedAnalysisFields(parsed)) {
+              return parsed;
+            }
+          } catch {
+            // Try next occurrence
+          }
+        }
+      }
+      searchStart = nextBrace + 1;
+    } else {
+      break;
+    }
+  }
+
+  // Check if response appears truncated (has opening brace but no proper closing)
+  const openBraces = (trimmed.match(/\{/g) || []).length;
+  const closeBraces = (trimmed.match(/\}/g) || []).length;
+  const isTruncated = openBraces > closeBraces && openBraces > 0;
+
+  if (isTruncated) {
     throw new Error(
-      `Failed to parse JSON response: ${error}\n\nRaw response (length: ${response.length}):\n${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`
+      `AI response was truncated (incomplete JSON). The model ran out of output tokens before completing the response. ` +
+        `Try using a model with higher token limits, or simplify the project.\n\n` +
+        `Response preview: ${response.substring(0, 300)}...`
     );
   }
+
+  // All strategies failed
+  throw new Error(
+    `Failed to extract valid JSON from AI response. The model may have returned an unexpected format.\n\n` +
+      `Raw response (length: ${response.length}):\n${response.substring(0, 500)}${response.length > 500 ? '...' : ''}`
+  );
 }

@@ -149,14 +149,10 @@ export class ConfigGenerationService {
         throw new Error('Config set or localPath not found');
       }
 
-      console.log(`📂 Config folder path: ${configSet.localPath}`);
-      console.log(`📂 Project files path: ${project.localPath}`);
-
       // Log activity: starting
       await this.logConfigActivity(
         configSetId,
         'start_generation',
-        'started',
         `Starting ${configType} configuration generation`
       );
 
@@ -170,19 +166,25 @@ export class ConfigGenerationService {
           files: [], // Files already analyzed
           projectPath: configSet.localPath, // Use config folder, not project folder!
           readme: analysisResults.projectStructure.documentationFiles[0],
+          onProgress: async (event) => {
+            // Log tool calls to the database
+            await this.logConfigActivity(
+              configSetId,
+              event.action || event.type,
+              event.message || `${event.type}: ${event.action}`,
+              event.details ? JSON.parse(event.details) : undefined
+            );
+          },
         },
         configType,
         optimizeFor: 'speed' as const,
       };
-
-      console.log(`🤖 AI will use cwd: ${request.projectContext.projectPath}`);
 
       let configResult: DeploymentConfigResult | null = null;
 
       await this.logConfigActivity(
         configSetId,
         'ai_generation',
-        'started',
         `AI is generating ${configType} configuration files`
       );
 
@@ -192,14 +194,12 @@ export class ConfigGenerationService {
         await this.logConfigActivity(
           configSetId,
           'ai_generation',
-          'completed',
           `AI completed. Files: ${configResult.files.map((f) => f.fileName).join(', ')}`
         );
       } catch (error: any) {
         await this.logConfigActivity(
           configSetId,
           'ai_generation',
-          'failed',
           `AI generation error: ${error.message}`
         );
         throw error;
@@ -210,7 +210,6 @@ export class ConfigGenerationService {
         await this.logConfigActivity(
           configSetId,
           'save_files',
-          'started',
           `Saving ${configResult.files.length} files to database`
         );
 
@@ -226,7 +225,6 @@ export class ConfigGenerationService {
             await this.logConfigActivity(
               configSetId,
               'skip_file',
-              'completed',
               '_summary.json (kept on disk only)'
             );
             continue;
@@ -237,9 +235,14 @@ export class ConfigGenerationService {
 
           // Security: Validate path to prevent traversal attacks
           if (!isPathSafe(configSet.localPath, fileName)) {
-            await this.logConfigActivity(configSetId, 'read_file', 'failed', fileName, {
-              error: 'Path traversal detected',
-            });
+            await this.logConfigActivity(
+              configSetId,
+              'read_file',
+              `Path traversal detected: ${fileName}`,
+              {
+                error: 'Path traversal detected',
+              }
+            );
             console.warn(`[Security] Blocked suspicious path: ${fileName}`);
             continue;
           }
@@ -250,12 +253,12 @@ export class ConfigGenerationService {
 
           try {
             content = await fs.readFile(filePath, 'utf-8');
-            await this.logConfigActivity(configSetId, 'read_file', 'completed', fileName, {
+            await this.logConfigActivity(configSetId, 'read_file', `Read ${fileName}`, {
               size: content.length,
             });
           } catch (error) {
             console.warn(`Warning: Could not read ${fileName} from config folder`);
-            await this.logConfigActivity(configSetId, 'read_file', 'failed', fileName, {
+            await this.logConfigActivity(configSetId, 'read_file', `Failed to read ${fileName}`, {
               error: String(error),
             });
           }
@@ -272,6 +275,22 @@ export class ConfigGenerationService {
             updatedAt: new Date(),
           });
         }
+      }
+
+      // Verify _summary.json was created by AI - fail if not
+      const summaryPath = path.join(configSet.localPath, '_summary.json');
+      try {
+        await fs.access(summaryPath);
+      } catch {
+        // _summary.json doesn't exist - this is a critical failure
+        await this.logConfigActivity(
+          configSetId,
+          'generation_failed',
+          'AI failed to create _summary.json - required metadata file is missing'
+        );
+        throw new Error(
+          'AI failed to create _summary.json. The model may not support tool calling or encountered an error. Please try a different model or provider.'
+        );
       }
 
       const configSetFinal = await db.query.configSets.findFirst({
@@ -296,7 +315,6 @@ export class ConfigGenerationService {
       await this.logConfigActivity(
         configSetId,
         'generation_complete',
-        'completed',
         `Configuration generated successfully in ${duration}s`
       );
 
@@ -308,17 +326,10 @@ export class ConfigGenerationService {
           updatedAt: new Date(),
         })
         .where(eq(schema.projects.id, project.id));
-
-      console.log(
-        `✅ Config generation completed for project: ${project.name} (${configType} v${configSetFinal!.version})`
-      );
     } catch (error: any) {
-      console.error('Config generation failed:', error);
-
       await this.logConfigActivity(
         configSetId,
         'generation_failed',
-        'failed',
         `Configuration generation failed: ${error.message}`
       );
 
@@ -384,9 +395,8 @@ export class ConfigGenerationService {
         const summaryPath = path.join(configSet.localPath, '_summary.json');
         const summaryContent = await fs.readFile(summaryPath, 'utf-8');
         metadata = JSON.parse(summaryContent);
-      } catch (_error) {
+      } catch {
         // File doesn't exist or couldn't be read - that's okay
-        console.log('_summary.json not found or unreadable for config:', configSetId);
       }
     }
 
@@ -468,7 +478,6 @@ export class ConfigGenerationService {
   private static async logConfigActivity(
     configSetId: string,
     action: string,
-    status: 'started' | 'completed' | 'failed',
     result?: string,
     details?: Record<string, any>
   ): Promise<void> {
@@ -477,7 +486,6 @@ export class ConfigGenerationService {
         id: randomUUID(),
         configSetId,
         action,
-        status,
         result: result || null,
         details: details ? JSON.stringify(details) : null,
         timestamp: new Date(),
@@ -497,7 +505,6 @@ export class ConfigGenerationService {
     activityLog: Array<{
       id: string;
       action: string;
-      status: string;
       result?: string;
       details?: any;
       timestamp: string;
@@ -525,7 +532,6 @@ export class ConfigGenerationService {
         .map((log) => ({
           id: log.id,
           action: log.action,
-          status: log.status,
           result: log.result || undefined,
           details: log.details ? JSON.parse(log.details) : undefined,
           timestamp: log.timestamp.toISOString(),

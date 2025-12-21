@@ -15,7 +15,18 @@ import {
   Copy,
 } from 'lucide-react';
 
-// Type definitions for deployment
+// Type for flexible recommendation format (AI may return string or object)
+type RecommendationItem =
+  | string
+  | {
+      recommendation?: string;
+      message?: string;
+      action?: string;
+      priority?: string;
+      category?: string;
+    };
+
+// Type definitions for deployment - instructions can be string or array
 interface DeploymentSummary {
   summary?: {
     deploymentNotes?: string;
@@ -23,13 +34,39 @@ interface DeploymentSummary {
   deployment?: {
     buildCommand?: string;
     runCommand?: string;
-    instructions?: string;
+    instructions?: string | string[] | { steps?: string[]; guide?: string };
   };
   optimization?: {
     features?: string[];
     buildTimeOptimizations?: string[];
   };
-  recommendations?: string[];
+  recommendations?: RecommendationItem[];
+}
+
+/**
+ * Normalize instructions to a string format
+ * AI may return: string, array of strings, or object with steps/guide
+ */
+function normalizeInstructions(
+  instructions: string | string[] | { steps?: string[]; guide?: string } | undefined
+): string {
+  if (!instructions) return '';
+  if (typeof instructions === 'string') return instructions;
+  if (Array.isArray(instructions)) return instructions.join('\n');
+  if (typeof instructions === 'object') {
+    if (instructions.guide) return instructions.guide;
+    if (instructions.steps) return instructions.steps.join('\n');
+    return JSON.stringify(instructions);
+  }
+  return String(instructions);
+}
+
+/**
+ * Extract text from recommendation item
+ */
+function getRecommendationText(item: RecommendationItem): string {
+  if (typeof item === 'string') return item;
+  return item.recommendation || item.message || item.action || JSON.stringify(item);
 }
 
 interface DeploymentTabProps {
@@ -193,7 +230,7 @@ export function DeploymentTab({ summary }: DeploymentTabProps) {
                   {summary.recommendations.map((rec, idx) => (
                     <li key={idx} className="flex items-start gap-2 text-sm text-amber-900">
                       <CheckCircle2 className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
-                      <span>{rec}</span>
+                      <span>{getRecommendationText(rec)}</span>
                     </li>
                   ))}
                 </ul>
@@ -214,129 +251,131 @@ export function DeploymentTab({ summary }: DeploymentTabProps) {
                 <CardDescription>Follow these steps to deploy your application</CardDescription>
               </CardHeader>
               <CardContent className="prose prose-sm max-w-none">
-                {summary.deployment?.instructions?.split('\n').map((line, idx) => {
-                  const trimmedLine = line.trim();
+                {normalizeInstructions(summary.deployment?.instructions)
+                  .split('\n')
+                  .map((line, idx) => {
+                    const trimmedLine = line.trim();
 
-                  // Skip empty lines
-                  if (!trimmedLine) {
-                    return <div key={idx} className="h-2" />;
-                  }
+                    // Skip empty lines
+                    if (!trimmedLine) {
+                      return <div key={idx} className="h-2" />;
+                    }
 
-                  // Handle headings
-                  if (trimmedLine.startsWith('### ')) {
-                    return (
-                      <h3 key={idx} className="text-base font-semibold text-gray-900 mt-6 mb-2">
-                        {trimmedLine.replace('### ', '')}
-                      </h3>
-                    );
-                  }
-                  if (trimmedLine.startsWith('## ')) {
-                    return (
-                      <h2 key={idx} className="text-lg font-semibold text-gray-900 mt-6 mb-3">
-                        {trimmedLine.replace('## ', '')}
-                      </h2>
-                    );
-                  }
-                  if (trimmedLine.startsWith('# ')) {
-                    return (
-                      <h1 key={idx} className="text-xl font-bold text-gray-900 mt-6 mb-3">
-                        {trimmedLine.replace('# ', '')}
-                      </h1>
-                    );
-                  }
+                    // Handle headings
+                    if (trimmedLine.startsWith('### ')) {
+                      return (
+                        <h3 key={idx} className="text-base font-semibold text-gray-900 mt-6 mb-2">
+                          {trimmedLine.replace('### ', '')}
+                        </h3>
+                      );
+                    }
+                    if (trimmedLine.startsWith('## ')) {
+                      return (
+                        <h2 key={idx} className="text-lg font-semibold text-gray-900 mt-6 mb-3">
+                          {trimmedLine.replace('## ', '')}
+                        </h2>
+                      );
+                    }
+                    if (trimmedLine.startsWith('# ')) {
+                      return (
+                        <h1 key={idx} className="text-xl font-bold text-gray-900 mt-6 mb-3">
+                          {trimmedLine.replace('# ', '')}
+                        </h1>
+                      );
+                    }
 
-                  // Handle numbered lists
-                  if (trimmedLine.match(/^\d+\.\s/)) {
-                    return (
-                      <div key={idx} className="flex gap-2 my-2">
-                        <span className="font-semibold text-ocean-600">
-                          {trimmedLine.match(/^\d+\./)?.[0]}
-                        </span>
-                        <span className="text-base text-gray-700 leading-relaxed flex-1">
-                          {trimmedLine.replace(/^\d+\.\s/, '')}
-                        </span>
-                      </div>
-                    );
-                  }
+                    // Handle numbered lists
+                    if (trimmedLine.match(/^\d+\.\s/)) {
+                      return (
+                        <div key={idx} className="flex gap-2 my-2">
+                          <span className="font-semibold text-ocean-600">
+                            {trimmedLine.match(/^\d+\./)?.[0]}
+                          </span>
+                          <span className="text-base text-gray-700 leading-relaxed flex-1">
+                            {trimmedLine.replace(/^\d+\.\s/, '')}
+                          </span>
+                        </div>
+                      );
+                    }
 
-                  // Handle bullet lists
-                  if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
-                    return (
-                      <div key={idx} className="flex gap-2 my-2 ml-4">
-                        <span className="text-ocean-600 font-bold">•</span>
-                        <span className="text-base text-gray-700 leading-relaxed flex-1">
-                          {trimmedLine.substring(2)}
-                        </span>
-                      </div>
-                    );
-                  }
+                    // Handle bullet lists
+                    if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+                      return (
+                        <div key={idx} className="flex gap-2 my-2 ml-4">
+                          <span className="text-ocean-600 font-bold">•</span>
+                          <span className="text-base text-gray-700 leading-relaxed flex-1">
+                            {trimmedLine.substring(2)}
+                          </span>
+                        </div>
+                      );
+                    }
 
-                  // Handle code blocks markers
-                  if (trimmedLine.startsWith('```')) {
-                    return null;
-                  }
+                    // Handle code blocks markers
+                    if (trimmedLine.startsWith('```')) {
+                      return null;
+                    }
 
-                  // Handle command lines
-                  if (
-                    trimmedLine.startsWith('$') ||
-                    trimmedLine.match(/^(npm|yarn|pnpm|docker|git)\s/)
-                  ) {
-                    return (
-                      <pre
-                        key={idx}
-                        className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm my-3 overflow-x-auto border-l-4 border-green-500"
-                      >
-                        <code>{trimmedLine}</code>
-                      </pre>
-                    );
-                  }
+                    // Handle command lines
+                    if (
+                      trimmedLine.startsWith('$') ||
+                      trimmedLine.match(/^(npm|yarn|pnpm|docker|git)\s/)
+                    ) {
+                      return (
+                        <pre
+                          key={idx}
+                          className="bg-gray-900 text-green-400 p-3 rounded-lg font-mono text-sm my-3 overflow-x-auto border-l-4 border-green-500"
+                        >
+                          <code>{trimmedLine}</code>
+                        </pre>
+                      );
+                    }
 
-                  // Handle inline code with backticks
-                  if (trimmedLine.includes('`')) {
-                    const parts = trimmedLine.split(/`([^`]+)`/);
+                    // Handle inline code with backticks
+                    if (trimmedLine.includes('`')) {
+                      const parts = trimmedLine.split(/`([^`]+)`/);
+                      return (
+                        <p key={idx} className="text-base text-gray-700 leading-relaxed my-2">
+                          {parts.map((part, i) =>
+                            i % 2 === 0 ? (
+                              part
+                            ) : (
+                              <code
+                                key={i}
+                                className="text-xs font-mono bg-ocean-50 text-ocean-700 px-1.5 py-0.5 rounded font-semibold"
+                              >
+                                {part}
+                              </code>
+                            )
+                          )}
+                        </p>
+                      );
+                    }
+
+                    // Handle bold text with **
+                    if (trimmedLine.includes('**')) {
+                      const parts = trimmedLine.split(/\*\*([^*]+)\*\*/);
+                      return (
+                        <p key={idx} className="text-base text-gray-700 leading-relaxed my-2">
+                          {parts.map((part, i) =>
+                            i % 2 === 0 ? (
+                              part
+                            ) : (
+                              <strong key={i} className="font-semibold text-gray-900">
+                                {part}
+                              </strong>
+                            )
+                          )}
+                        </p>
+                      );
+                    }
+
+                    // Regular paragraphs
                     return (
                       <p key={idx} className="text-base text-gray-700 leading-relaxed my-2">
-                        {parts.map((part, i) =>
-                          i % 2 === 0 ? (
-                            part
-                          ) : (
-                            <code
-                              key={i}
-                              className="text-xs font-mono bg-ocean-50 text-ocean-700 px-1.5 py-0.5 rounded font-semibold"
-                            >
-                              {part}
-                            </code>
-                          )
-                        )}
+                        {trimmedLine}
                       </p>
                     );
-                  }
-
-                  // Handle bold text with **
-                  if (trimmedLine.includes('**')) {
-                    const parts = trimmedLine.split(/\*\*([^*]+)\*\*/);
-                    return (
-                      <p key={idx} className="text-base text-gray-700 leading-relaxed my-2">
-                        {parts.map((part, i) =>
-                          i % 2 === 0 ? (
-                            part
-                          ) : (
-                            <strong key={i} className="font-semibold text-gray-900">
-                              {part}
-                            </strong>
-                          )
-                        )}
-                      </p>
-                    );
-                  }
-
-                  // Regular paragraphs
-                  return (
-                    <p key={idx} className="text-base text-gray-700 leading-relaxed my-2">
-                      {trimmedLine}
-                    </p>
-                  );
-                })}
+                  })}
               </CardContent>
             </Card>
           </div>

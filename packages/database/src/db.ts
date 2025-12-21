@@ -156,11 +156,8 @@ async function createTables() {
         analysis_run_id TEXT NOT NULL,
         timestamp INTEGER NOT NULL,
         action TEXT NOT NULL,
-        status TEXT NOT NULL,
         result TEXT,
         details TEXT,
-        file_name TEXT,
-        duration INTEGER,
         created_at INTEGER NOT NULL
       );
     `);
@@ -232,7 +229,6 @@ async function createTables() {
         id TEXT PRIMARY KEY,
         config_set_id TEXT NOT NULL,
         action TEXT NOT NULL,
-        status TEXT NOT NULL,
         result TEXT,
         details TEXT,
         timestamp INTEGER NOT NULL

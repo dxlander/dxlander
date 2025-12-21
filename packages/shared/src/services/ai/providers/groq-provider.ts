@@ -1,28 +1,26 @@
 /**
  * Groq Provider - AI SDK v5
  *
- * Uses the Groq API for fast inference with open-source models.
- * Now extends BaseToolProvider for unified tool-calling capabilities.
+ * Uses the official @ai-sdk/groq for proper integration.
+ * Extends BaseToolProvider for unified tool-calling capabilities.
  */
 
-import { createOpenAI } from '@ai-sdk/openai';
+import { createGroq } from '@ai-sdk/groq';
 import type { LanguageModel } from 'ai';
 import { BaseToolProvider } from './base-tool-provider';
 
 export class GroqProvider extends BaseToolProvider {
   readonly name = 'groq' as const;
-  private baseUrl = 'https://api.groq.com/openai/v1';
 
   /**
-   * Get the Groq language model
+   * Get the Groq language model using official SDK
    */
   async getLanguageModel(): Promise<LanguageModel> {
     if (!this.config) {
       throw new Error('Provider not initialized');
     }
 
-    const groq = createOpenAI({
-      baseURL: this.baseUrl,
+    const groq = createGroq({
       apiKey: this.config.apiKey,
     });
 

@@ -1,11 +1,11 @@
 /**
  * OpenRouter Provider - AI SDK v5
  *
- * Uses the OpenRouter API to access multiple AI models through a unified interface.
- * Now extends BaseToolProvider for unified tool-calling capabilities.
+ * Uses the official @openrouter/ai-sdk-provider for proper integration.
+ * Extends BaseToolProvider for unified tool-calling capabilities.
  */
 
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 import type { LanguageModel } from 'ai';
 import axios from 'axios';
 import { BaseToolProvider } from './base-tool-provider';
@@ -14,20 +14,15 @@ export class OpenRouterProvider extends BaseToolProvider {
   readonly name = 'openrouter' as const;
 
   /**
-   * Get the OpenRouter language model
+   * Get the OpenRouter language model using official SDK
    */
   async getLanguageModel(): Promise<LanguageModel> {
     if (!this.config) {
       throw new Error('Provider not initialized');
     }
 
-    const openrouter = createOpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
+    const openrouter = createOpenRouter({
       apiKey: this.config.apiKey,
-      headers: {
-        'HTTP-Referer': 'https://dxlander.com',
-        'X-Title': 'DXLander',
-      },
     });
 
     return openrouter(this.config.model || 'anthropic/claude-3.5-sonnet');
@@ -275,18 +270,13 @@ export class OpenRouterProvider extends BaseToolProvider {
                   }
                 }
               }
-            } catch (parseError) {
-              console.warn('Failed to parse rate limit reset header:', parseError);
+            } catch {
+              // Ignore parse errors for rate limit header
             }
           }
 
           delay = Math.min(delay, 120000); // Max 2 minutes
           const jitter = 1000 + Math.random() * 2000;
-
-          console.log(
-            `OpenRouter rate limit hit. Retrying in ${Math.round((delay + jitter) / 1000)} seconds (attempt ${attempt + 1}/${maxRetries + 1})`
-          );
-
           await new Promise((resolve) => setTimeout(resolve, delay + jitter));
         } else if (error.response?.status >= 400 && error.response?.status < 500) {
           // Don't retry client errors
@@ -294,9 +284,6 @@ export class OpenRouterProvider extends BaseToolProvider {
         } else {
           // Retry with moderate delay
           const delay = 2000 + Math.random() * 2000;
-          console.log(
-            `OpenRouter API error: ${error.message}. Retrying in ${Math.round(delay)}ms (attempt ${attempt + 1}/${maxRetries + 1})`
-          );
           await new Promise((resolve) => setTimeout(resolve, delay));
         }
       }
