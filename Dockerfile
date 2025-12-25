@@ -42,11 +42,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:3000/api/setup/status || exit 1
 
 # Use dumb-init to handle signals properly and start the application
-# Dependencies will be installed automatically on first run
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "bin/dxlander"]
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:3000/api/setup/status || exit 1
-
-# Start both API and Web servers
 CMD ["node", "bin/dxlander"]

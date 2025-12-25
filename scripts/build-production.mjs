@@ -163,22 +163,11 @@ async function build() {
       await readFile(path.join(config.apiDir, 'package.json'), 'utf-8')
     );
 
-    // Copy built API code
+    // Copy only the bundled API file (esbuild bundles everything into index.js)
+    await mkdir(path.join(apiDestPath, 'dist'), { recursive: true });
     await cp(
-      path.join(config.apiDir, 'dist'),
-      path.join(apiDestPath, 'dist'),
-      { recursive: true }
-    );
-
-    await cp(
-      path.join(config.apiDir, 'src'),
-      path.join(apiDestPath, 'src'),
-      { recursive: true }
-    );
-
-    await cp(
-      path.join(config.apiDir, 'tsconfig.json'),
-      path.join(apiDestPath, 'tsconfig.json')
+      path.join(config.apiDir, 'dist', 'index.js'),
+      path.join(apiDestPath, 'dist', 'index.js')
     );
 
     // Create clean package.json with only npm dependencies (no workspace deps)
