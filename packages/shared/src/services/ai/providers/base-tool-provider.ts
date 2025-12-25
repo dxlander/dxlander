@@ -1,13 +1,18 @@
 /**
  * Base Tool Provider
  *
- * Abstract base class for AI providers that use Vercel AI SDK's tool-calling system.
+ * Abstract base class for AI providers that use Vercel AI SDK v6's tool-calling system.
  * Provides unified project analysis and config generation capabilities using tools.
  *
  * All non-SDK providers (Groq, OpenRouter, OpenAI, etc.) extend this class and only
  * need to implement `getLanguageModel()` to specify which AI model to use.
  *
  * The Claude Agent SDK does NOT use this - it has its own built-in tools.
+ *
+ * AI SDK v6 Features Used:
+ * - streamText() with stopWhen for multi-step tool loops
+ * - tool() for defining tools with Zod schema validation
+ * - LanguageModel type for provider abstraction
  */
 
 import { streamText, stepCountIs, type LanguageModel } from 'ai';

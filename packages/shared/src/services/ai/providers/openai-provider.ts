@@ -1,5 +1,5 @@
 /**
- * OpenAI Provider - AI SDK v5
+ * OpenAI Provider - AI SDK v6
  *
  * Dedicated provider for the official OpenAI API.
  * Extends OpenAICompatibleProvider with OpenAI-specific defaults and validation.
@@ -9,6 +9,7 @@
  * - API key validation (sk- prefix)
  * - Common OpenAI models list
  * - Inherits all tool-calling capabilities from BaseToolProvider
+ * - Uses Chat Completions API via openai.chat() (inherited from OpenAICompatibleProvider)
  */
 
 import { OpenAICompatibleProvider } from './openai-compatible-provider';

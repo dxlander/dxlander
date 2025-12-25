@@ -1,5 +1,5 @@
 /**
- * OpenAI Compatible Provider - AI SDK v5
+ * OpenAI Compatible Provider - AI SDK v6
  *
  * Base provider for any service implementing the OpenAI API specification.
  * This includes OpenAI, LM Studio, Ollama, vLLM, LocalAI, and many others.
@@ -9,6 +9,11 @@
  * - Optional API key (supports local models without authentication)
  * - Optional custom headers for provider-specific requirements
  * - Extends BaseToolProvider for unified tool-calling capabilities
+ *
+ * AI SDK v6 Note:
+ * Uses openai.chat() instead of openai() to force the Chat Completions API.
+ * This is required because AI SDK v6 defaults to the new Responses API,
+ * which is not supported by most OpenAI-compatible servers (LM Studio, Ollama, etc.)
  */
 
 import { createOpenAI } from '@ai-sdk/openai';
@@ -91,6 +96,10 @@ export class OpenAICompatibleProvider extends BaseToolProvider {
 
   /**
    * Get the language model instance
+   *
+   * Uses openai.chat() to force the Chat Completions API instead of the
+   * Responses API (which is the default in AI SDK v6). This is required
+   * for compatibility with most OpenAI-compatible servers.
    */
   async getLanguageModel(): Promise<LanguageModel> {
     if (!this.config) {
@@ -107,7 +116,9 @@ export class OpenAICompatibleProvider extends BaseToolProvider {
       headers,
     });
 
-    return openai(model);
+    // Use .chat() to force Chat Completions API instead of Responses API
+    // This is required for LM Studio, Ollama, vLLM, and other OpenAI-compatible servers
+    return openai.chat(model);
   }
 
   /**

@@ -1,5 +1,5 @@
 /**
- * Groq Provider - AI SDK v5
+ * Groq Provider - AI SDK v6
  *
  * Uses the official @ai-sdk/groq for proper integration.
  * Extends BaseToolProvider for unified tool-calling capabilities.
