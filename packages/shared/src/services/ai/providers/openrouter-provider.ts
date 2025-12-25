@@ -1,8 +1,11 @@
 /**
- * OpenRouter Provider - AI SDK v5
+ * OpenRouter Provider - AI SDK v6
  *
  * Uses the official @openrouter/ai-sdk-provider for proper integration.
  * Extends BaseToolProvider for unified tool-calling capabilities.
+ *
+ * Note: The @openrouter/ai-sdk-provider package has a peer dependency on ai@^5.0.0
+ * but works with v6 since the core LanguageModel interface is stable.
  */
 
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
