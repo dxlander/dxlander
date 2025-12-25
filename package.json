@@ -1,8 +1,8 @@
 {
   "name": "dxlander",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.3",
   "description": "AI-powered zero-configuration deployment platform that automates project deployment and testing (DEVELOPMENT VERSION - Heavy development in progress)",
-  "private": false,
+  "private": true,
   "author": {
     "name": "DXLander Team",
     "email": "hello@dxlander.dev",
@@ -93,8 +93,8 @@
     "prepublishOnly": "echo 'Building production release...' && pnpm run build",
     "prepack": "echo 'Packaging DXLander production build...'",
     "publish:npm": "cd dist-production && npm publish --access public --tag alpha",
-    "release:alpha": "pnpm run build:production && cd dist-production && npm publish --access public --tag alpha",
-    "release:beta": "pnpm run build:production && cd dist-production && npm publish --access public --tag beta",
+    "release:alpha": "pnpm run build:production && cd dist-production && npm publish --access public --tag alpha && npm dist-tag add dxlander@$(node -p \"require('./package.json').version\") latest",
+    "release:beta": "pnpm run build:production && cd dist-production && npm publish --access public --tag beta && npm dist-tag add dxlander@$(node -p \"require('./package.json').version\") latest",
     "release:stable": "pnpm run build:production && cd dist-production && npm publish --access public",
     "build:docker": "docker build -t ghcr.io/dxlander/dxlander:latest .",
     "release:docker": "node scripts/release-docker.mjs"

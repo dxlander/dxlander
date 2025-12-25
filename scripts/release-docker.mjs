@@ -31,15 +31,13 @@ console.log('');
 // Determine tags based on version
 const tags = [`ghcr.io/dxlander/dxlander:${version}`];
 
-// Add 'latest' tag if not a pre-release version
-if (!version.includes('alpha') && !version.includes('beta') && !version.includes('rc')) {
-    tags.push('ghcr.io/dxlander/dxlander:latest');
-} else {
-    // For pre-releases, add the pre-release channel tag (e.g., 'alpha', 'beta')
-    const match = version.match(/-(alpha|beta|rc)/);
-    if (match) {
-        tags.push(`ghcr.io/dxlander/dxlander:${match[1]}`);
-    }
+// Always add 'latest' tag (matches npm behavior)
+tags.push('ghcr.io/dxlander/dxlander:latest');
+
+// For pre-releases, also add the channel tag (e.g., 'alpha', 'beta')
+const match = version.match(/-(alpha|beta|rc)/);
+if (match) {
+    tags.push(`ghcr.io/dxlander/dxlander:${match[1]}`);
 }
 
 console.log('🏷️  Tags to be created:');
