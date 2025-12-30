@@ -173,7 +173,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
                             <h4 className="font-semibold text-gray-900 text-lg">
-                              v{config.version} - {config.type}
+                              {config.name || `v${config.version}`}
                             </h4>
                             <Badge variant="default">
                               <CheckCircle2 className="h-3 w-3 mr-1" />

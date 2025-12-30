@@ -304,11 +304,11 @@ export interface ProjectAnalysisResult {
 
 /**
  * Deployment configuration generation request
+ * Always generates Docker + docker-compose.yml (universal model)
  */
 export interface DeploymentConfigRequest {
   analysisResult: ProjectAnalysisResult;
   projectContext: ProjectContext;
-  configType: 'docker' | 'docker-compose' | 'kubernetes' | 'bash' | 'vercel' | 'railway';
   optimizeFor?: 'speed' | 'size' | 'security' | 'cost';
 }
 
@@ -327,7 +327,6 @@ export interface GeneratedConfigFile {
  * Deployment configuration result
  */
 export interface DeploymentConfigResult {
-  configType: string;
   projectSummary?: {
     overview: string;
     framework: string;
@@ -371,14 +370,10 @@ export interface DeploymentConfigResult {
     instructions: string;
     buildCommand?: string;
     runCommand?: string;
-    estimatedBuildTime?: number; // seconds
-    estimatedImageSize?: number; // MB
+    estimatedBuildTime?: number;
+    estimatedImageSize?: number;
   };
   recommendations?: string[];
-  // Legacy fields for backward compatibility
-  instructions?: string;
-  estimatedBuildTime?: number;
-  estimatedImageSize?: number;
 }
 
 /**

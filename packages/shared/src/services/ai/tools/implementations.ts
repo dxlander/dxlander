@@ -247,7 +247,7 @@ export async function writeFileImpl(
     await fs.writeFile(fullPath, content, 'utf-8');
     const size = Buffer.byteLength(content, 'utf-8');
 
-    console.log(`  📝 Wrote file: ${filePath} (${size} bytes)`);
+    // File writing logged via onProgress callback, not console
 
     return {
       filePath,
@@ -256,5 +256,125 @@ export async function writeFileImpl(
     };
   } catch (error: any) {
     throw new Error(`Failed to write file ${filePath}: ${error.message}`);
+  }
+}
+
+/**
+ * Validation error structure
+ */
+export interface ValidationError {
+  line?: number;
+  column?: number;
+  message: string;
+  rule?: string;
+  severity: 'error' | 'warning';
+}
+
+/**
+ * Validate docker-compose.yml against official Docker Compose schema
+ * Uses dclint for schema validation - catches invalid properties like Kubernetes-specific fields
+ */
+export async function validateDockerComposeImpl(context: ToolContext): Promise<{
+  valid: boolean;
+  errors: ValidationError[];
+  warnings: ValidationError[];
+  message: string;
+}> {
+  const fs = await import('fs');
+  const pathModule = await import('path');
+
+  const composeFile = pathModule.join(context.projectPath, 'docker-compose.yml');
+  const composeYamlFile = pathModule.join(context.projectPath, 'docker-compose.yaml');
+  const actualFile = fs.existsSync(composeFile) ? composeFile : composeYamlFile;
+
+  if (!fs.existsSync(actualFile)) {
+    return {
+      valid: false,
+      errors: [
+        {
+          message: 'docker-compose.yml not found. Create it first using writeFile.',
+          severity: 'error',
+        },
+      ],
+      warnings: [],
+      message: 'docker-compose.yml not found. Create it first using writeFile.',
+    };
+  }
+
+  try {
+    const { DCLinter } = await import('dclint');
+
+    const linter = new DCLinter({
+      rules: {},
+      quiet: true,
+      debug: false,
+      exclude: [],
+    });
+
+    const results = linter.lintFiles([actualFile], false);
+
+    const errors: ValidationError[] = [];
+    const warnings: ValidationError[] = [];
+
+    for (const result of results) {
+      for (const msg of result.messages) {
+        const validationError: ValidationError = {
+          line: msg.line,
+          column: msg.column,
+          message: msg.message,
+          rule: msg.rule,
+          severity: msg.type === 'error' ? 'error' : 'warning',
+        };
+
+        if (msg.type === 'error') {
+          errors.push(validationError);
+        } else {
+          warnings.push(validationError);
+        }
+      }
+    }
+
+    if (errors.length === 0) {
+      const warningMsg =
+        warnings.length > 0
+          ? ` with ${warnings.length} warning(s): ${warnings.map((w) => w.message).join('; ')}`
+          : '';
+      return {
+        valid: true,
+        errors: [],
+        warnings,
+        message: `docker-compose.yml is valid${warningMsg}`,
+      };
+    }
+
+    const errorDetails = errors
+      .map((e) => {
+        const location = e.line ? ` (line ${e.line})` : '';
+        return `${e.message}${location}`;
+      })
+      .join('; ');
+
+    return {
+      valid: false,
+      errors,
+      warnings,
+      message: `docker-compose.yml has ${errors.length} error(s): ${errorDetails}. Fix these issues and try again.`,
+    };
+  } catch (error: any) {
+    const errorMessage = error.message || String(error);
+
+    let userFriendlyMessage = errorMessage;
+    if (errorMessage.includes('additional properties')) {
+      const match = errorMessage.match(/'([^']+)' not allowed/);
+      const invalidProp = match ? match[1] : 'unknown';
+      userFriendlyMessage = `Invalid property "${invalidProp}" found. This may be a Kubernetes property not valid in Docker Compose. Use only valid Docker Compose properties.`;
+    }
+
+    return {
+      valid: false,
+      errors: [{ message: userFriendlyMessage, severity: 'error' }],
+      warnings: [],
+      message: userFriendlyMessage,
+    };
   }
 }

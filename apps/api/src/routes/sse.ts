@@ -114,4 +114,29 @@ sseApp.get('/config/:configSetId', sseAuthMiddleware, async (c) => {
   return SSEService.streamConfigProgress(c, configSetId, user.id);
 });
 
+/**
+ * Stream deployment progress in real-time
+ * GET /sse/deployment/:deploymentId?token=xxx
+ *
+ * Events emitted:
+ * - connected: Initial connection established
+ * - progress: Deployment status and activity updates
+ * - done: Deployment reached terminal state (running/stopped/failed/terminated)
+ * - error: Error occurred during streaming
+ */
+sseApp.get('/deployment/:deploymentId', sseAuthMiddleware, async (c) => {
+  const deploymentId = c.req.param('deploymentId');
+  const user = c.get('user');
+
+  if (!deploymentId) {
+    return c.json({ error: 'Deployment ID is required' }, 400);
+  }
+
+  if (!user?.id) {
+    return c.json({ error: 'User not authenticated' }, 401);
+  }
+
+  return SSEService.streamDeploymentProgress(c, deploymentId, user.id);
+});
+
 export { sseApp };

@@ -2,37 +2,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Clock, AlertCircle, FileCode, Terminal, Zap } from 'lucide-react';
+import { FileCode, Terminal, Zap } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface LogEntry {
   id: string;
   action: string;
-  status?: string; // Status is now optional - derived from action if not provided
   result?: string;
   details?: any;
   timestamp: string;
-}
-
-/**
- * Derive status from action name if status is not provided
- */
-function deriveStatusFromAction(action: string): string {
-  const actionLower = action.toLowerCase();
-  if (actionLower.includes('error') || actionLower.includes('failed')) {
-    return 'failed';
-  }
-  if (
-    actionLower.includes('complete') ||
-    actionLower.includes('success') ||
-    actionLower.includes('save')
-  ) {
-    return 'completed';
-  }
-  if (actionLower.includes('start') || actionLower.includes('init')) {
-    return 'started';
-  }
-  return 'processing';
 }
 
 interface LogsTabProps {
@@ -41,32 +19,6 @@ interface LogsTabProps {
 }
 
 export function LogsTab({ logs, configStatus }: LogsTabProps) {
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-600" />;
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-600" />;
-      case 'started':
-        return <Clock className="h-4 w-4 text-ocean-600" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-gray-600" />;
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'failed':
-        return 'bg-red-100 text-red-700';
-      case 'started':
-        return 'bg-ocean-100 text-ocean-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
-    }
-  };
-
   const getActionIcon = (action: string) => {
     if (action.includes('file') || action.includes('read') || action.includes('write')) {
       return <FileCode className="h-4 w-4" />;
@@ -125,23 +77,7 @@ export function LogsTab({ logs, configStatus }: LogsTabProps) {
                 {/* Log content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-gray-900">{formatAction(log.action)}</h4>
-                      {(() => {
-                        const status = log.status || deriveStatusFromAction(log.action);
-                        return (
-                          <Badge
-                            variant="secondary"
-                            className={`text-xs ${getStatusBadgeVariant(status)}`}
-                          >
-                            <span className="flex items-center gap-1">
-                              {getStatusIcon(status)}
-                              {status}
-                            </span>
-                          </Badge>
-                        );
-                      })()}
-                    </div>
+                    <h4 className="font-semibold text-gray-900">{formatAction(log.action)}</h4>
                     <span className="text-xs text-gray-500 whitespace-nowrap">
                       {format(new Date(log.timestamp), 'HH:mm:ss')}
                     </span>

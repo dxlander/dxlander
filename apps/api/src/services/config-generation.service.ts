@@ -2,14 +2,15 @@
  * Config Generation Service
  *
  * Uses AI analysis results to generate deployment configuration files.
- * Supports Docker, Docker Compose, Kubernetes, and Bash scripts.
+ * Always generates Docker + docker-compose.yml (universal deployment model).
+ *
+ * See: private_docs/deployment-restructure/00-OVERVIEW.md
  */
 
 import { db, schema } from '@dxlander/database';
 import {
   type DeploymentConfigRequest,
   type DeploymentConfigResult,
-  type ConfigType,
   type GenerateConfigOptions,
   getConfigDir,
   getProjectConfigsDir,
@@ -22,12 +23,12 @@ import { AIProviderService } from './ai-provider.service';
 export class ConfigGenerationService {
   /**
    * Generate configuration files based on AI analysis
+   * Always generates Docker + docker-compose.yml
    */
   static async generateConfig(options: GenerateConfigOptions): Promise<string> {
-    const { projectId, analysisId, configType, userId } = options;
+    const { projectId, analysisId, userId } = options;
 
     try {
-      // Get project
       const project = await db.query.projects.findFirst({
         where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
       });
@@ -36,7 +37,6 @@ export class ConfigGenerationService {
         throw new Error('Project not found');
       }
 
-      // Get analysis results
       const analysis = await db.query.analysisRuns.findFirst({
         where: eq(schema.analysisRuns.id, analysisId),
       });
@@ -49,17 +49,12 @@ export class ConfigGenerationService {
         throw new Error(`Analysis is ${analysis.status}. Please wait for analysis to complete.`);
       }
 
-      // Get default AI provider info for tracking
       const aiProvider = await AIProviderService.getDefaultProvider(userId);
 
       if (!aiProvider) {
         throw new Error('No default AI provider configured');
       }
 
-      // TODO: Implement Groq rate limiting (1 config per 3 hours) and token limit validation
-      // See AIProviderService.checkGroqRateLimit() for implementation reference
-
-      // Get latest config version
       const latestConfig = await db.query.configSets.findFirst({
         where: eq(schema.configSets.projectId, projectId),
         orderBy: [desc(schema.configSets.version)],
@@ -67,29 +62,22 @@ export class ConfigGenerationService {
 
       const newVersion = (latestConfig?.version || 0) + 1;
 
-      // Create config set record
       const configSetId = randomUUID();
-      const configName = `${this.getTargetPlatform(configType)} v${newVersion}`;
+      const configName = `Docker Compose v${newVersion}`;
 
-      // Create separate folder for this config
-      // Structure: ~/.dxlander/projects/{projectId}/configs/{configId}/
       const fs = await import('fs/promises');
 
       if (!project.localPath) {
         throw new Error('Project local path not found');
       }
 
-      // Use helper function to get config directory
       const configPath = getConfigDir(projectId, configSetId);
-
-      // SECURITY: Validate that config path is in the correct location
-      // This prevents path traversal attacks where configPath might escape the configs directory
       const configsDir = getProjectConfigsDir(projectId);
+
       if (!isPathSafe(configsDir, configPath)) {
         throw new Error('Invalid config path detected. Configs must be in the configs directory.');
       }
 
-      // Ensure config directory exists
       await fs.mkdir(configPath, { recursive: true });
 
       await db.insert(schema.configSets).values({
@@ -99,8 +87,7 @@ export class ConfigGenerationService {
         userId,
         name: configName,
         version: newVersion,
-        type: configType,
-        localPath: configPath, // Store the config folder path
+        localPath: configPath,
         generatedBy: aiProvider.provider,
         status: 'generating',
         startedAt: new Date(),
@@ -108,16 +95,11 @@ export class ConfigGenerationService {
         updatedAt: new Date(),
       });
 
-      // Run config generation in background
-      this.runConfigGeneration(
-        configSetId,
-        project,
-        JSON.parse(analysis.results),
-        configType,
-        userId
-      ).catch((error) => {
-        console.error('Background config generation failed:', error);
-      });
+      this.runConfigGeneration(configSetId, project, JSON.parse(analysis.results), userId).catch(
+        (error) => {
+          console.error('Background config generation failed:', error);
+        }
+      );
 
       return configSetId;
     } catch (error) {
@@ -133,14 +115,12 @@ export class ConfigGenerationService {
     configSetId: string,
     project: any,
     analysisResults: any,
-    configType: ConfigType,
     userId: string
   ): Promise<void> {
     const fs = await import('fs/promises');
     const path = await import('path');
 
     try {
-      // Get the config set to access localPath
       const configSet = await db.query.configSets.findFirst({
         where: eq(schema.configSets.id, configSetId),
       });
@@ -149,25 +129,21 @@ export class ConfigGenerationService {
         throw new Error('Config set or localPath not found');
       }
 
-      // Log activity: starting
       await this.logConfigActivity(
         configSetId,
         'start_generation',
-        `Starting ${configType} configuration generation`
+        'Starting Docker + docker-compose.yml configuration generation'
       );
 
-      // Get AI provider instance (handles encryption, credentials, etc.)
       const provider = await AIProviderService.getProvider({ userId });
 
-      // Prepare config generation request - use config folder as project path
       const request: DeploymentConfigRequest = {
         analysisResult: analysisResults,
         projectContext: {
-          files: [], // Files already analyzed
-          projectPath: configSet.localPath, // Use config folder, not project folder!
+          files: [],
+          projectPath: configSet.localPath,
           readme: analysisResults.projectStructure.documentationFiles[0],
           onProgress: async (event) => {
-            // Log tool calls to the database
             await this.logConfigActivity(
               configSetId,
               event.action || event.type,
@@ -176,7 +152,6 @@ export class ConfigGenerationService {
             );
           },
         },
-        configType,
         optimizeFor: 'speed' as const,
       };
 
@@ -185,11 +160,10 @@ export class ConfigGenerationService {
       await this.logConfigActivity(
         configSetId,
         'ai_generation',
-        `AI is generating ${configType} configuration files`
+        'AI is generating Docker + docker-compose.yml configuration files'
       );
 
       try {
-        // Generate config (AI writes files directly to config folder)
         configResult = await provider.generateDeploymentConfig(request);
         await this.logConfigActivity(
           configSetId,
@@ -205,22 +179,27 @@ export class ConfigGenerationService {
         throw error;
       }
 
-      // Save config file metadata and read content from disk
       if (configResult.files && configResult.files.length > 0) {
+        // Deduplicate files by fileName - keep only the latest version of each file
+        // This handles cases where AI writes the same file multiple times (e.g., validation loop)
+        const fileMap = new Map<string, (typeof configResult.files)[0]>();
+        for (const file of configResult.files) {
+          const fileName = file.fileName || 'config.txt';
+          fileMap.set(fileName, file); // Later entries overwrite earlier ones
+        }
+        const uniqueFiles = Array.from(fileMap.values());
+
         await this.logConfigActivity(
           configSetId,
           'save_files',
-          `Saving ${configResult.files.length} files to database`
+          `Saving ${uniqueFiles.length} unique files to database (${configResult.files.length} total writes)`
         );
 
-        for (let i = 0; i < configResult.files.length; i++) {
-          const file = configResult.files[i];
+        for (let i = 0; i < uniqueFiles.length; i++) {
+          const file = uniqueFiles[i];
           const fileId = randomUUID();
-
-          // Determine file type from extension
           const fileName = file.fileName || 'config.txt';
 
-          // Skip _summary.json - it stays on disk only, we'll read it when needed
           if (fileName === '_summary.json') {
             await this.logConfigActivity(
               configSetId,
@@ -233,21 +212,17 @@ export class ConfigGenerationService {
           const fileExtension = fileName.split('.').pop() || 'txt';
           const fileType = fileExtension || 'text';
 
-          // Security: Validate path to prevent traversal attacks
           if (!isPathSafe(configSet.localPath, fileName)) {
             await this.logConfigActivity(
               configSetId,
               'read_file',
               `Path traversal detected: ${fileName}`,
-              {
-                error: 'Path traversal detected',
-              }
+              { error: 'Path traversal detected' }
             );
             console.warn(`[Security] Blocked suspicious path: ${fileName}`);
             continue;
           }
 
-          // Read file content from disk (AI wrote it in config folder)
           const filePath = path.join(configSet.localPath, fileName);
           let content = '';
 
@@ -268,7 +243,7 @@ export class ConfigGenerationService {
             configSetId,
             fileName,
             fileType,
-            content, // Read from disk
+            content,
             description: file.description || null,
             order: i,
             createdAt: new Date(),
@@ -277,12 +252,10 @@ export class ConfigGenerationService {
         }
       }
 
-      // Verify _summary.json was created by AI - fail if not
       const summaryPath = path.join(configSet.localPath, '_summary.json');
       try {
         await fs.access(summaryPath);
       } catch {
-        // _summary.json doesn't exist - this is a critical failure
         await this.logConfigActivity(
           configSetId,
           'generation_failed',
@@ -301,7 +274,6 @@ export class ConfigGenerationService {
         ? Math.floor((new Date().getTime() - configSetFinal.startedAt.getTime()) / 1000)
         : 0;
 
-      // Update config set status (no metadata field needed - summary stays on disk)
       await db
         .update(schema.configSets)
         .set({
@@ -318,7 +290,6 @@ export class ConfigGenerationService {
         `Configuration generated successfully in ${duration}s`
       );
 
-      // Update project status to 'configured'
       await db
         .update(schema.projects)
         .set({
@@ -333,7 +304,6 @@ export class ConfigGenerationService {
         `Configuration generation failed: ${error.message}`
       );
 
-      // Update config set with error
       await db
         .update(schema.configSets)
         .set({
@@ -346,23 +316,9 @@ export class ConfigGenerationService {
   }
 
   /**
-   * Get target platform name based on config type
-   */
-  private static getTargetPlatform(configType: ConfigType): string {
-    const platformMap: Record<ConfigType, string> = {
-      docker: 'Docker',
-      'docker-compose': 'Docker Compose',
-      kubernetes: 'Kubernetes',
-      bash: 'Bash Script',
-    };
-    return platformMap[configType] || 'Generic';
-  }
-
-  /**
    * Get config set with all files
    */
   static async getConfigSet(configSetId: string, userId: string): Promise<any> {
-    // Get config set
     const configSet = await db.query.configSets.findFirst({
       where: eq(schema.configSets.id, configSetId),
     });
@@ -371,7 +327,6 @@ export class ConfigGenerationService {
       return null;
     }
 
-    // Verify user owns the project
     const project = await db.query.projects.findFirst({
       where: and(eq(schema.projects.id, configSet.projectId), eq(schema.projects.userId, userId)),
     });
@@ -380,13 +335,11 @@ export class ConfigGenerationService {
       throw new Error('Unauthorized');
     }
 
-    // Get config files
     const files = await db.query.configFiles.findMany({
       where: eq(schema.configFiles.configSetId, configSetId),
       orderBy: [schema.configFiles.order],
     });
 
-    // Read _summary.json from disk if it exists
     let metadata = null;
     if (configSet.localPath) {
       try {
@@ -396,14 +349,14 @@ export class ConfigGenerationService {
         const summaryContent = await fs.readFile(summaryPath, 'utf-8');
         metadata = JSON.parse(summaryContent);
       } catch {
-        // File doesn't exist or couldn't be read - that's okay
+        // File doesn't exist or couldn't be read
       }
     }
 
     return {
       ...configSet,
       files,
-      metadata, // Add the summary data from disk
+      metadata,
     };
   }
 
@@ -411,7 +364,6 @@ export class ConfigGenerationService {
    * List all config sets for a project
    */
   static async listConfigSets(projectId: string, userId: string): Promise<any[]> {
-    // Verify user owns the project
     const project = await db.query.projects.findFirst({
       where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
     });
@@ -420,13 +372,11 @@ export class ConfigGenerationService {
       throw new Error('Project not found');
     }
 
-    // Get all config sets
     const configSets = await db.query.configSets.findMany({
       where: eq(schema.configSets.projectId, projectId),
       orderBy: [desc(schema.configSets.createdAt)],
     });
 
-    // Get file counts for each config set
     const configSetsWithCounts = await Promise.all(
       configSets.map(async (configSet) => {
         const files = await db.query.configFiles.findMany({
@@ -447,7 +397,6 @@ export class ConfigGenerationService {
    * Delete a config set
    */
   static async deleteConfigSet(configSetId: string, userId: string): Promise<void> {
-    // Get config set
     const configSet = await db.query.configSets.findFirst({
       where: eq(schema.configSets.id, configSetId),
     });
@@ -456,7 +405,6 @@ export class ConfigGenerationService {
       throw new Error('Config set not found');
     }
 
-    // Verify user owns the project
     const project = await db.query.projects.findFirst({
       where: and(eq(schema.projects.id, configSet.projectId), eq(schema.projects.userId, userId)),
     });
@@ -465,10 +413,7 @@ export class ConfigGenerationService {
       throw new Error('Unauthorized');
     }
 
-    // Delete config files first
     await db.delete(schema.configFiles).where(eq(schema.configFiles.configSetId, configSetId));
-
-    // Delete config set
     await db.delete(schema.configSets).where(eq(schema.configSets.id, configSetId));
   }
 
@@ -491,7 +436,6 @@ export class ConfigGenerationService {
         timestamp: new Date(),
       });
     } catch (error) {
-      // Don't fail the whole operation if logging fails
       console.error('Failed to log config activity:', error);
     }
   }
@@ -518,7 +462,6 @@ export class ConfigGenerationService {
       throw new Error('Config set not found');
     }
 
-    // Get activity logs
     const logs = await db.query.configActivityLogs.findMany({
       where: eq(schema.configActivityLogs.configSetId, configSetId),
       orderBy: [desc(schema.configActivityLogs.timestamp)],
@@ -536,7 +479,7 @@ export class ConfigGenerationService {
           details: log.details ? JSON.parse(log.details) : undefined,
           timestamp: log.timestamp.toISOString(),
         }))
-        .reverse(), // Oldest first
+        .reverse(),
     };
   }
 }

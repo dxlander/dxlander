@@ -220,7 +220,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
   return (
     <PageLayout background="default">
       <Header
-        title={`${configSet.type.charAt(0).toUpperCase() + configSet.type.slice(1)} Configuration`}
+        title={configSet.name || 'Docker Configuration'}
         subtitle={`${project.name} • v${configSet.version} • Created ${format(new Date(configSet.createdAt), 'MMM d, yyyy, hh:mm a')}`}
         badge={configSet.status}
         actions={headerActions}
@@ -342,7 +342,11 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
 
             {/* Integrations Tab */}
             <TabsContent value="integrations" className="space-y-6">
-              <IntegrationsTab summary={summary} integrationsCount={integrationsCount} />
+              <IntegrationsTab
+                summary={summary}
+                integrationsCount={integrationsCount}
+                configSetId={resolvedParams.configId}
+              />
             </TabsContent>
 
             {/* Logs Tab */}
@@ -353,9 +357,9 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
               />
             </TabsContent>
 
-            {/* Deployment Instructions Tab */}
+            {/* Deployment Management Tab */}
             <TabsContent value="deployment" className="space-y-6">
-              <DeploymentTab summary={summary} />
+              <DeploymentTab configSetId={resolvedParams.configId} projectId={resolvedParams.id} />
             </TabsContent>
           </Tabs>
         </div>

@@ -261,7 +261,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <p className="font-medium text-gray-900 text-sm truncate">
-                                    v{config.version} - {config.type}
+                                    {config.name || `v${config.version}`}
                                   </p>
                                   <p className="text-xs text-gray-500">
                                     {format(new Date(config.createdAt), 'MMM d, yyyy')}
@@ -314,9 +314,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                           <FileCode className="h-3.5 w-3.5 text-purple-600" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-900">
-                            {config.type} configuration created
-                          </p>
+                          <p className="text-xs font-medium text-gray-900">Configuration created</p>
                           <p className="text-xs text-gray-500 mt-0.5">
                             {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
                           </p>

@@ -73,17 +73,6 @@ export const UserSchema = z.object({
 });
 export type User = z.infer<typeof UserSchema>;
 
-export const DeploymentSchema = z.object({
-  id: z.string(),
-  projectId: z.string(),
-  platform: z.string(),
-  status: z.enum(['pending', 'deploying', 'success', 'failed']),
-  deployUrl: z.string().optional(),
-  logs: z.string().optional(),
-  deployedAt: z.date().default(() => new Date()),
-});
-export type Deployment = z.infer<typeof DeploymentSchema>;
-
 // Configuration types
 export * from './config';
 

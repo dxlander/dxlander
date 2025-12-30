@@ -1,6 +1,7 @@
 export * from './constants';
 export * from './services/ai/prompts';
 export * from './services/ai/providers';
+export * from './services/ai/tools';
 export * from './services/ai/types';
 export * from './services/bitbucket';
 export * from './services/encryption';

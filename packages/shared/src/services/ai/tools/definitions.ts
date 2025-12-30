@@ -19,6 +19,7 @@ import {
   globFindImpl,
   listDirectoryImpl,
   writeFileImpl,
+  validateDockerComposeImpl,
   type ToolContext,
 } from './implementations';
 
@@ -135,7 +136,7 @@ export function createProjectAnalysisTools(context: ToolContext) {
  * Deployment Config Generation Tools
  *
  * These tools are used when generating deployment configurations.
- * Provides a Write tool for the AI to create configuration files.
+ * Provides Write and Validate tools for the AI to create and verify configuration files.
  */
 export function createConfigGenerationTools(context: ToolContext) {
   return {
@@ -161,6 +162,24 @@ export function createConfigGenerationTools(context: ToolContext) {
         content: z.string().describe('The full content to write to the file'),
       }),
       execute: async ({ filePath, content }) => writeFileImpl({ filePath, content }, context),
+    }),
+
+    /**
+     * Validate docker-compose.yml against official Docker Compose schema
+     *
+     * IMPORTANT: Call this IMMEDIATELY after writing docker-compose.yml!
+     * This validates the file against the official Docker Compose schema.
+     * If validation fails, you MUST fix the errors and write the corrected file.
+     *
+     * Common issues caught:
+     * - Invalid properties (e.g., Kubernetes-only properties like read_only_root_filesystem)
+     * - Invalid YAML syntax
+     * - Missing required fields
+     */
+    validateDockerCompose: tool({
+      description: `Validate docker-compose.yml against the official Docker Compose schema. IMPORTANT: You MUST call this IMMEDIATELY after writing docker-compose.yml. If validation fails, fix the errors in the file and write it again, then re-validate until it passes. Returns validation status with specific errors to fix.`,
+      inputSchema: z.object({}),
+      execute: async () => validateDockerComposeImpl(context),
     }),
   };
 }

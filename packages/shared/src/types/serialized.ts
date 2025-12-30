@@ -1,4 +1,4 @@
-import type { Deployment, User } from './index';
+import type { User } from './index';
 import type { ConfigSet } from './config';
 
 /**
@@ -54,13 +54,16 @@ export type SerializedProject = {
 };
 
 /**
- * Serialized Deployment type for API responses
- *
- * All Date fields are converted to ISO string format.
+ * Re-export SerializedDeployment from deployment.ts
+ * (Comprehensive deployment types including serialized versions)
  */
-export type SerializedDeployment = Omit<Deployment, 'deployedAt'> & {
-  deployedAt: string;
-};
+export type {
+  SerializedDeployment,
+  SerializedDeploymentActivityLog,
+  SerializedDeploymentCredential,
+  SerializedConfigIntegration,
+  SerializedPreFlightCheck,
+} from './deployment';
 
 /**
  * Serialized User type for API responses

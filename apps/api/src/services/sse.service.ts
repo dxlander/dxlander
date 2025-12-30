@@ -308,6 +308,173 @@ export class SSEService {
   }
 
   /**
+   * Create SSE connection and stream deployment progress
+   */
+  static async streamDeploymentProgress(
+    c: Context,
+    deploymentId: string,
+    userId: string
+  ): Promise<Response> {
+    const encoder = new TextEncoder();
+    let intervalId: NodeJS.Timeout | null = null;
+    let closed = false;
+
+    // Verify ownership before starting stream
+    const deploymentCheck = await db.query.deployments.findFirst({
+      where: eq(schema.deployments.id, deploymentId),
+    });
+
+    if (!deploymentCheck) {
+      return new Response(JSON.stringify({ error: 'Deployment not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (deploymentCheck.userId !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You do not have access to this deployment' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Send initial connection message
+        const message = `data: ${JSON.stringify({ type: 'connected', deploymentId })}\n\n`;
+        controller.enqueue(encoder.encode(message));
+
+        // Function to send progress updates
+        const sendUpdate = async () => {
+          if (closed) return;
+
+          try {
+            // Get latest deployment status
+            const deployment = await db.query.deployments.findFirst({
+              where: eq(schema.deployments.id, deploymentId),
+            });
+
+            if (!deployment) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: 'error', error: 'Deployment not found' })}\n\n`
+                )
+              );
+              controller.close();
+              return;
+            }
+
+            // Get activity logs
+            const logs = await db.query.deploymentActivityLogs.findMany({
+              where: eq(schema.deploymentActivityLogs.deploymentId, deploymentId),
+              orderBy: [desc(schema.deploymentActivityLogs.timestamp)],
+              limit: 50,
+            });
+
+            const activityLog = logs
+              .map((log) => ({
+                id: log.id,
+                action: log.action,
+                result: log.result || undefined,
+                details: safeJsonParse(log.details),
+                timestamp: log.timestamp?.toISOString(),
+              }))
+              .reverse(); // Oldest first
+
+            // Determine progress percentage based on status
+            let progress = 0;
+            switch (deployment.status) {
+              case 'pending':
+                progress = 5;
+                break;
+              case 'pre_flight':
+                progress = 15;
+                break;
+              case 'building':
+                progress = 40;
+                break;
+              case 'deploying':
+                progress = 75;
+                break;
+              case 'running':
+              case 'stopped':
+              case 'failed':
+              case 'terminated':
+                progress = 100;
+                break;
+              default:
+                progress = 0;
+            }
+
+            const progressData = {
+              type: 'progress',
+              id: deployment.id,
+              name: deployment.name,
+              status: deployment.status,
+              progress,
+              containerId: deployment.containerId,
+              imageId: deployment.imageId,
+              imageTag: deployment.imageTag,
+              ports: safeJsonParse(deployment.ports),
+              deployUrl: deployment.deployUrl,
+              currentAction: logs[0]?.action || 'Starting...',
+              currentResult: logs[0]?.result || 'Initializing deployment',
+              activityLog,
+              buildLogs: deployment.buildLogs,
+              runtimeLogs: deployment.runtimeLogs,
+              error: deployment.errorMessage,
+            };
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressData)}\n\n`));
+
+            // Stop streaming if deployment reaches terminal state
+            const terminalStates = ['running', 'stopped', 'failed', 'terminated'];
+            if (terminalStates.includes(deployment.status)) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: 'done', status: deployment.status })}\n\n`
+                )
+              );
+              if (intervalId) clearInterval(intervalId);
+              controller.close();
+              closed = true;
+            }
+          } catch (error) {
+            console.error('Error sending SSE deployment update:', error);
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'error', error: 'Failed to fetch deployment progress' })}\n\n`
+              )
+            );
+          }
+        };
+
+        // Send initial update immediately
+        await sendUpdate();
+
+        // Send updates every 500ms
+        intervalId = setInterval(sendUpdate, 500);
+      },
+
+      cancel() {
+        closed = true;
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
+      },
+    });
+  }
+
+  /**
    * Send heartbeat to keep connection alive
    */
   private static sendHeartbeat(client: SSEClient): void {

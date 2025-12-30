@@ -162,3 +162,46 @@ export function useConfigProgress(configSetId: string | null, enabled = true) {
     enabled: enabled && !!configSetId,
   });
 }
+
+/**
+ * Deployment progress event data
+ */
+export interface DeploymentProgressData {
+  type: 'connected' | 'progress' | 'done' | 'error';
+  id: string;
+  name?: string;
+  status?: string;
+  progress?: number;
+  containerId?: string;
+  imageId?: string;
+  imageTag?: string;
+  ports?: Array<{ host: number; container: number; protocol?: string }>;
+  deployUrl?: string;
+  currentAction?: string;
+  currentResult?: string;
+  activityLog?: Array<{
+    id: string;
+    action: string;
+    result?: string;
+    details?: any;
+    timestamp?: string;
+  }>;
+  buildLogs?: string;
+  runtimeLogs?: string;
+  error?: string;
+}
+
+/**
+ * Hook specifically for deployment progress
+ *
+ * Streams real-time deployment progress including:
+ * - Status updates (pending, pre_flight, building, deploying, running, etc.)
+ * - Activity logs
+ * - Build and runtime logs
+ * - Container and port information
+ */
+export function useDeploymentProgress(deploymentId: string | null, enabled = true) {
+  return useSSE<DeploymentProgressData>(`/sse/deployment/${deploymentId}`, {
+    enabled: enabled && !!deploymentId,
+  });
+}

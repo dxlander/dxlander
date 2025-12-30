@@ -12,8 +12,9 @@ import { Key, Copy, CheckCircle2, Pencil, Save, X, Plus, Trash2 } from 'lucide-r
 interface EnvironmentVariable {
   key: string;
   description: string;
-  example?: string;
-  integration?: string;
+  value?: string; // Actual deployment value (user-set)
+  example?: string; // Example/default value for reference
+  integration?: string; // Linked integration name (if any)
 }
 
 interface EnvironmentVariables {
@@ -328,15 +329,20 @@ function VariableCard({
                 value={variable.description}
                 onChange={(e) => onUpdate('description', e.target.value)}
                 placeholder="What is this variable used for? *"
-                rows={3}
+                rows={2}
                 className="text-sm resize-none rounded-xl border-2 border-ocean-200/60 hover:border-ocean-300/80 focus:border-ocean-500 focus:ring-4 focus:ring-ocean-500/20"
               />
               <FloatingInput
-                label="Example Value (optional)"
-                value={variable.example || ''}
-                onChange={(e) => onUpdate('example', e.target.value)}
+                label="Value (used in deployment)"
+                value={variable.value || ''}
+                onChange={(e) => onUpdate('value', e.target.value)}
                 className="font-mono"
               />
+              {variable.example && !variable.value && (
+                <p className="text-xs text-gray-500">
+                  Default: <code className="bg-gray-100 px-1 rounded">{variable.example}</code>
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -353,6 +359,9 @@ function VariableCard({
   }
 
   // View mode
+  const displayValue = variable.value || variable.example;
+  const isUsingDefault = !variable.value && variable.example;
+
   return (
     <div
       className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}
@@ -364,25 +373,35 @@ function VariableCard({
           <Badge variant={isRequired ? 'destructive' : 'secondary'} className="ml-2 text-xs">
             {isRequired ? 'Required' : 'Optional'}
           </Badge>
+          {isUsingDefault && (
+            <Badge variant="outline" className="ml-1 text-xs text-gray-500">
+              default
+            </Badge>
+          )}
         </div>
         {variable.integration && (
-          <Badge variant="secondary" className="text-xs">
+          <Badge variant="secondary" className="text-xs bg-ocean-100 text-ocean-700">
             {variable.integration}
           </Badge>
         )}
       </div>
       <p className="text-sm text-gray-700 mb-3">{variable.description}</p>
-      {variable.example && (
+      {displayValue && (
         <div className="flex items-center gap-2 p-3 bg-white rounded border text-sm">
-          <span className="text-gray-500 font-medium">Example:</span>
-          <code className="flex-1 font-mono text-gray-800">{variable.example}</code>
-          <Button variant="ghost" size="sm" onClick={() => onCopy(variable.example!)}>
-            {copiedKey === variable.example ? (
+          <span className="text-gray-500 font-medium">Value:</span>
+          <code className="flex-1 font-mono text-gray-800">{displayValue}</code>
+          <Button variant="ghost" size="sm" onClick={() => onCopy(displayValue)}>
+            {copiedKey === displayValue ? (
               <CheckCircle2 className="h-4 w-4 text-green-600" />
             ) : (
               <Copy className="h-4 w-4" />
             )}
           </Button>
+        </div>
+      )}
+      {!displayValue && (
+        <div className="p-3 bg-amber-50 rounded border border-amber-200 text-sm text-amber-700">
+          No value set. Click Edit to add a value for deployment.
         </div>
       )}
     </div>

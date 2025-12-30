@@ -426,8 +426,126 @@ For each detected integration, provide COMPLETE information:
 
 **IMPORTANT NOTES:**
 - \`summary\` provides high-level understanding - CRITICAL for users to understand what the project is
-- \`deployable\` flag indicates if project can be deployed (libraries, CLI tools may not be deployable)
+- \`deployable\` flag indicates if project can be deployed (see DEPLOYABILITY GUIDE below)
 - \`deploymentNotes\` explains deployment context (e.g., "This is a library for reuse, not a standalone app")
+
+---
+
+## CRITICAL: DEPLOYABILITY ASSESSMENT GUIDE
+
+**You MUST correctly assess whether a project is deployable or not. This is crucial information for users.**
+
+### DEPLOYABLE PROJECTS (deployable: true)
+Projects that run as standalone applications/services:
+- **Web Applications**: Next.js, Nuxt, React apps, Vue apps, Angular apps
+- **Backend APIs**: Express, FastAPI, Django, Rails, Flask, NestJS, Hono
+- **Full-stack Apps**: T3 Stack, Remix, SvelteKit with server
+- **Microservices**: Any service that listens on a port
+- **Databases/Data Services**: Custom database wrappers, data APIs
+- **CLI Tools with Server Mode**: Tools that can run as a service
+- **Static Sites**: Gatsby, Astro, Hugo (can be served via nginx container)
+
+### NON-DEPLOYABLE PROJECTS (deployable: false)
+Projects meant to be consumed by other projects, NOT run standalone:
+
+**Libraries/Packages:**
+- npm packages (lodash, date-fns, axios)
+- React component libraries (MUI, Chakra UI, custom component libs)
+- React Native libraries (image pickers, camera modules, gesture handlers)
+- Python packages (utilities, data processing libs)
+- Rust crates, Go modules, Ruby gems
+
+**SDK/Development Tools:**
+- Babel plugins, ESLint plugins, Webpack plugins
+- Code generators, scaffolding tools
+- Testing utilities and frameworks
+- Type definitions (@types/* packages)
+
+**Example Projects/Templates:**
+- Boilerplates and starter kits (unless they're meant to run as-is)
+- Tutorial code, learning exercises
+- Code snippets collections
+
+**Hardware/Embedded:**
+- Arduino sketches
+- Firmware code
+- IoT device code (unless it has a web interface)
+
+### HOW TO DETECT NON-DEPLOYABLE PROJECTS
+
+**Strong indicators of a LIBRARY (not deployable):**
+1. **package.json has "main" or "exports" pointing to lib/dist** - It's an npm package
+2. **No start script, only build** - Libraries are built, not run
+3. **README mentions "npm install <package-name>"** - It's consumed as a dependency
+4. **peerDependencies for React/React Native** - It's a component library
+5. **Keywords like "library", "component", "utility", "helper", "sdk"**
+6. **Files in /lib or /dist but no server code**
+7. **React Native package with native iOS/Android code** - It's a native module
+8. **No ports, no server, no HTTP handling**
+
+**Strong indicators of a DEPLOYABLE APP:**
+1. **Start script runs a server** (node server.js, npm start, etc.)
+2. **Listens on a PORT** (process.env.PORT, 3000, 8080)
+3. **Has HTTP/WebSocket handling**
+4. **README mentions "deployment", "hosting", "run locally"**
+5. **Dockerfile or docker-compose.yml present**
+6. **Vercel/Railway/Heroku config present**
+
+### EXAMPLES OF CORRECT ASSESSMENTS
+
+**Example 1: React Native Image Resizer Package**
+\`\`\`json
+{
+  "summary": {
+    "overview": "A React Native library for resizing images on iOS and Android devices",
+    "purpose": "Provides native image manipulation capabilities for React Native apps",
+    "deployable": false,
+    "deploymentNotes": "This is an npm package/library meant to be installed as a dependency in React Native applications. It contains native iOS and Android modules and cannot be deployed as a standalone service."
+  },
+  "projectType": "library"
+}
+\`\`\`
+
+**Example 2: Express API Backend**
+\`\`\`json
+{
+  "summary": {
+    "overview": "A REST API built with Express.js for user management",
+    "purpose": "Provides authentication and user CRUD operations",
+    "deployable": true,
+    "deploymentNotes": "Production-ready Express API. Requires PostgreSQL database and environment variables for secrets."
+  },
+  "projectType": "single-app"
+}
+\`\`\`
+
+**Example 3: Shared UI Component Library**
+\`\`\`json
+{
+  "summary": {
+    "overview": "A design system and component library built with React and styled-components",
+    "purpose": "Provides reusable UI components for web applications",
+    "deployable": false,
+    "deploymentNotes": "This is a component library published to npm. It should be installed as a dependency (npm install @company/ui-kit) in consumer applications, not deployed directly."
+  },
+  "projectType": "library"
+}
+\`\`\`
+
+**Example 4: Monorepo with Mixed Projects**
+\`\`\`json
+{
+  "summary": {
+    "overview": "A monorepo containing a Next.js web app, API server, and shared packages",
+    "purpose": "Full-stack application with shared code",
+    "deployable": true,
+    "deploymentNotes": "The /apps/web and /apps/api directories are deployable services. The /packages/* directories are internal libraries. Deploy each app separately."
+  },
+  "projectType": "monorepo"
+}
+\`\`\`
+
+---
 - \`frameworks\` is an ARRAY - projects can have multiple frameworks (e.g., Next.js frontend + Express backend)
 - \`ports\` is an ARRAY - projects can listen on multiple ports
 - \`integrations\` is ONLY for external services requiring credentials - be STRICT about this
@@ -470,9 +588,10 @@ I'll analyze this project...
 
 /**
  * Build deployment config generation prompt
+ * Always generates Docker + docker-compose.yml (universal deployment model)
  */
 export function buildDeploymentConfigPrompt(request: DeploymentConfigRequest): string {
-  const { analysisResult, configType, optimizeFor = 'balanced' } = request;
+  const { analysisResult, optimizeFor = 'balanced' } = request;
 
   const optimizationInstructions = {
     speed: 'Prioritize fast build times and quick startup. Use caching aggressively.',
@@ -483,111 +602,72 @@ export function buildDeploymentConfigPrompt(request: DeploymentConfigRequest): s
   }[optimizeFor];
 
   return `
-You are an expert DevOps engineer. Generate a production-ready ${configType} configuration for this project.
+You are an expert DevOps engineer. Generate production-ready Docker configuration for this project.
 
 **Project Analysis:**
 \`\`\`json
 ${JSON.stringify(analysisResult, null, 2)}
 \`\`\`
 
-**Configuration Type:** ${configType}
 **Optimization Goal:** ${optimizeFor} - ${optimizationInstructions}
 
 **YOUR TASK:**
-Analyze the project structure and create the appropriate configuration files in the CURRENT WORKING DIRECTORY.
+Generate Docker + docker-compose.yml configuration files in the CURRENT WORKING DIRECTORY.
+
+**TOOLS AVAILABLE:**
+- **writeFile**: Create configuration files (Dockerfile, docker-compose.yml, .dockerignore, .env.example, _summary.json)
+- **validateDockerCompose**: Validate docker-compose.yml against official Docker Compose schema. MUST be called after writing docker-compose.yml!
 
 **CRITICAL INSTRUCTIONS:**
 - ALL files MUST be written using RELATIVE paths (e.g., "Dockerfile", "docker-compose.yml")
 - DO NOT use absolute paths (e.g., /Users/... or /home/...)
 - Create ONLY production-ready files - no development variants, Makefiles, or separate README files
-- The Write tool will automatically save files in your current working directory
+- The writeFile tool will automatically save files in your current working directory
+- **ALWAYS validate docker-compose.yml immediately after writing it**
+- If validation fails, fix the errors and re-validate until it passes
 - Create a _summary.json file as the FINAL step
 
-**CONFIGURATION TYPE GUIDELINES:**
+**ALWAYS CREATE THESE FILES:**
 
-${
-  configType === 'docker'
-    ? `
-**Docker Configuration:**
-Analyze the project to intelligently determine what to create:
+1. **Dockerfile** - Multi-stage production build
+   - Use specific base image versions (not 'latest')
+   - Multi-stage build for smaller final image
+   - Run as non-root user
+   - Include health check
+   - Properly handle signals for graceful shutdown
+   - Copy package files first for better layer caching
 
-**Single Service Project** (one application):
-- Dockerfile (multi-stage production build)
-- .dockerignore
+2. **docker-compose.yml** - Runtime configuration (SOURCE OF TRUTH)
+   - MUST follow the exact structure shown in the template below
+   - Use ONLY valid Docker Compose properties (see reference below)
+   - NO Kubernetes properties allowed
 
-**Multi-Service Project** (needs database, cache, or multiple apps):
-- Dockerfile (multi-stage production build)
-- docker-compose.yml (orchestrates all services)
-- .dockerignore
-- .env.example (template for required environment variables)
+3. **.dockerignore** - Build exclusions
+   - node_modules, .git, IDE files, test files
 
-Look for indicators of multi-service:
-- Database dependencies (PostgreSQL, MongoDB, MySQL)
-- Cache dependencies (Redis, Memcached)
-- Message queues (RabbitMQ, Kafka)
-- Multiple applications in monorepo
-- Backend + Frontend separation
-
-DO NOT CREATE: Nginx configs, Makefiles, dev variants, or separate documentation files
-`
-    : ''
-}
-
-${
-  configType === 'kubernetes'
-    ? `
-**Kubernetes Configuration:**
-Create production-ready Kubernetes manifests:
-
-**Required Files:**
-- deployment.yaml - Deployment with replicas, resource limits, health checks
-- service.yaml - Service for internal/external access
-
-**Conditional Files (create if needed):**
-- configmap.yaml - Only if application needs ConfigMap for non-sensitive config
-- ingress.yaml - Only if application is web-facing (has HTTP endpoints)
-- hpa.yaml - Only if application needs auto-scaling
-
-**For Multi-Service Projects:**
-- Create separate deployment.yaml and service.yaml for each service
-- Name them: {service}-deployment.yaml, {service}-service.yaml
-
-DO NOT CREATE: Namespace files, secrets (use env vars), dev variants, or Helm charts
-`
-    : ''
-}
-
-${
-  configType === 'bash'
-    ? `
-**Bash Script Configuration:**
-Create a single production deployment script (deploy.sh) that:
-
-**Script should:**
-1. Check prerequisites (runtime, dependencies)
-2. Install/update dependencies
-3. Build the project (if needed)
-4. Configure environment
-5. Start the application (with process management if possible)
-6. Include error handling and logging
-
-**Make it production-ready:**
-- Use set -e for error handling
-- Validate environment variables
-- Include health check after startup
-- Add proper logging
-- Make script executable
-
-DO NOT CREATE: Multiple scripts, development variants, or complex orchestration
-`
-    : ''
-}
+4. **.env.example** - Template for required environment variables
+   - All required env vars with placeholder values
+   - Comments explaining each variable
 
 **WORKFLOW:**
 1. Analyze the project structure from the analysis results
 2. Determine what files are truly needed based on project complexity
-3. Use Write to create ONLY the essential configuration files
-4. **FINAL STEP**: Use Write to create _summary.json with metadata
+3. Use writeFile to create Dockerfile
+4. Use writeFile to create docker-compose.yml
+5. **IMMEDIATELY call validateDockerCompose** to validate the docker-compose.yml
+6. **IF validation fails**: Read the error messages, fix the issues, write the corrected docker-compose.yml, and validate again
+7. **REPEAT steps 5-6** until docker-compose.yml passes validation
+8. Use writeFile to create .dockerignore and .env.example
+9. **FINAL STEP**: Use writeFile to create _summary.json with metadata
+
+**CRITICAL: VALIDATION LOOP**
+You MUST validate docker-compose.yml and fix any errors before proceeding. Do NOT skip validation.
+If validateDockerCompose returns errors, you must:
+1. Read the specific error messages
+2. Fix each error in the docker-compose.yml content
+3. Write the corrected file using writeFile
+4. Call validateDockerCompose again
+5. Repeat until validation passes
 
 **SUMMARY FILE (_summary.json) FORMAT:**
 Create a file named **_summary.json** with this exact structure.
@@ -595,7 +675,6 @@ This file contains project discovery details, AI analysis, third-party integrati
 
 \`\`\`json
 {
-  "configType": "${configType}",
   "projectSummary": {
     "overview": "Brief description of what this project does",
     "framework": "Detected framework and version (e.g., Next.js 14, Nuxt 3, Express)",
@@ -699,14 +778,22 @@ This file contains project discovery details, AI analysis, third-party integrati
       "description": "Multi-stage Docker build optimized for production"
     },
     {
+      "fileName": "docker-compose.yml",
+      "description": "Docker Compose configuration for running the application"
+    },
+    {
       "fileName": ".dockerignore",
       "description": "Docker ignore file to reduce build context"
+    },
+    {
+      "fileName": ".env.example",
+      "description": "Template for required environment variables"
     }
   ],
   "deployment": {
-    "instructions": "## Deployment Instructions\\n\\n### Prerequisites\\n- Docker installed\\n- Environment variables configured\\n\\n### Steps\\n1. Build: \`docker build -t myapp .\`\\n2. Run: \`docker run -p 3000:3000 --env-file .env myapp\`",
-    "buildCommand": "docker build -t myapp .",
-    "runCommand": "docker run -p 3000:3000 myapp"
+    "instructions": "## Deployment Instructions\\n\\n### Prerequisites\\n- Docker and Docker Compose installed\\n- Copy .env.example to .env and configure\\n\\n### Steps\\n1. Configure: \`cp .env.example .env\` and edit values\\n2. Start: \`docker compose up -d\`\\n3. View logs: \`docker compose logs -f\`\\n4. Stop: \`docker compose down\`",
+    "buildCommand": "docker compose build",
+    "runCommand": "docker compose up -d"
   },
   "recommendations": [
     "Configure Supabase credentials before deployment",
@@ -774,61 +861,253 @@ If you find localStorage, sessionStorage, cookies, IndexedDB, or browser APIs, p
 - Provide actionable "recommendations" for deployment preparation
 - After creating _summary.json, you're done
 
-**Configuration Requirements:**
+**═══════════════════════════════════════════════════════════════════════════════**
+**DOCKERFILE REFERENCE - CHOOSE THE RIGHT PATTERN**
+**═══════════════════════════════════════════════════════════════════════════════**
 
-${
-  configType === 'docker' || configType === 'docker-compose'
-    ? `
-**Docker Best Practices:**
-- Use multi-stage builds to minimize image size
-- Use specific base image versions (not 'latest')
-- Run as non-root user
-- Include health checks
-- Properly handle signals for graceful shutdown
-- Copy package files first for better layer caching
-- Include .dockerignore file
-- Set appropriate environment variables
-`
-    : ''
-}
+**IMPORTANT: Detect which pattern to use based on the framework:**
 
-${
-  configType === 'kubernetes'
-    ? `
-**Kubernetes Best Practices:**
-- Include Deployment, Service, and Ingress manifests
-- Set resource limits and requests
-- Configure liveness and readiness probes
-- Use ConfigMaps for configuration
-- Use Secrets for sensitive data
-- Include HorizontalPodAutoscaler if needed
-`
-    : ''
-}
+**PATTERN A: STANDALONE BUILDS (Nuxt 3, Next.js standalone, Vite SSR)**
+- These frameworks bundle everything into a standalone output folder
+- NO node_modules needed at runtime
+- Use 2-stage build: builder → runner
+- Output folders: Nuxt=\`.output\`, Next.js=\`.next/standalone\`, Vite=\`dist\`
 
-${
-  configType === 'vercel'
-    ? `
-**Vercel Configuration:**
-- Create vercel.json with proper build settings
-- Configure environment variables
-- Set up redirects and rewrites if needed
-- Optimize for serverless
-`
-    : ''
-}
+**PATTERN B: TRADITIONAL NODE.JS (Express, Fastify, NestJS, Hono)**
+- These need node_modules at runtime
+- Use 3-stage build: deps → builder → runner
+- Copy node_modules from deps stage to runner
 
-${
-  configType === 'railway'
-    ? `
-**Railway Configuration:**
-- Create railway.json or nixpacks.toml
-- Configure build and start commands
-- Set up health checks
-- Define environment variables
-`
-    : ''
-}
+**═══════════════════════════════════════════════════════════════════════════════**
+
+**PATTERN A: STANDALONE BUILD (E.g Nuxt 3 example):**
+
+\`\`\`dockerfile
+# Stage 1: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+# Delete lock file to avoid platform-specific optional dependency issues (npm bug)
+RUN rm -f package-lock.json && npm install
+COPY . .
+RUN npm run build
+
+# Stage 2: Production (standalone - no node_modules needed)
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \\
+    adduser --system --uid 1001 appuser
+
+# Only copy the standalone build output
+COPY --from=builder --chown=appuser:nodejs /app/.output ./.output
+
+ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+ENV PORT=3000
+EXPOSE 3000
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\
+  CMD node -e "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+
+CMD ["node", ".output/server/index.mjs"]
+\`\`\`
+
+**PATTERN B: TRADITIONAL BUILD (Express/Fastify example):**
+
+\`\`\`dockerfile
+# Stage 1: Dependencies (production only)
+FROM node:20-alpine AS deps
+WORKDIR /app
+COPY package*.json ./
+# Delete lock file to avoid platform-specific optional dependency issues (npm bug)
+RUN rm -f package-lock.json && npm install --omit=dev
+
+# Stage 2: Builder
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN rm -f package-lock.json && npm install
+COPY . .
+RUN npm run build
+
+# Stage 3: Production (needs node_modules)
+FROM node:20-alpine AS runner
+WORKDIR /app
+
+RUN addgroup --system --gid 1001 nodejs && \\
+    adduser --system --uid 1001 appuser
+
+COPY --from=deps --chown=appuser:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:nodejs /app/dist ./dist
+COPY --from=builder --chown=appuser:nodejs /app/package.json ./
+
+ENV NODE_ENV=production
+ENV PORT=3000
+EXPOSE 3000
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \\
+  CMD node -e "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))" || exit 1
+
+CMD ["node", "dist/index.js"]
+\`\`\`
+
+**DOCKERFILE BEST PRACTICES:**
+- Use specific base image versions (node:20-alpine, NOT node:latest)
+- Detect framework type and use appropriate pattern (standalone vs traditional)
+- Create non-root user with adduser/addgroup
+- Copy package files BEFORE source for layer caching
+- CRITICAL: Delete package-lock.json and use \`npm install\` (NEVER \`npm ci\` - it requires lock file!)
+- For traditional builds: use \`npm install --omit=dev\` in deps stage
+- Set proper file ownership before switching to non-root user
+- Include HEALTHCHECK instruction
+- Use exec form for CMD: ["node", "app.js"] not "node app.js"
+- Minimize layers by combining RUN commands with &&
+
+**═══════════════════════════════════════════════════════════════════════════════**
+
+**═══════════════════════════════════════════════════════════════════════════════**
+**DOCKER-COMPOSE.YML REFERENCE - FOLLOW THIS EXACTLY**
+**═══════════════════════════════════════════════════════════════════════════════**
+
+**VALID DOCKER COMPOSE TEMPLATE (use this as your reference):**
+
+**CRITICAL RULES:**
+- NO "version" field (modern compose doesn't use it)
+- MUST have "name" field at top level
+- Use ONLY "build" for local builds (NEVER both "build" and "image" together)
+- Ports MUST bind to interface: "127.0.0.1:\${PORT:-3000}:3000"
+- Ports MUST be quoted strings
+
+\`\`\`yaml
+name: my-project
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: my-project
+    ports:
+      - "127.0.0.1:\${PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: 3000
+    working_dir: /app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    user: "1001:1001"
+    cap_drop:
+      - ALL
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 10s
+    stop_signal: SIGTERM
+
+networks:
+  default:
+    driver: bridge
+    name: my-project-network
+\`\`\`
+
+**VALID SERVICE-LEVEL PROPERTIES (only use these):**
+| Property | Type | Description |
+|----------|------|-------------|
+| build | object/string | Build configuration (MUTUALLY EXCLUSIVE with "image") |
+| image | string | Image name (MUTUALLY EXCLUSIVE with "build") |
+| container_name | string | Container name |
+| ports | list | Port mappings as QUOTED STRINGS: "127.0.0.1:host:container" |
+| environment | list/object | Environment variables |
+| env_file | list | External env files |
+| volumes | list | Volume mounts |
+| networks | list | Network connections |
+| depends_on | list/object | Service dependencies |
+| restart | string | Restart policy |
+| healthcheck | object | Health check config |
+| deploy | object | Deployment config (resources, replicas) |
+| command | string/list | Override CMD |
+| entrypoint | string/list | Override ENTRYPOINT |
+| working_dir | string | Working directory |
+| user | string | User to run as (e.g., "1000:1000") |
+| security_opt | list | Security options |
+| cap_drop | list | Drop Linux capabilities |
+| cap_add | list | Add Linux capabilities |
+| read_only | boolean | Read-only root filesystem |
+| stdin_open | boolean | Keep STDIN open |
+| tty | boolean | Allocate TTY |
+| logging | object | Logging configuration |
+| labels | list/object | Container labels |
+| extra_hosts | list | Additional hosts |
+| dns | list | DNS servers |
+| tmpfs | list | Tmpfs mounts |
+| shm_size | string | Size of /dev/shm |
+| ulimits | object | Ulimit settings |
+| sysctls | object | Sysctl settings |
+| stop_grace_period | string | Stop timeout |
+| stop_signal | string | Stop signal |
+| privileged | boolean | Privileged mode |
+| pid | string | PID mode |
+| ipc | string | IPC mode |
+| hostname | string | Container hostname |
+| domainname | string | Container domain |
+
+**FORBIDDEN PROPERTIES (these are Kubernetes-only, NEVER use):**
+| Invalid Property | Valid Alternative |
+|------------------|-------------------|
+| read_only_root_filesystem | read_only: true/false |
+| runAsNonRoot | user: "1000:1000" |
+| runAsUser | user: "1000:1000" |
+| runAsGroup | user: "1000:1000" |
+| fsGroup | N/A (use volumes with proper permissions) |
+| allowPrivilegeEscalation | security_opt: [no-new-privileges:true] |
+| securityContext | Use individual properties above |
+| capabilities.drop | cap_drop: [ALL] |
+| capabilities.add | cap_add: [NET_BIND_SERVICE] |
+| resources.limits.cpu | deploy.resources.limits.cpus |
+| resources.limits.memory | deploy.resources.limits.memory |
+| livenessProbe | healthcheck |
+| readinessProbe | healthcheck |
+| containerPort | ports: ["host:container"] |
+| imagePullPolicy | N/A (use image tags) |
+
+**VALIDATION CHECKLIST (verify before writing):**
+1. NO "version" field at top level
+2. "name" field MUST exist at top level
+3. Use "build" OR "image", NEVER BOTH together (mutually exclusive!)
+4. Ports MUST be quoted strings with interface: "127.0.0.1:3000:3000"
+5. All properties exist in the VALID table above
+6. No Kubernetes properties from the FORBIDDEN table
+7. \`read_only\` NOT \`read_only_root_filesystem\`
+8. \`user\` NOT \`runAsUser\` or \`runAsNonRoot\`
+9. \`security_opt\` for security options
+10. \`cap_drop\`/\`cap_add\` at service level (not nested)
+11. \`deploy.resources\` for resource limits
+12. \`healthcheck\` NOT \`livenessProbe\`/\`readinessProbe\`
+
+**═══════════════════════════════════════════════════════════════════════════════**
 
 **Framework-Specific Requirements:**
 - Detected frameworks: ${analysisResult.frameworks.map((f: any) => f.name).join(', ')}
@@ -1076,7 +1355,6 @@ function repairTruncatedJson(partialJson: string, _missingBraces: number): strin
 function hasExpectedAnalysisFields(obj: any): boolean {
   if (typeof obj !== 'object' || obj === null) return false;
 
-  // Check for key fields that indicate this is our analysis result
   const hasAnalysisFields =
     obj.summary !== undefined ||
     obj.frameworks !== undefined ||
@@ -1085,12 +1363,8 @@ function hasExpectedAnalysisFields(obj: any): boolean {
     obj.buildConfig !== undefined ||
     obj.dependencies !== undefined;
 
-  // Check for config generation fields
   const hasConfigFields =
-    obj.configType !== undefined ||
-    obj.projectSummary !== undefined ||
-    obj.files !== undefined ||
-    obj.deployment !== undefined;
+    obj.projectSummary !== undefined || obj.files !== undefined || obj.deployment !== undefined;
 
   return hasAnalysisFields || hasConfigFields;
 }
