@@ -1,16 +1,15 @@
 import { z } from 'zod';
-import { router, protectedProcedure, IdSchema, type ConfigType } from '@dxlander/shared';
+import { router, protectedProcedure, IdSchema } from '@dxlander/shared';
 import { ConfigGenerationService } from '../services/config-generation.service';
 
 const GenerateConfigSchema = z.object({
   projectId: z.string(),
-  analysisId: z.string().optional(), // If not provided, use latest analysis
-  configType: z.enum(['docker', 'docker-compose', 'kubernetes', 'bash']),
+  analysisId: z.string().optional(),
 });
 
 export const configsRouter = router({
   /**
-   * Generate new configuration files
+   * Generate new configuration files (Docker + docker-compose.yml)
    */
   generate: protectedProcedure.input(GenerateConfigSchema).mutation(async ({ input, ctx }) => {
     try {
@@ -19,7 +18,6 @@ export const configsRouter = router({
         throw new Error('User not authenticated');
       }
 
-      // If no analysisId provided, get the latest one for this project
       let analysisId = input.analysisId;
       if (!analysisId) {
         const { db, schema } = await import('@dxlander/database');
@@ -43,11 +41,9 @@ export const configsRouter = router({
         analysisId = latestAnalysis.id;
       }
 
-      // Generate config
       const configSetId = await ConfigGenerationService.generateConfig({
         projectId: input.projectId,
         analysisId,
-        configType: input.configType as ConfigType,
         userId,
       });
 
@@ -161,7 +157,6 @@ export const configsRouter = router({
         const { db, schema } = await import('@dxlander/database');
         const { eq, and } = await import('drizzle-orm');
 
-        // Verify config belongs to user
         const configSet = await db.query.configSets.findFirst({
           where: and(
             eq(schema.configSets.id, input.configId),
@@ -173,7 +168,6 @@ export const configsRouter = router({
           throw new Error('Configuration not found or access denied');
         }
 
-        // Update the file content
         await db
           .update(schema.configFiles)
           .set({
@@ -216,7 +210,6 @@ export const configsRouter = router({
         const { db, schema } = await import('@dxlander/database');
         const { eq, and } = await import('drizzle-orm');
 
-        // Verify config belongs to user and update
         await db
           .update(schema.configSets)
           .set({
@@ -247,7 +240,6 @@ export const configsRouter = router({
         throw new Error('User not authenticated');
       }
 
-      // Verify ownership before returning logs
       const { db, schema } = await import('@dxlander/database');
       const { eq } = await import('drizzle-orm');
 
@@ -277,13 +269,12 @@ export const configsRouter = router({
 
   /**
    * Update config metadata (environment variables, integrations, etc.)
-   * This updates the _summary.json file on disk
    */
   updateMetadata: protectedProcedure
     .input(
       z.object({
         configId: z.string(),
-        metadata: z.record(z.any()), // Flexible metadata object
+        metadata: z.record(z.any()),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -297,7 +288,6 @@ export const configsRouter = router({
         const fs = await import('fs/promises');
         const path = await import('path');
 
-        // Verify config belongs to user
         const configSet = await db.query.configSets.findFirst({
           where: and(
             eq(schema.configSets.id, input.configId),
@@ -313,11 +303,9 @@ export const configsRouter = router({
           throw new Error('Configuration local path not found');
         }
 
-        // Write updated metadata to _summary.json on disk
         const summaryPath = path.join(configSet.localPath, '_summary.json');
         await fs.writeFile(summaryPath, JSON.stringify(input.metadata, null, 2), 'utf-8');
 
-        // Update the configSet's updatedAt timestamp
         await db
           .update(schema.configSets)
           .set({ updatedAt: new Date() })

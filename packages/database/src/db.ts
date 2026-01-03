@@ -162,7 +162,7 @@ async function createTables() {
       );
     `);
 
-    // Create config_sets table
+    // Create config_sets table (always Docker + docker-compose.yml)
     sqlite.exec(`
       CREATE TABLE IF NOT EXISTS config_sets (
         id TEXT PRIMARY KEY,
@@ -170,7 +170,6 @@ async function createTables() {
         analysis_run_id TEXT,
         user_id TEXT NOT NULL,
         name TEXT NOT NULL,
-        type TEXT NOT NULL,
         version INTEGER NOT NULL,
         local_path TEXT,
         status TEXT NOT NULL DEFAULT 'pending',
@@ -262,16 +261,53 @@ async function createTables() {
         config_set_id TEXT,
         build_run_id TEXT,
         user_id TEXT NOT NULL,
+        name TEXT,
         platform TEXT NOT NULL,
-        environment TEXT NOT NULL DEFAULT 'production',
+        environment TEXT NOT NULL DEFAULT 'development',
         status TEXT NOT NULL DEFAULT 'pending',
+        container_id TEXT,
+        image_id TEXT,
+        image_tag TEXT,
+        ports TEXT,
+        exposed_ports TEXT,
         deploy_url TEXT,
         preview_url TEXT,
         build_logs TEXT,
+        runtime_logs TEXT,
         error_message TEXT,
+        environment_variables TEXT,
+        notes TEXT,
+        metadata TEXT,
         started_at INTEGER,
         completed_at INTEGER,
-        created_at INTEGER NOT NULL
+        stopped_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create deployment_activity_logs table
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS deployment_activity_logs (
+        id TEXT PRIMARY KEY,
+        deployment_id TEXT NOT NULL,
+        action TEXT NOT NULL,
+        result TEXT,
+        details TEXT,
+        timestamp INTEGER NOT NULL
+      );
+    `);
+
+    // Create config_integrations table
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS config_integrations (
+        id TEXT PRIMARY KEY,
+        config_set_id TEXT NOT NULL,
+        integration_id TEXT NOT NULL,
+        overrides TEXT,
+        order_index INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
       );
     `);
 
@@ -487,8 +523,10 @@ export async function resetSetupState(): Promise<void> {
     // Clear runtime tables first to avoid foreign key issues
     await db.delete(schema.auditLogs);
     await db.delete(schema.deploymentCredentials);
+    await db.delete(schema.deploymentActivityLogs);
     await db.delete(schema.deployments);
     await db.delete(schema.buildRuns);
+    await db.delete(schema.configIntegrations);
     await db.delete(schema.configActivityLogs);
     await db.delete(schema.configOptimizations);
     await db.delete(schema.configFiles);
@@ -509,7 +547,7 @@ export async function resetSetupState(): Promise<void> {
     // Re-initialize database defaults (settings, etc.)
     await initializeDatabase();
 
-    console.log('✅ Setup state has been reset');
+    console.log('Setup state has been reset');
   } catch (error) {
     console.error('Failed to reset setup state:', error);
     throw error;
@@ -537,6 +575,8 @@ const VALID_TABLE_NAMES = new Set([
   'config_activity_logs',
   'build_runs',
   'deployments',
+  'deployment_activity_logs',
+  'config_integrations',
   'settings',
   'encryption_keys',
   'ai_providers',

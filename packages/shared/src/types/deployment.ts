@@ -1,16 +1,16 @@
 import { z } from 'zod';
 
 /**
- * Deployment Credential Types
+ * Deployment Types
  *
- * Types for managing deployment platform credentials (Vercel, Railway, etc.)
- * These are user-managed credentials for deploying to various platforms.
+ * Types for managing deployments and deployment platform credentials.
  */
 
 /**
  * Supported deployment platforms
  */
 export type DeploymentPlatform =
+  | 'docker'
   | 'vercel'
   | 'railway'
   | 'netlify'
@@ -23,6 +23,182 @@ export type DeploymentPlatform =
   | 'fly-io'
   | 'digital-ocean'
   | 'heroku';
+
+/**
+ * Deployment status
+ */
+export type DeploymentStatus =
+  | 'pending'
+  | 'pre_flight'
+  | 'building'
+  | 'deploying'
+  | 'running'
+  | 'stopped'
+  | 'failed'
+  | 'terminated';
+
+/**
+ * Port mapping for container deployments
+ */
+export interface PortMapping {
+  host: number;
+  container: number;
+  protocol?: 'tcp' | 'udp';
+}
+
+/**
+ * Pre-flight check result
+ */
+export interface PreFlightCheck {
+  name: string;
+  status: 'passed' | 'failed' | 'warning' | 'pending';
+  message: string;
+  fix?: string;
+  timestamp?: Date;
+}
+
+/**
+ * Pre-flight check result (serialized for API)
+ */
+export interface SerializedPreFlightCheck {
+  name: string;
+  status: 'passed' | 'failed' | 'warning' | 'pending';
+  message: string;
+  fix?: string;
+  timestamp?: string;
+}
+
+/**
+ * Deployment (backend/database version with Date objects)
+ */
+export interface Deployment {
+  id: string;
+  projectId: string;
+  configSetId?: string | null;
+  buildRunId?: string | null;
+  userId: string;
+  name?: string | null;
+  platform: DeploymentPlatform;
+  environment: string;
+  status: DeploymentStatus;
+  containerId?: string | null;
+  imageId?: string | null;
+  imageTag?: string | null;
+  ports?: PortMapping[] | null;
+  exposedPorts?: number[] | null;
+  deployUrl?: string | null;
+  previewUrl?: string | null;
+  buildLogs?: string | null;
+  runtimeLogs?: string | null;
+  errorMessage?: string | null;
+  environmentVariables?: string | null;
+  notes?: string | null;
+  metadata?: Record<string, any> | null;
+  startedAt?: Date | null;
+  completedAt?: Date | null;
+  stoppedAt?: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Serialized Deployment for API responses
+ */
+export type SerializedDeployment = Omit<
+  Deployment,
+  'startedAt' | 'completedAt' | 'stoppedAt' | 'createdAt' | 'updatedAt'
+> & {
+  startedAt?: string | null;
+  completedAt?: string | null;
+  stoppedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Deployment activity log entry
+ */
+export interface DeploymentActivityLog {
+  id: string;
+  deploymentId: string;
+  action: string;
+  result?: string | null;
+  details?: Record<string, any> | null;
+  timestamp: Date;
+}
+
+/**
+ * Serialized deployment activity log
+ */
+export interface SerializedDeploymentActivityLog {
+  id: string;
+  deploymentId: string;
+  action: string;
+  result?: string | null;
+  details?: Record<string, any> | null;
+  timestamp: string;
+}
+
+/**
+ * Config-Integration link (for linking saved integrations to configs)
+ */
+export interface ConfigIntegration {
+  id: string;
+  configSetId: string;
+  integrationId: string;
+  overrides?: Record<string, string> | null;
+  orderIndex: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Serialized Config-Integration link
+ */
+export type SerializedConfigIntegration = Omit<ConfigIntegration, 'createdAt' | 'updatedAt'> & {
+  createdAt: string;
+  updatedAt: string;
+};
+
+/**
+ * Input schema for creating deployments
+ */
+export const CreateDeploymentSchema = z.object({
+  projectId: z.string().min(1),
+  configSetId: z.string().min(1),
+  platform: z.enum([
+    'docker',
+    'vercel',
+    'railway',
+    'netlify',
+    'aws',
+    'gcp',
+    'azure',
+    'docker-registry',
+    'kubernetes',
+    'render',
+    'fly-io',
+    'digital-ocean',
+    'heroku',
+  ]),
+  name: z.string().optional(),
+  environment: z.string().default('development'),
+  integrationIds: z.array(z.string()).optional(),
+  overrides: z.record(z.string()).optional(),
+  notes: z.string().optional(),
+});
+export type CreateDeploymentInput = z.infer<typeof CreateDeploymentSchema>;
+
+/**
+ * Input schema for linking integration to config
+ */
+export const LinkConfigIntegrationSchema = z.object({
+  configSetId: z.string().min(1),
+  integrationId: z.string().min(1),
+  overrides: z.record(z.string()).optional(),
+  orderIndex: z.number().int().default(0),
+});
+export type LinkConfigIntegrationInput = z.infer<typeof LinkConfigIntegrationSchema>;
 
 /**
  * Deployment platform configuration

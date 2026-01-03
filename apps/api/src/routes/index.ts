@@ -4,6 +4,7 @@ import { analysisRouter } from './analysis';
 import { deploymentsRouter } from './deployments';
 import { deploymentTargetsRouter } from './deployment-targets';
 import { integrationsRouter } from './integrations';
+import { configIntegrationsRouter } from './config-integrations';
 import { setupRouter } from './setup';
 import { settingsRouter } from './settings';
 import { configsRouter } from './configs';
@@ -16,6 +17,7 @@ export const appRouter = router({
   deployments: deploymentsRouter,
   deploymentTargets: deploymentTargetsRouter,
   integrations: integrationsRouter,
+  configIntegrations: configIntegrationsRouter,
   settings: settingsRouter,
   configs: configsRouter,
   aiProviders: aiProvidersRouter,

@@ -15,54 +15,23 @@ import {
   AlertCircle,
   CheckCircle2,
   Container,
-  Terminal,
-  GitBranch,
   Settings,
   Zap,
   XCircle,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
-import { cn } from '@/lib/utils';
 import { useAnalysisProgress } from '@/lib/hooks/useSSE';
 
 interface PageProps {
   params: Promise<{ id: string }>;
 }
 
-const configTypes = [
-  {
-    id: 'docker',
-    name: 'Container (Docker)',
-    description: 'Containerized deployment with Docker (automatically detects multi-service needs)',
-    icon: Container,
-    files: ['Dockerfile', 'docker-compose.yml (if needed)', '.dockerignore'],
-    recommended: true,
-  },
-  {
-    id: 'kubernetes',
-    name: 'Kubernetes',
-    description: 'Production-grade container orchestration',
-    icon: GitBranch,
-    files: ['deployment.yaml', 'service.yaml', 'ingress.yaml', 'configmap.yaml'],
-    recommended: false,
-  },
-  {
-    id: 'bash',
-    name: 'Bash Script',
-    description: 'Deployment automation with shell scripts',
-    icon: Terminal,
-    files: ['deploy.sh', 'setup.sh'],
-    recommended: false,
-  },
-];
-
 export default function NewConfigurationPage({ params }: PageProps) {
   const resolvedParams = use(params);
   const router = useRouter();
-  const [selectedType, setSelectedType] = useState<string>('docker');
   const [isGenerating, setIsGenerating] = useState(false);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
-  const [stage, setStage] = useState<'select' | 'analyzing' | 'generating'>('select');
+  const [stage, setStage] = useState<'ready' | 'analyzing' | 'generating'>('ready');
 
   const {
     data: project,
@@ -72,65 +41,45 @@ export default function NewConfigurationPage({ params }: PageProps) {
     id: resolvedParams.id,
   });
 
-  // Get AI provider status
   const { data: aiProviderStatus, isLoading: isLoadingProviderStatus } =
     trpc.aiProviders.getDefaultStatus.useQuery();
 
-  // Mutation for starting analysis
   const analyzeMutation = trpc.analysis.analyze.useMutation();
-
-  // Mutation for generating config
   const generateConfigMutation = trpc.configs.generate.useMutation();
 
-  // Real-time analysis progress via Server-Sent Events (enterprise-grade approach)
-  const { data: analysisProgressSSE, isConnected: _isSSEConnected } = useAnalysisProgress(
-    analysisId,
-    stage === 'analyzing'
-  );
-
-  // Use SSE data as the analysis progress
+  const { data: analysisProgressSSE } = useAnalysisProgress(analysisId, stage === 'analyzing');
   const analysisProgress = analysisProgressSSE;
 
-  // Watch for analysis completion/failure and start config generation or handle error
   useEffect(() => {
     if (!analysisProgress || stage !== 'analyzing') return;
 
-    // Handle analysis failure - redirect to logs page
     if (analysisProgress.status === 'failed') {
       console.error('Analysis failed:', analysisProgress.error);
       setIsGenerating(false);
-      setStage('select');
+      setStage('ready');
 
-      // Redirect to logs page to show detailed error information
       if (analysisId) {
         router.push(`/project/${resolvedParams.id}/logs?run=${analysisId}`);
       }
       return;
     }
 
-    // Handle analysis completion
-    if (analysisProgress.status === 'complete' && analysisId && selectedType) {
+    if (analysisProgress.status === 'complete' && analysisId) {
       setStage('generating');
 
-      // Start config generation
       generateConfigMutation.mutate(
         {
           projectId: resolvedParams.id,
           analysisId,
-          configType: selectedType as 'docker' | 'kubernetes' | 'bash',
         },
         {
           onSuccess: (result) => {
-            // Redirect to the generated config view
             router.push(`/project/${resolvedParams.id}/configs/${result.configSetId}`);
           },
           onError: (error) => {
             console.error('Config generation failed:', error);
-            setStage('select');
+            setStage('ready');
             setIsGenerating(false);
-
-            // Note: Config generation errors will show in the config detail page's logs tab
-            // We don't redirect here because the config record was already created
           },
         }
       );
@@ -140,7 +89,6 @@ export default function NewConfigurationPage({ params }: PageProps) {
     analysisProgress?.error,
     stage,
     analysisId,
-    selectedType,
     generateConfigMutation,
     resolvedParams.id,
     router,
@@ -187,34 +135,24 @@ export default function NewConfigurationPage({ params }: PageProps) {
   }
 
   const handleGenerate = async () => {
-    // Check if AI provider is configured
     if (!aiProviderStatus?.hasProvider) {
-      return; // Button should be disabled, but just in case
+      return;
     }
 
     setIsGenerating(true);
     setStage('analyzing');
 
     try {
-      // Start AI analysis
       const result = await analyzeMutation.mutateAsync({
         projectId: resolvedParams.id,
-        forceReanalysis: false, // Use cached if available
+        forceReanalysis: false,
       });
 
       setAnalysisId(result.analysisId);
-      // Analysis progress will be polled automatically
-      // When complete, useEffect will trigger config generation
     } catch (error: unknown) {
       console.error('Failed to start analysis:', error);
-
-      // Show error message if it's about missing AI provider
-      if (error instanceof Error && error.message.includes('No default AI provider')) {
-        // Error banner is already shown above
-      }
-
       setIsGenerating(false);
-      setStage('select');
+      setStage('ready');
     }
   };
 
@@ -233,12 +171,12 @@ export default function NewConfigurationPage({ params }: PageProps) {
     <PageLayout background="default">
       <Header
         title="Generate Build Configuration"
-        subtitle="Choose a configuration type for your project"
+        subtitle="Create Docker + docker-compose.yml for deployment"
         actions={headerActions}
       />
 
       <Section spacing="lg" container={false}>
-        <div className="max-w-5xl mx-auto px-6 space-y-8">
+        <div className="max-w-3xl mx-auto px-6 space-y-8">
           {/* AI Provider Status Banner */}
           {!isLoadingProviderStatus && (
             <>
@@ -350,11 +288,10 @@ export default function NewConfigurationPage({ params }: PageProps) {
                   <Loader2 className="h-6 w-6 text-ocean-600 animate-spin" />
                   <div>
                     <p className="font-medium text-gray-900">
-                      Creating {selectedType} configuration files...
+                      Creating Docker + docker-compose.yml...
                     </p>
                     <p className="text-sm text-gray-600 mt-1">
-                      AI is generating optimized deployment configurations based on discovery
-                      results
+                      AI is generating optimized deployment configurations
                     </p>
                   </div>
                 </div>
@@ -362,145 +299,101 @@ export default function NewConfigurationPage({ params }: PageProps) {
             </Card>
           )}
 
-          {/* Configuration Type Selection - Only show in select stage */}
-          {stage === 'select' && (
-            <>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Select Configuration Type
-                </h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {configTypes.map((type) => {
-                    const Icon = type.icon;
-                    const isSelected = selectedType === type.id;
+          {/* Ready state - show what will be generated */}
+          {stage === 'ready' && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <div className="p-2 bg-ocean-100 rounded-lg">
+                    <Container className="h-5 w-5 text-ocean-600" />
+                  </div>
+                  Docker Compose Configuration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <p className="text-gray-600">
+                  Generate production-ready Docker configuration files for your project. The AI will
+                  analyze your project and create optimized configurations.
+                </p>
 
-                    return (
-                      <Card
-                        key={type.id}
-                        className={cn(
-                          'cursor-pointer transition-all',
-                          isSelected
-                            ? 'border-ocean-500 border-2 bg-ocean-50/30'
-                            : 'hover:border-ocean-300 hover:bg-ocean-50/10'
-                        )}
-                        onClick={() => setSelectedType(type.id)}
-                      >
-                        <CardContent className="p-6">
-                          <div className="flex items-start gap-4">
-                            <div
-                              className={cn(
-                                'p-3 rounded-xl flex-shrink-0',
-                                isSelected ? 'bg-ocean-100' : 'bg-gray-100'
-                              )}
-                            >
-                              <Icon
-                                className={cn(
-                                  'h-6 w-6',
-                                  isSelected ? 'text-ocean-600' : 'text-gray-600'
-                                )}
-                              />
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2 mb-2">
-                                <h4 className="font-semibold text-gray-900">{type.name}</h4>
-                                {type.recommended && (
-                                  <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
-                                    Recommended
-                                  </span>
-                                )}
-                                {isSelected && (
-                                  <CheckCircle2 className="h-4 w-4 text-ocean-600 ml-auto" />
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">{type.description}</p>
-
-                              <div className="flex flex-wrap gap-1.5">
-                                {type.files.map((file, idx) => (
-                                  <span
-                                    key={idx}
-                                    className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded font-mono"
-                                  >
-                                    {file}
-                                  </span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                <div className="p-4 rounded-lg bg-ocean-50/30 border border-ocean-200">
+                  <h4 className="font-medium text-gray-900 mb-3">Files that will be generated:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                      Dockerfile
+                    </span>
+                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                      docker-compose.yml
+                    </span>
+                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                      .dockerignore
+                    </span>
+                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                      .env.example
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Preview & Generate */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Configuration Preview</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-start gap-4 p-4 rounded-lg bg-ocean-50/30 border border-ocean-200">
-                    <FileCode className="h-5 w-5 text-ocean-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 mb-1">
-                        {configTypes.find((t) => t.id === selectedType)?.name} Configuration
-                      </p>
-                      <p className="text-sm text-gray-600 mb-3">
-                        {configTypes.find((t) => t.id === selectedType)?.description}
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {configTypes
-                          .find((t) => t.id === selectedType)
-                          ?.files.map((file, idx) => (
-                            <span
-                              key={idx}
-                              className="text-xs bg-white border border-ocean-200 text-gray-700 px-2.5 py-1 rounded font-mono"
-                            >
-                              {file}
-                            </span>
-                          ))}
-                      </div>
-                    </div>
-                  </div>
+                <div className="p-4 rounded-lg bg-gray-50 border">
+                  <h4 className="font-medium text-gray-900 mb-2">What the AI will do:</h4>
+                  <ul className="text-sm text-gray-600 space-y-1.5">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Analyze your project structure and dependencies
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Detect framework, runtime, and build requirements
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Create multi-stage Dockerfile for optimal image size
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Generate docker-compose.yml with proper configuration
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      Include health checks, environment variables, and ports
+                    </li>
+                  </ul>
+                </div>
 
-                  <div className="flex items-center justify-between pt-4 border-t">
-                    <p className="text-sm text-gray-600">
-                      Configuration will be generated based on discovery v2
-                    </p>
-                    <div className="flex items-center gap-3">
-                      <Link href={`/project/${resolvedParams.id}/configs`}>
-                        <Button variant="outline">Cancel</Button>
-                      </Link>
-                      <Button
-                        onClick={handleGenerate}
-                        disabled={
-                          isGenerating || !aiProviderStatus?.hasProvider || isLoadingProviderStatus
-                        }
-                        className="bg-gradient-to-r from-ocean-600 to-ocean-500"
-                        title={
-                          !aiProviderStatus?.hasProvider
-                            ? 'Configure an AI provider first'
-                            : undefined
-                        }
-                      >
-                        {isGenerating ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <FileCode className="h-4 w-4 mr-2" />
-                            Generate Configuration
-                          </>
-                        )}
-                      </Button>
-                    </div>
+                <div className="flex items-center justify-between pt-4 border-t">
+                  <p className="text-sm text-gray-500">Ready to generate configuration</p>
+                  <div className="flex items-center gap-3">
+                    <Link href={`/project/${resolvedParams.id}/configs`}>
+                      <Button variant="outline">Cancel</Button>
+                    </Link>
+                    <Button
+                      onClick={handleGenerate}
+                      disabled={
+                        isGenerating || !aiProviderStatus?.hasProvider || isLoadingProviderStatus
+                      }
+                      className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                      title={
+                        !aiProviderStatus?.hasProvider
+                          ? 'Configure an AI provider first'
+                          : undefined
+                      }
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Generating...
+                        </>
+                      ) : (
+                        <>
+                          <FileCode className="h-4 w-4 mr-2" />
+                          Generate Configuration
+                        </>
+                      )}
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </Section>

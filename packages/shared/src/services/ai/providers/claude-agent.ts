@@ -416,7 +416,6 @@ export class ClaudeAgentProvider implements IAIProvider {
     } catch {
       // Fallback: construct result from tracked files
       return {
-        configType: request.configType,
         files: filesCreated.map((filePath) => ({
           fileName: path.basename(filePath),
           description: `Generated ${path.basename(filePath)}`,

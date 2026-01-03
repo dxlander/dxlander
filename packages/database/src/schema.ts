@@ -144,43 +144,36 @@ export const analysisActivityLogs = sqliteTable(
   })
 );
 
-// Config Sets - Group of related config files (Docker, Kubernetes, etc.)
+// Config Sets - Docker + docker-compose.yml configurations
+// Note: Always generates Docker Compose (universal deployment model)
 export const configSets = sqliteTable(
   'config_sets',
   {
     id: text('id').primaryKey(),
     projectId: text('project_id').notNull(),
-    analysisRunId: text('analysis_run_id'), // Which analysis generated this
+    analysisRunId: text('analysis_run_id'),
     userId: text('user_id').notNull(),
 
-    // Config set metadata
     name: text('name').notNull(),
-    type: text('type').notNull(), // 'docker', 'kubernetes', 'bash', 'ci-cd'
     version: integer('version').notNull(),
 
-    // Local storage path (in ~/.dxlander/projects/{projectId}/configs/{configId}/)
     localPath: text('local_path'),
 
-    // Status
-    status: text('status').notNull().default('pending'), // pending, generating, complete, failed
+    status: text('status').notNull().default('pending'),
     progress: integer('progress').default(0),
 
-    // Source tracking
-    generatedBy: text('generated_by').notNull(), // 'ai', 'user', 'template'
+    generatedBy: text('generated_by').notNull(),
     aiModel: text('ai_model'),
 
-    // Metadata
     description: text('description'),
-    tags: text('tags'), // JSON array
-    notes: text('notes'), // User-added deployment notes
+    tags: text('tags'),
+    notes: text('notes'),
 
-    // Error tracking
     errorMessage: text('error_message'),
 
-    // Timing
     startedAt: integer('started_at', { mode: 'timestamp' }),
     completedAt: integer('completed_at', { mode: 'timestamp' }),
-    duration: integer('duration'), // seconds
+    duration: integer('duration'),
 
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
@@ -191,7 +184,6 @@ export const configSets = sqliteTable(
   },
   (table) => ({
     projectIdIdx: index('config_sets_project_id_idx').on(table.projectId),
-    typeIdx: index('config_sets_type_idx').on(table.type),
     versionIdx: index('config_sets_version_idx').on(table.projectId, table.version),
     statusIdx: index('config_sets_status_idx').on(table.status),
   })
@@ -319,7 +311,7 @@ export const buildRuns = sqliteTable(
   })
 );
 
-// Deployments table - deployment history
+// Deployments table - deployment history and status
 export const deployments = sqliteTable(
   'deployments',
   {
@@ -330,27 +322,105 @@ export const deployments = sqliteTable(
     userId: text('user_id').notNull(),
 
     // Deployment metadata
-    platform: text('platform').notNull(),
-    environment: text('environment').notNull().default('production'),
-    status: text('status').notNull().default('pending'),
+    name: text('name'),
+    platform: text('platform').notNull(), // 'docker', 'vercel', 'railway', etc.
+    environment: text('environment').notNull().default('development'),
+    status: text('status').notNull().default('pending'), // pending, pre_flight, building, deploying, running, stopped, failed, terminated
 
-    // Deployment results
+    // Docker-specific fields
+    containerId: text('container_id'),
+    imageId: text('image_id'),
+    imageTag: text('image_tag'),
+
+    // Port configuration (JSON)
+    ports: text('ports'), // JSON: [{ host: 3000, container: 3000, protocol: 'tcp' }]
+    exposedPorts: text('exposed_ports'), // JSON: [3000, 8080] - auto-detected from Dockerfile
+
+    // URLs
     deployUrl: text('deploy_url'),
     previewUrl: text('preview_url'),
+
+    // Logs
     buildLogs: text('build_logs'),
+    runtimeLogs: text('runtime_logs'),
     errorMessage: text('error_message'),
+
+    // Environment (encrypted JSON of env vars used)
+    environmentVariables: text('environment_variables'),
+
+    // User notes
+    notes: text('notes'),
+
+    // Additional metadata (JSON)
+    metadata: text('metadata'),
 
     // Timing
     startedAt: integer('started_at', { mode: 'timestamp' }),
     completedAt: integer('completed_at', { mode: 'timestamp' }),
+    stoppedAt: integer('stopped_at', { mode: 'timestamp' }),
 
     createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
       .notNull()
       .$defaultFn(() => new Date()),
   },
   (table) => ({
     projectIdIdx: index('deployments_project_id_idx').on(table.projectId),
+    configSetIdIdx: index('deployments_config_set_id_idx').on(table.configSetId),
     statusIdx: index('deployments_status_idx').on(table.status),
+    platformIdx: index('deployments_platform_idx').on(table.platform),
+  })
+);
+
+// Deployment Activity Logs - Track actions during deployment
+export const deploymentActivityLogs = sqliteTable(
+  'deployment_activity_logs',
+  {
+    id: text('id').primaryKey(),
+    deploymentId: text('deployment_id').notNull(),
+
+    // Activity details
+    action: text('action').notNull(), // 'pre_flight_check', 'build_image', 'start_container', 'stop_container', etc.
+    result: text('result'),
+    details: text('details'), // JSON: additional context
+
+    timestamp: integer('timestamp', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    deploymentIdIdx: index('deployment_activity_logs_deployment_id_idx').on(table.deploymentId),
+    timestampIdx: index('deployment_activity_logs_timestamp_idx').on(table.timestamp),
+  })
+);
+
+// Config-Integration Links - Link saved integrations to configs
+export const configIntegrations = sqliteTable(
+  'config_integrations',
+  {
+    id: text('id').primaryKey(),
+    configSetId: text('config_set_id').notNull(),
+    integrationId: text('integration_id').notNull(),
+
+    // Override values (JSON: { "API_KEY": "override_value" })
+    overrides: text('overrides'),
+
+    // Order for environment variable injection
+    orderIndex: integer('order_index').default(0),
+
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    configSetIdIdx: index('config_integrations_config_set_id_idx').on(table.configSetId),
+    integrationIdIdx: index('config_integrations_integration_id_idx').on(table.integrationId),
+    uniqueLink: index('config_integrations_unique_idx').on(table.configSetId, table.integrationId),
   })
 );
 
@@ -548,6 +618,8 @@ export const schema = {
   configOptimizations,
   buildRuns,
   deployments,
+  deploymentActivityLogs,
+  configIntegrations,
   settings,
   aiProviders,
   integrations,

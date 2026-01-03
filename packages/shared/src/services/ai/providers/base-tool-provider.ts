@@ -233,10 +233,11 @@ export abstract class BaseToolProvider implements IAIProvider {
               const toolInput = toolCall.input as Record<string, unknown>;
 
               // Get tool result if available (toolResults is an array matching toolCalls)
+              // AI SDK v6 toolResults can be the result directly or wrapped in { result: ... }
               let resultData: unknown = null;
               if (step.toolResults && step.toolResults[i]) {
-                // Access the result property from the tool result object
-                resultData = (step.toolResults[i] as { result?: unknown }).result;
+                const rawResult = step.toolResults[i];
+                resultData = (rawResult as { result?: unknown }).result ?? rawResult;
               }
 
               const message = this.formatToolMessage(toolName, toolInput);
@@ -448,12 +449,23 @@ export abstract class BaseToolProvider implements IAIProvider {
         onStepFinish: async (step) => {
           // Log tool calls and report progress
           if (step.toolCalls && step.toolCalls.length > 0) {
-            for (const toolCall of step.toolCalls) {
-              if (toolCall.toolName === 'writeFile') {
+            for (let i = 0; i < step.toolCalls.length; i++) {
+              const toolCall = step.toolCalls[i];
+              const toolName = toolCall.toolName;
+
+              // Get tool result if available
+              // AI SDK v6 toolResults can be the result directly or wrapped in { result: ... }
+              let toolResult: unknown = null;
+              if (step.toolResults && step.toolResults[i]) {
+                const rawResult = step.toolResults[i];
+                // Try to get .result property first, otherwise use the raw result
+                toolResult = (rawResult as { result?: unknown }).result ?? rawResult;
+              }
+
+              if (toolName === 'writeFile') {
                 const input = toolCall.input as { filePath: string; content: string };
                 filesWritten.push({ fileName: input.filePath });
 
-                // Report progress if callback available
                 if (request.projectContext.onProgress) {
                   await request.projectContext.onProgress({
                     type: 'tool_use',
@@ -463,6 +475,21 @@ export abstract class BaseToolProvider implements IAIProvider {
                       size: input.content.length,
                     }),
                     message: `Writing file: ${input.filePath}`,
+                  });
+                }
+              } else if (toolName === 'validateDockerCompose') {
+                if (request.projectContext.onProgress) {
+                  const validationResult = toolResult as {
+                    valid?: boolean;
+                    message?: string;
+                  } | null;
+                  await request.projectContext.onProgress({
+                    type: 'tool_use',
+                    action: 'validateDockerCompose',
+                    details: JSON.stringify(validationResult || {}),
+                    message: validationResult?.valid
+                      ? 'docker-compose.yml validation passed'
+                      : `docker-compose.yml validation: ${validationResult?.message || 'checking...'}`,
                   });
                 }
               }
@@ -486,7 +513,6 @@ export abstract class BaseToolProvider implements IAIProvider {
 
       // Try to parse any JSON response for metadata
       let configResult: DeploymentConfigResult = {
-        configType: request.configType,
         files: filesWritten,
       };
 

@@ -3,14 +3,11 @@ import { z } from 'zod';
 /**
  * Configuration Generation Types
  *
- * Types for AI-generated deployment configurations (Docker, Kubernetes, etc.)
+ * We ALWAYS generate Docker + docker-compose.yml for every project.
+ * This provides a universal deployment model that can be translated to other platforms.
+ *
+ * See: private_docs/deployment-restructure/00-OVERVIEW.md
  */
-
-/**
- * Supported configuration types for deployment
- */
-export const ConfigTypeSchema = z.enum(['docker', 'docker-compose', 'kubernetes', 'bash']);
-export type ConfigType = z.infer<typeof ConfigTypeSchema>;
 
 /**
  * Configuration generation options
@@ -18,13 +15,12 @@ export type ConfigType = z.infer<typeof ConfigTypeSchema>;
 export const GenerateConfigOptionsSchema = z.object({
   projectId: z.string().min(1),
   analysisId: z.string().min(1),
-  configType: ConfigTypeSchema,
   userId: z.string().min(1),
 });
 export type GenerateConfigOptions = z.infer<typeof GenerateConfigOptionsSchema>;
 
 /**
- * Configuration Set (backend/database version with Date objects)
+ * Configuration Set
  */
 export interface ConfigSet {
   id: string;
@@ -32,7 +28,6 @@ export interface ConfigSet {
   analysisRunId?: string;
   userId: string;
   name: string;
-  type: string;
   version: number;
   localPath?: string;
   status: string;

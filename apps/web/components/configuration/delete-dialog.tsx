@@ -35,7 +35,7 @@ export function DeleteConfigDialog({
   onSuccess,
 }: DeleteConfigDialogProps) {
   const [confirmText, setConfirmText] = useState('');
-  const expectedConfirmText = `${config.type} v${config.version}`;
+  const expectedConfirmText = `${config.name}`;
 
   React.useEffect(() => {
     if (open) {
@@ -45,7 +45,7 @@ export function DeleteConfigDialog({
 
   const deleteConfig = trpc.configs.delete.useMutation({
     onSuccess: () => {
-      toast.success(`Configuration "${config.type} v${config.version}" deleted successfully`);
+      toast.success(`Configuration "${config.name}" deleted successfully`);
       onOpenChange(false);
       if (onSuccess) {
         onSuccess();
@@ -80,8 +80,8 @@ export function DeleteConfigDialog({
             Delete Configuration
           </DialogTitle>
           <DialogDescription>
-            This action cannot be undone. This will permanently delete the {config.type}{' '}
-            configuration v{config.version} from project &quot;{project.name}&quot;.
+            This action cannot be undone. This will permanently delete &quot;{config.name}&quot;
+            from project &quot;{project.name}&quot;.
           </DialogDescription>
         </DialogHeader>
 
