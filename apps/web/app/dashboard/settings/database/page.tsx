@@ -33,7 +33,7 @@ type PerTableStat = { name: string; count: number };
 const STORAGE_ENTITIES = [
   { label: 'Projects', table: 'projects', color: 'bg-blue-500' },
   { label: 'Configurations', table: 'config_files', color: 'bg-purple-500' },
-  { label: 'Integrations', table: 'integrations', color: 'bg-green-500' },
+  { label: 'Secrets', table: 'secrets', color: 'bg-green-500' },
   { label: 'Deployment Credentials', table: 'deployment_credentials', color: 'bg-ocean-500' },
   { label: 'Analysis Results', table: 'analysis_runs', color: 'bg-amber-500' },
 ] as const;

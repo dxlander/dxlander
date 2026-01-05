@@ -1,20 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FloatingInput } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Key, Copy, CheckCircle2, Pencil, Save, X, Plus, Trash2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Key,
+  Copy,
+  CheckCircle2,
+  Save,
+  X,
+  Plus,
+  Trash2,
+  Eye,
+  EyeOff,
+  Code,
+  ChevronDown,
+  ChevronUp,
+  MoreHorizontal,
+  Container,
+  Lock,
+} from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { trpc } from '@/lib/trpc';
 
 interface EnvironmentVariable {
   key: string;
   description: string;
-  value?: string; // Actual deployment value (user-set)
-  example?: string; // Example/default value for reference
-  integration?: string; // Linked integration name (if any)
+  value?: string;
+  example?: string;
+  integration?: string;
 }
 
 interface EnvironmentVariables {
@@ -25,80 +54,205 @@ interface EnvironmentVariables {
 interface VariablesTabProps {
   environmentVariables?: EnvironmentVariables;
   onSave: (variables: EnvironmentVariables) => Promise<void>;
+  configSetId?: string;
 }
 
-export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps) {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editedVariables, setEditedVariables] = useState<EnvironmentVariables | null>(null);
+interface FlatVariable extends EnvironmentVariable {
+  isRequired: boolean;
+  originalIndex: number;
+}
+
+export function VariablesTab({ environmentVariables, onSave, configSetId }: VariablesTabProps) {
+  const [variables, setVariables] = useState<FlatVariable[]>(() =>
+    flattenVariables(environmentVariables)
+  );
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingVariable, setEditingVariable] = useState<FlatVariable | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+  const [visibleValues, setVisibleValues] = useState<Set<string>>(new Set());
+  const [isAddingNew, setIsAddingNew] = useState(false);
+  const [newVariable, setNewVariable] = useState<FlatVariable>({
+    key: '',
+    description: '',
+    value: '',
+    example: '',
+    isRequired: true,
+    originalIndex: -1,
+  });
 
-  const requiredEnvCount = environmentVariables?.required?.length || 0;
-  const optionalEnvCount = environmentVariables?.optional?.length || 0;
-  const totalEnvCount = requiredEnvCount + optionalEnvCount;
+  // Fetch config services to identify managed variables
+  const { data: configServices = [] } = trpc.configServices.list.useQuery(
+    { configSetId: configSetId || '' },
+    { enabled: !!configSetId }
+  );
 
-  const handleCopyKey = (key: string) => {
-    navigator.clipboard.writeText(key);
+  // Build a map of variable keys that are managed by config services
+  const managedVariables = useMemo(() => {
+    const managed = new Map<string, { serviceName: string; sourceMode: string }>();
+
+    for (const service of configServices) {
+      // Only mark as managed if the service has an active mode (not 'none')
+      if (service.sourceMode === 'none') continue;
+
+      for (const envVar of service.requiredEnvVars) {
+        managed.set(envVar.key, {
+          serviceName: service.name,
+          sourceMode: service.sourceMode,
+        });
+      }
+    }
+
+    return managed;
+  }, [configServices]);
+
+  function flattenVariables(envVars?: EnvironmentVariables): FlatVariable[] {
+    const flattened: FlatVariable[] = [];
+    envVars?.required?.forEach((v, idx) => {
+      flattened.push({ ...v, isRequired: true, originalIndex: idx });
+    });
+    envVars?.optional?.forEach((v, idx) => {
+      flattened.push({ ...v, isRequired: false, originalIndex: idx });
+    });
+    return flattened;
+  }
+
+  function unflattenVariables(flatVars: FlatVariable[]): EnvironmentVariables {
+    const required: EnvironmentVariable[] = [];
+    const optional: EnvironmentVariable[] = [];
+
+    flatVars.forEach((v) => {
+      const { isRequired, originalIndex: _originalIndex, ...variable } = v;
+      if (isRequired) {
+        required.push(variable);
+      } else {
+        optional.push(variable);
+      }
+    });
+
+    return { required, optional };
+  }
+
+  const handleCopyValue = (value: string, key: string) => {
+    navigator.clipboard.writeText(value);
     setCopiedKey(key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  const handleEdit = () => {
-    setEditedVariables(
-      JSON.parse(JSON.stringify(environmentVariables || { required: [], optional: [] }))
-    );
-    setIsEditing(true);
+  const toggleValueVisibility = (key: string) => {
+    setVisibleValues((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
-  const handleSave = async () => {
-    if (!editedVariables) return;
+  const handleRowClick = (variable: FlatVariable) => {
+    const varId = `${variable.isRequired ? 'req' : 'opt'}-${variable.key}`;
+    if (expandedId === varId) {
+      setExpandedId(null);
+      setEditingVariable(null);
+    } else {
+      setExpandedId(varId);
+      // Pre-populate value with example if no value is set
+      const editVar = { ...variable };
+      if (!editVar.value && editVar.example) {
+        editVar.value = editVar.example;
+      }
+      setEditingVariable(editVar);
+    }
+  };
+
+  const handleSaveVariable = async () => {
+    if (!editingVariable) return;
     setIsSaving(true);
+
     try {
-      await onSave(editedVariables);
-      setIsEditing(false);
-      setEditedVariables(null);
+      const updatedVariables = variables.map((v) => {
+        const currentId = `${v.isRequired ? 'req' : 'opt'}-${v.key}`;
+        const _editingId = `${editingVariable.isRequired ? 'req' : 'opt'}-${editingVariable.key}`;
+        if (currentId === expandedId) {
+          return editingVariable;
+        }
+        return v;
+      });
+
+      const wasRequiredChanged =
+        variables.find((v) => `${v.isRequired ? 'req' : 'opt'}-${v.key}` === expandedId)
+          ?.isRequired !== editingVariable.isRequired;
+
+      if (wasRequiredChanged) {
+        const originalVar = variables.find(
+          (v) => `${v.isRequired ? 'req' : 'opt'}-${v.key}` === expandedId
+        );
+        if (originalVar) {
+          const filteredVars = variables.filter(
+            (v) => `${v.isRequired ? 'req' : 'opt'}-${v.key}` !== expandedId
+          );
+          filteredVars.push(editingVariable);
+          setVariables(filteredVars);
+          await onSave(unflattenVariables(filteredVars));
+        }
+      } else {
+        setVariables(updatedVariables);
+        await onSave(unflattenVariables(updatedVariables));
+      }
+
+      setExpandedId(null);
+      setEditingVariable(null);
     } catch (error) {
-      console.error('Failed to save variables:', error);
+      console.error('Failed to save variable:', error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    setIsEditing(false);
-    setEditedVariables(null);
+  const handleCancelEdit = () => {
+    setExpandedId(null);
+    setEditingVariable(null);
   };
 
-  const handleUpdateVariable = (
-    type: 'required' | 'optional',
-    index: number,
-    field: string,
-    value: string
-  ) => {
-    if (!editedVariables) return;
-    const updated = { ...editedVariables };
-    if (!updated[type]) updated[type] = [];
-    updated[type]![index] = { ...updated[type]![index], [field]: value };
-    setEditedVariables(updated);
+  const handleDeleteVariable = async (variable: FlatVariable) => {
+    const updatedVariables = variables.filter(
+      (v) => !(v.key === variable.key && v.isRequired === variable.isRequired)
+    );
+    setVariables(updatedVariables);
+    await onSave(unflattenVariables(updatedVariables));
+    setExpandedId(null);
+    setEditingVariable(null);
   };
 
-  const handleDeleteVariable = (type: 'required' | 'optional', index: number) => {
-    if (!editedVariables) return;
-    const updated = { ...editedVariables };
-    if (!updated[type]) return;
-    updated[type] = updated[type]!.filter((_, i) => i !== index);
-    setEditedVariables(updated);
+  const handleAddVariable = async () => {
+    if (!newVariable.key.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const updatedVariables = [...variables, { ...newVariable, originalIndex: variables.length }];
+      setVariables(updatedVariables);
+      await onSave(unflattenVariables(updatedVariables));
+      setNewVariable({
+        key: '',
+        description: '',
+        value: '',
+        example: '',
+        isRequired: true,
+        originalIndex: -1,
+      });
+      setIsAddingNew(false);
+    } catch (error) {
+      console.error('Failed to add variable:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleAddVariable = (type: 'required' | 'optional') => {
-    if (!editedVariables) return;
-    const updated = { ...editedVariables };
-    if (!updated[type]) updated[type] = [];
-    updated[type] = [...updated[type]!, { key: '', description: '', example: '' }];
-    setEditedVariables(updated);
-  };
-
-  const currentVariables = isEditing ? editedVariables : environmentVariables;
+  const totalCount = variables.length;
+  const requiredCount = variables.filter((v) => v.isRequired).length;
+  const optionalCount = totalCount - requiredCount;
 
   return (
     <Card>
@@ -108,302 +262,449 @@ export function VariablesTab({ environmentVariables, onSave }: VariablesTabProps
             <Key className="h-5 w-5 text-ocean-600" />
             <CardTitle>Environment Variables</CardTitle>
           </div>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline">
-              {totalEnvCount} variable{totalEnvCount !== 1 ? 's' : ''}
-            </Badge>
-            {!isEditing ? (
-              <Button variant="outline" size="sm" onClick={handleEdit}>
-                <Pencil className="h-4 w-4 mr-2" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={handleCancel} disabled={isSaving}>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <span>{totalCount} total</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-red-600">{requiredCount} required</span>
+              <span className="text-gray-300">|</span>
+              <span className="text-blue-600">{optionalCount} optional</span>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => setIsAddingNew(true)}
+              className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Variable
+            </Button>
+          </div>
+        </div>
+        <CardDescription>Manage environment variables for your deployment</CardDescription>
+      </CardHeader>
+      <CardContent className="p-0">
+        {/* Add New Variable Form */}
+        {isAddingNew && (
+          <div className="border-b border-gray-200 bg-ocean-50/50 p-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="flex-1">
+                  <FloatingInput
+                    label="Variable Name"
+                    value={newVariable.key}
+                    onChange={(e) =>
+                      setNewVariable({
+                        ...newVariable,
+                        key: e.target.value.replace(/[^a-zA-Z0-9_]/g, '_'),
+                      })
+                    }
+                    className="font-mono"
+                  />
+                </div>
+                <Select
+                  value={newVariable.isRequired ? 'required' : 'optional'}
+                  onValueChange={(val) =>
+                    setNewVariable({ ...newVariable, isRequired: val === 'required' })
+                  }
+                >
+                  <SelectTrigger className="w-[140px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="required">Required</SelectItem>
+                    <SelectItem value="optional">Optional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <Textarea
+                value={newVariable.description}
+                onChange={(e) => setNewVariable({ ...newVariable, description: e.target.value })}
+                placeholder="Description (what is this variable for?)"
+                rows={2}
+                className="text-sm resize-none"
+              />
+
+              <FloatingInput
+                label="Value"
+                value={newVariable.value || ''}
+                onChange={(e) => setNewVariable({ ...newVariable, value: e.target.value })}
+                className="font-mono"
+              />
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setIsAddingNew(false);
+                    setNewVariable({
+                      key: '',
+                      description: '',
+                      value: '',
+                      example: '',
+                      isRequired: true,
+                      originalIndex: -1,
+                    });
+                  }}
+                >
                   <X className="h-4 w-4 mr-2" />
                   Cancel
                 </Button>
                 <Button
                   size="sm"
-                  onClick={handleSave}
-                  disabled={isSaving}
+                  onClick={handleAddVariable}
+                  disabled={!newVariable.key.trim() || isSaving}
                   className="bg-gradient-to-r from-ocean-600 to-ocean-500"
                 >
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save'}
                 </Button>
               </div>
-            )}
+            </div>
           </div>
-        </div>
-        <CardDescription>Configure these environment variables before deployment</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {currentVariables ? (
-          <Tabs defaultValue="all" className="w-full">
-            <TabsList className="bg-gray-50">
-              <TabsTrigger value="all" className="flex items-center gap-2">
-                All Variables
-                {totalEnvCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-ocean-100 text-ocean-700">
-                    {totalEnvCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              <TabsTrigger value="required" className="flex items-center gap-2">
-                Required
-                {requiredEnvCount > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-red-100 text-red-700">
-                    {requiredEnvCount}
-                  </Badge>
-                )}
-              </TabsTrigger>
-              {currentVariables.optional && currentVariables.optional.length > 0 && (
-                <TabsTrigger value="optional" className="flex items-center gap-2">
-                  Optional
-                  <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700">
-                    {optionalEnvCount}
-                  </Badge>
-                </TabsTrigger>
-              )}
-            </TabsList>
+        )}
 
-            {/* All Variables Tab */}
-            <TabsContent value="all" className="mt-6">
-              <div className="space-y-4">
-                {/* Required Variables */}
-                {currentVariables.required?.map((envVar, idx) => (
-                  <VariableCard
-                    key={`req-${idx}`}
-                    variable={envVar}
-                    type="required"
-                    isEditing={isEditing}
-                    onUpdate={(field, value) => handleUpdateVariable('required', idx, field, value)}
-                    onDelete={() => handleDeleteVariable('required', idx)}
-                    copiedKey={copiedKey}
-                    onCopy={handleCopyKey}
-                  />
-                ))}
+        {/* Variables List */}
+        {variables.length > 0 ? (
+          <div className="divide-y divide-gray-100">
+            {variables.map((variable) => {
+              const varId = `${variable.isRequired ? 'req' : 'opt'}-${variable.key}`;
+              const isExpanded = expandedId === varId;
+              const isValueVisible = visibleValues.has(variable.key);
+              const hasActualValue = !!variable.value;
+              const displayValue = variable.value || '';
+              const managedInfo = managedVariables.get(variable.key);
+              const isManaged = !!managedInfo;
 
-                {/* Optional Variables */}
-                {currentVariables.optional?.map((envVar, idx) => (
-                  <VariableCard
-                    key={`opt-${idx}`}
-                    variable={envVar}
-                    type="optional"
-                    isEditing={isEditing}
-                    onUpdate={(field, value) => handleUpdateVariable('optional', idx, field, value)}
-                    onDelete={() => handleDeleteVariable('optional', idx)}
-                    copiedKey={copiedKey}
-                    onCopy={handleCopyKey}
-                  />
-                ))}
+              return (
+                <div key={varId} className="group">
+                  {/* Collapsed Row */}
+                  <div
+                    className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      isExpanded ? 'bg-gray-50' : ''
+                    } ${isManaged ? 'bg-ocean-50/30' : ''}`}
+                    onClick={() => handleRowClick(variable)}
+                  >
+                    {/* Icon */}
+                    <div className="flex-shrink-0">
+                      <div
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                          isManaged ? 'bg-ocean-100' : 'bg-gray-100'
+                        }`}
+                      >
+                        {isManaged ? (
+                          managedInfo.sourceMode === 'provision' ? (
+                            <Container className="h-4 w-4 text-ocean-600" />
+                          ) : (
+                            <Lock className="h-4 w-4 text-ocean-600" />
+                          )
+                        ) : (
+                          <Code className="h-4 w-4 text-gray-500" />
+                        )}
+                      </div>
+                    </div>
 
-                {isEditing && (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddVariable('required')}
+                    {/* Name & Description */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <code className="text-sm font-semibold font-mono text-gray-900">
+                          {variable.key}
+                        </code>
+                        {isManaged && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-ocean-100 text-ocean-700 border border-ocean-200"
+                          >
+                            <Lock className="h-3 w-3 mr-1" />
+                            {managedInfo.serviceName}
+                          </Badge>
+                        )}
+                        {variable.integration && !isManaged && (
+                          <Badge
+                            variant="secondary"
+                            className="text-xs bg-ocean-100 text-ocean-700"
+                          >
+                            {variable.integration}
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 truncate mt-0.5">
+                        {isManaged
+                          ? `Managed by ${managedInfo.serviceName} (${managedInfo.sourceMode})`
+                          : variable.description || 'No description'}
+                      </p>
+                    </div>
+
+                    {/* Value Preview */}
+                    <div className="flex items-center gap-2">
+                      {hasActualValue && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleValueVisibility(variable.key);
+                          }}
+                          className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                        >
+                          {isValueVisible ? (
+                            <EyeOff className="h-4 w-4 text-gray-400" />
+                          ) : (
+                            <Eye className="h-4 w-4 text-gray-400" />
+                          )}
+                        </button>
+                      )}
+                      {hasActualValue && (
+                        <code className="text-sm font-mono text-gray-600 max-w-[200px] truncate">
+                          {isValueVisible ? displayValue : '••••••••••••'}
+                        </code>
+                      )}
+                      {!hasActualValue && variable.example && (
+                        <span className="text-sm text-gray-400 italic">
+                          Example: {variable.example.substring(0, 20)}
+                          {variable.example.length > 20 ? '...' : ''}
+                        </span>
+                      )}
+                      {!hasActualValue && !variable.example && (
+                        <span className="text-sm text-amber-600">Not set</span>
+                      )}
+                    </div>
+
+                    {/* Status Badge */}
+                    <Badge
+                      variant={variable.isRequired ? 'destructive' : 'secondary'}
+                      className={`text-xs ${
+                        variable.isRequired
+                          ? 'bg-red-100 text-red-700 hover:bg-red-100'
+                          : 'bg-blue-100 text-blue-700 hover:bg-blue-100'
+                      }`}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Required Variable
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddVariable('optional')}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Optional Variable
-                    </Button>
+                      {variable.isRequired ? 'Required' : 'Optional'}
+                    </Badge>
+
+                    {/* Actions */}
+                    <div className="flex items-center gap-2">
+                      {hasActualValue && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyValue(displayValue, variable.key);
+                          }}
+                          className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                        >
+                          {copiedKey === variable.key ? (
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          ) : (
+                            <Copy className="h-4 w-4 text-gray-400" />
+                          )}
+                        </button>
+                      )}
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <button className="p-1.5 rounded hover:bg-gray-200 transition-colors">
+                            <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleRowClick(variable)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteVariable(variable)}
+                            className="text-red-600"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
+                      {/* Expand Indicator */}
+                      <div className="text-gray-400">
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4" />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                )}
-              </div>
-            </TabsContent>
 
-            {/* Required Only Tab */}
-            <TabsContent value="required" className="mt-6">
-              <div className="space-y-4">
-                {currentVariables.required?.map((envVar, idx) => (
-                  <VariableCard
-                    key={idx}
-                    variable={envVar}
-                    type="required"
-                    isEditing={isEditing}
-                    onUpdate={(field, value) => handleUpdateVariable('required', idx, field, value)}
-                    onDelete={() => handleDeleteVariable('required', idx)}
-                    copiedKey={copiedKey}
-                    onCopy={handleCopyKey}
-                  />
-                ))}
-                {isEditing && (
-                  <Button variant="outline" size="sm" onClick={() => handleAddVariable('required')}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Required Variable
-                  </Button>
-                )}
-              </div>
-            </TabsContent>
-
-            {/* Optional Only Tab */}
-            {currentVariables.optional && (
-              <TabsContent value="optional" className="mt-6">
-                <div className="space-y-4">
-                  {currentVariables.optional.map((envVar, idx) => (
-                    <VariableCard
-                      key={idx}
-                      variable={envVar}
-                      type="optional"
-                      isEditing={isEditing}
-                      onUpdate={(field, value) =>
-                        handleUpdateVariable('optional', idx, field, value)
-                      }
-                      onDelete={() => handleDeleteVariable('optional', idx)}
-                      copiedKey={copiedKey}
-                      onCopy={handleCopyKey}
-                    />
-                  ))}
-                  {isEditing && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddVariable('optional')}
+                  {/* Expanded Edit Form */}
+                  {isExpanded && editingVariable && (
+                    <div
+                      className={`px-6 pb-6 border-t border-gray-100 ${isManaged ? 'bg-ocean-50/50' : 'bg-gray-50'}`}
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Optional Variable
-                    </Button>
+                      <div className="pt-4 space-y-4">
+                        {/* Managed Variable Warning */}
+                        {isManaged && (
+                          <div className="flex items-start gap-3 p-3 bg-ocean-100/50 rounded-lg border border-ocean-200">
+                            <Lock className="h-5 w-5 text-ocean-600 flex-shrink-0 mt-0.5" />
+                            <div>
+                              <p className="text-sm font-medium text-ocean-800">
+                                Managed by {managedInfo.serviceName}
+                              </p>
+                              <p className="text-xs text-ocean-600 mt-0.5">
+                                This variable is controlled by the {managedInfo.serviceName} service
+                                (
+                                {managedInfo.sourceMode === 'provision'
+                                  ? 'provisioned container'
+                                  : 'managed credentials'}
+                                ). To modify it, go to the Services tab.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Name Field */}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                            Name
+                          </label>
+                          <FloatingInput
+                            label=""
+                            value={editingVariable.key}
+                            onChange={(e) =>
+                              setEditingVariable({
+                                ...editingVariable,
+                                key: e.target.value.replace(/[^a-zA-Z0-9_]/g, '_'),
+                              })
+                            }
+                            disabled={isManaged}
+                            className={`font-mono ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                          />
+                        </div>
+
+                        {/* Value Field */}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                            Value
+                          </label>
+                          <Textarea
+                            value={isManaged ? '••••••••••••' : editingVariable.value || ''}
+                            onChange={(e) =>
+                              setEditingVariable({ ...editingVariable, value: e.target.value })
+                            }
+                            placeholder={
+                              isManaged
+                                ? 'Value is managed by integration'
+                                : 'Enter the value for this variable'
+                            }
+                            rows={3}
+                            disabled={isManaged}
+                            className={`text-sm font-mono resize-none ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                          />
+                          {!isManaged && editingVariable.example && !editingVariable.value && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Example:{' '}
+                              <code className="bg-gray-100 px-1 rounded">
+                                {editingVariable.example}
+                              </code>
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Description Field */}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                            Description
+                          </label>
+                          <FloatingInput
+                            label=""
+                            value={editingVariable.description}
+                            onChange={(e) =>
+                              setEditingVariable({
+                                ...editingVariable,
+                                description: e.target.value,
+                              })
+                            }
+                            disabled={isManaged}
+                            className={isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
+                          />
+                        </div>
+
+                        {/* Type Selection */}
+                        <div>
+                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                            Type
+                          </label>
+                          <Select
+                            value={editingVariable.isRequired ? 'required' : 'optional'}
+                            onValueChange={(val) =>
+                              setEditingVariable({
+                                ...editingVariable,
+                                isRequired: val === 'required',
+                              })
+                            }
+                            disabled={isManaged}
+                          >
+                            <SelectTrigger
+                              className={`w-full ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                            >
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="required">Required</SelectItem>
+                              <SelectItem value="optional">Optional</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex justify-between pt-2">
+                          {isManaged ? (
+                            <div />
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteVariable(variable)}
+                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </Button>
+                          )}
+                          <div className="flex gap-2">
+                            <Button variant="outline" size="sm" onClick={handleCancelEdit}>
+                              {isManaged ? 'Close' : 'Cancel'}
+                            </Button>
+                            {!isManaged && (
+                              <Button
+                                size="sm"
+                                onClick={handleSaveVariable}
+                                disabled={isSaving || !editingVariable.key.trim()}
+                                className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+                              >
+                                {isSaving ? 'Saving...' : 'Save'}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
-              </TabsContent>
-            )}
-          </Tabs>
+              );
+            })}
+          </div>
         ) : (
           <div className="text-center py-16">
-            <Key className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg font-medium">No environment variables detected</p>
+            <Key className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600 text-lg font-medium mb-2">No environment variables</p>
+            <p className="text-gray-500 text-sm mb-4">
+              Add environment variables to configure your deployment
+            </p>
+            <Button
+              size="sm"
+              onClick={() => setIsAddingNew(true)}
+              className="bg-gradient-to-r from-ocean-600 to-ocean-500"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Variable
+            </Button>
           </div>
         )}
       </CardContent>
     </Card>
-  );
-}
-
-// Sub-component for rendering individual variable cards
-interface VariableCardProps {
-  variable: EnvironmentVariable;
-  type: 'required' | 'optional';
-  isEditing: boolean;
-  onUpdate: (field: string, value: string) => void;
-  onDelete: () => void;
-  copiedKey: string | null;
-  onCopy: (key: string) => void;
-}
-
-function VariableCard({
-  variable,
-  type,
-  isEditing,
-  onUpdate,
-  onDelete,
-  copiedKey,
-  onCopy,
-}: VariableCardProps) {
-  const isRequired = type === 'required';
-
-  if (isEditing) {
-    return (
-      <div
-        className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}
-      >
-        <div className="space-y-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 space-y-4">
-              <FloatingInput
-                label="Variable Key *"
-                value={variable.key}
-                onChange={(e) => onUpdate('key', e.target.value)}
-                className="font-mono"
-              />
-              <Textarea
-                value={variable.description}
-                onChange={(e) => onUpdate('description', e.target.value)}
-                placeholder="What is this variable used for? *"
-                rows={2}
-                className="text-sm resize-none rounded-xl border-2 border-ocean-200/60 hover:border-ocean-300/80 focus:border-ocean-500 focus:ring-4 focus:ring-ocean-500/20"
-              />
-              <FloatingInput
-                label="Value (used in deployment)"
-                value={variable.value || ''}
-                onChange={(e) => onUpdate('value', e.target.value)}
-                className="font-mono"
-              />
-              {variable.example && !variable.value && (
-                <p className="text-xs text-gray-500">
-                  Default: <code className="bg-gray-100 px-1 rounded">{variable.example}</code>
-                </p>
-              )}
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onDelete}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // View mode
-  const displayValue = variable.value || variable.example;
-  const isUsingDefault = !variable.value && variable.example;
-
-  return (
-    <div
-      className={`border rounded-lg p-5 ${isRequired ? 'border-red-100 bg-red-50/30' : 'bg-gray-50/50'}`}
-    >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <Key className={`h-4 w-4 ${isRequired ? 'text-red-600' : 'text-gray-600'}`} />
-          <code className="text-sm font-mono font-semibold text-gray-900">{variable.key}</code>
-          <Badge variant={isRequired ? 'destructive' : 'secondary'} className="ml-2 text-xs">
-            {isRequired ? 'Required' : 'Optional'}
-          </Badge>
-          {isUsingDefault && (
-            <Badge variant="outline" className="ml-1 text-xs text-gray-500">
-              default
-            </Badge>
-          )}
-        </div>
-        {variable.integration && (
-          <Badge variant="secondary" className="text-xs bg-ocean-100 text-ocean-700">
-            {variable.integration}
-          </Badge>
-        )}
-      </div>
-      <p className="text-sm text-gray-700 mb-3">{variable.description}</p>
-      {displayValue && (
-        <div className="flex items-center gap-2 p-3 bg-white rounded border text-sm">
-          <span className="text-gray-500 font-medium">Value:</span>
-          <code className="flex-1 font-mono text-gray-800">{displayValue}</code>
-          <Button variant="ghost" size="sm" onClick={() => onCopy(displayValue)}>
-            {copiedKey === displayValue ? (
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-            ) : (
-              <Copy className="h-4 w-4" />
-            )}
-          </Button>
-        </div>
-      )}
-      {!displayValue && (
-        <div className="p-3 bg-amber-50 rounded border border-amber-200 text-sm text-amber-700">
-          No value set. Click Edit to add a value for deployment.
-        </div>
-      )}
-    </div>
   );
 }

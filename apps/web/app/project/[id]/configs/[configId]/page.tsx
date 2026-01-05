@@ -27,7 +27,7 @@ import {
   FilesTab,
   OverviewTab,
   DependenciesTab,
-  IntegrationsTab,
+  ServicesTab,
   DeploymentTab,
   LogsTab,
 } from '@/components/configuration';
@@ -209,9 +209,9 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
   const optionalEnvCount = environmentVariables?.optional?.length || 0;
   const totalEnvCount = requiredEnvCount + optionalEnvCount;
 
-  // Count integrations
+  // Count services
   const integrations = summary?.integrations as { detected?: unknown[] } | undefined;
-  const integrationsCount = integrations?.detected?.length || 0;
+  const servicesCount = integrations?.detected?.length || 0;
 
   // Count config files (excluding summary)
   const configFiles = Array.isArray(configSet.files) ? (configSet.files as ConfigFileEntry[]) : [];
@@ -287,12 +287,12 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="integrations" className="flex items-center gap-2">
+              <TabsTrigger value="services" className="flex items-center gap-2">
                 <ExternalLink className="h-4 w-4" />
-                Integrations
-                {integrationsCount > 0 && (
+                Services
+                {servicesCount > 0 && (
                   <Badge variant="secondary" className="ml-1 bg-blue-100 text-blue-700">
-                    {integrationsCount}
+                    {servicesCount}
                   </Badge>
                 )}
               </TabsTrigger>
@@ -318,7 +318,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                 configFilesCount={configFilesCount}
                 totalEnvCount={totalEnvCount}
                 requiredEnvCount={requiredEnvCount}
-                integrationsCount={integrationsCount}
+                servicesCount={servicesCount}
               />
             </TabsContent>
 
@@ -337,14 +337,15 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
               <VariablesTab
                 environmentVariables={environmentVariables}
                 onSave={handleSaveVariables}
+                configSetId={resolvedParams.configId}
               />
             </TabsContent>
 
-            {/* Integrations Tab */}
-            <TabsContent value="integrations" className="space-y-6">
-              <IntegrationsTab
+            {/* Services Tab */}
+            <TabsContent value="services" className="space-y-6">
+              <ServicesTab
                 summary={summary}
-                integrationsCount={integrationsCount}
+                servicesCount={servicesCount}
                 configSetId={resolvedParams.configId}
               />
             </TabsContent>

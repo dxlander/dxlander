@@ -271,6 +271,7 @@ async function createTables() {
         ports TEXT,
         exposed_ports TEXT,
         deploy_url TEXT,
+        service_urls TEXT,
         preview_url TEXT,
         build_logs TEXT,
         runtime_logs TEXT,
@@ -298,13 +299,25 @@ async function createTables() {
       );
     `);
 
-    // Create config_integrations table
+    // Create config_services table (detected third-party services per config)
     sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS config_integrations (
+      CREATE TABLE IF NOT EXISTS config_services (
         id TEXT PRIMARY KEY,
         config_set_id TEXT NOT NULL,
-        integration_id TEXT NOT NULL,
-        overrides TEXT,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        detected_from TEXT,
+        is_required INTEGER NOT NULL DEFAULT 1,
+        is_provisionable INTEGER NOT NULL DEFAULT 0,
+        known_service TEXT,
+        required_env_vars TEXT,
+        notes TEXT,
+        is_edited INTEGER NOT NULL DEFAULT 0,
+        compose_service_name TEXT,
+        source_mode TEXT NOT NULL DEFAULT 'secret',
+        provision_config TEXT,
+        secret_credentials TEXT,
+        generated_env_vars TEXT,
         order_index INTEGER DEFAULT 0,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
@@ -366,11 +379,12 @@ async function createTables() {
       );
     `);
 
-    // Create integrations table
+    // Create secrets table (Secret Manager)
     sqlite.exec(`
-      CREATE TABLE IF NOT EXISTS integrations (
+      CREATE TABLE IF NOT EXISTS secrets (
         id TEXT PRIMARY KEY,
         user_id TEXT NOT NULL,
+        project_id TEXT,
         name TEXT NOT NULL,
         service TEXT NOT NULL,
         service_type TEXT NOT NULL,
@@ -526,14 +540,14 @@ export async function resetSetupState(): Promise<void> {
     await db.delete(schema.deploymentActivityLogs);
     await db.delete(schema.deployments);
     await db.delete(schema.buildRuns);
-    await db.delete(schema.configIntegrations);
+    await db.delete(schema.configServices);
     await db.delete(schema.configActivityLogs);
     await db.delete(schema.configOptimizations);
     await db.delete(schema.configFiles);
     await db.delete(schema.configSets);
     await db.delete(schema.analysisActivityLogs);
     await db.delete(schema.analysisRuns);
-    await db.delete(schema.integrations);
+    await db.delete(schema.secrets);
     await db.delete(schema.aiProviders);
     try {
       sqlite.prepare('DELETE FROM encryption_keys;').run();
@@ -576,11 +590,11 @@ const VALID_TABLE_NAMES = new Set([
   'build_runs',
   'deployments',
   'deployment_activity_logs',
-  'config_integrations',
+  'config_services',
   'settings',
   'encryption_keys',
   'ai_providers',
-  'integrations',
+  'secrets',
   'deployment_credentials',
   'audit_logs',
 ]);

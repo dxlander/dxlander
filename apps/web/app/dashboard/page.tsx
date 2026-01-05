@@ -111,10 +111,10 @@ export default function Dashboard() {
 
   const headerActions = (
     <div className="flex items-center space-x-3">
-      <Link href="/dashboard/integrations">
+      <Link href="/dashboard/secrets">
         <Button variant="ghost" size="sm">
           <Key className="h-4 w-4 mr-2" />
-          Integrations
+          Secret Manager
         </Button>
       </Link>
       <Link href="/dashboard/settings">

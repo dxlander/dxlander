@@ -89,8 +89,8 @@ function SettingsContent() {
               </Card>
             </Link>
 
-            {/* Integrations */}
-            <Link href="/dashboard/integrations">
+            {/* Secret Manager */}
+            <Link href="/dashboard/secrets">
               <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 cursor-pointer h-full">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -99,13 +99,13 @@ function SettingsContent() {
                     </div>
                     <ExternalLink className="h-5 w-5 text-gray-400" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Integrations</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">Secret Manager</h3>
                   <p className="text-sm text-gray-600 mb-3">
-                    Third-party service credentials and API keys
+                    Securely stored credentials and API keys
                   </p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-gray-200 text-gray-700">
-                      5 Connected
+                      Encrypted
                     </Badge>
                   </div>
                 </CardContent>

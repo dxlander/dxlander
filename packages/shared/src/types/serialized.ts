@@ -61,7 +61,6 @@ export type {
   SerializedDeployment,
   SerializedDeploymentActivityLog,
   SerializedDeploymentCredential,
-  SerializedConfigIntegration,
   SerializedPreFlightCheck,
 } from './deployment';
 
@@ -124,8 +123,8 @@ export type SerializedAnalysisRun = {
 };
 
 /**
- * Re-export SerializedIntegrationVaultEntry from integration-vault.ts
+ * Re-export SerializedSecret from secret.ts
  *
- * This type was already created in Issue #41.
+ * Renamed from SerializedIntegrationVaultEntry as part of Secret Manager refactor.
  */
-export type { SerializedIntegrationVaultEntry } from './integration-vault';
+export type { SerializedSecret } from './secret';

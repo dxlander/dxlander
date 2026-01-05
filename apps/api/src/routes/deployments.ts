@@ -280,39 +280,15 @@ export const deploymentsRouter = router({
       z.object({
         configSetId: z.string().min(1),
         platform: z.enum(['docker', 'vercel', 'railway']).default('docker'),
-        ports: z.array(z.number()).optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
       const { userId } = ctx;
-      const { configSetId, platform, ports } = input;
+      const { configSetId, platform } = input;
 
-      const result = await deploymentExecutor.runPreFlightChecks(
-        userId,
-        configSetId,
-        platform,
-        ports
-      );
+      const result = await deploymentExecutor.runPreFlightChecks(userId, configSetId, platform);
 
       return result;
-    }),
-
-  /**
-   * Detect ports from Dockerfile
-   */
-  detectPorts: protectedProcedure
-    .input(
-      z.object({
-        configSetId: z.string().min(1),
-      })
-    )
-    .query(async ({ input, ctx }) => {
-      const { userId } = ctx;
-      const { configSetId } = input;
-
-      const ports = await deploymentExecutor.detectPorts(userId, configSetId);
-
-      return { ports };
     }),
 
   /**
