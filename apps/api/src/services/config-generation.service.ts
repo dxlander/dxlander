@@ -16,7 +16,6 @@ import {
   isPathSafe,
   getRelativeProjectPath,
   resolveProjectPath,
-  getProjectFilesDir,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
 
