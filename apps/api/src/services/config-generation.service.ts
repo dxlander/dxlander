@@ -14,6 +14,9 @@ import {
   getConfigDir,
   getProjectConfigsDir,
   isPathSafe,
+  getRelativeProjectPath,
+  resolveProjectPath,
+  getProjectFilesDir,
 } from '@dxlander/shared';
 import { AIProviderService } from './ai-provider.service';
 
@@ -104,7 +107,7 @@ export class ConfigGenerationService {
         name: configName,
         version: newVersion,
         type: configType,
-        localPath: configPath, // Store the config folder path
+        localPath: getRelativeProjectPath(configPath), // Store RELATIVE path
         generatedBy: aiProvider.provider,
         status: 'generating',
         startedAt: new Date(),
@@ -153,8 +156,16 @@ export class ConfigGenerationService {
         throw new Error('Config set or localPath not found');
       }
 
-      console.log(`📂 Config folder path: ${configSet.localPath}`);
-      console.log(`📂 Project files path: ${project.localPath}`);
+      // Resolve paths from relative to absolute for file operations
+      const resolvedConfigPath = resolveProjectPath(configSet.localPath);
+      const resolvedProjectPath = resolveProjectPath(project.localPath);
+
+      if (!resolvedConfigPath) {
+        throw new Error('Could not resolve config path');
+      }
+
+      console.log(`📂 Config folder path: ${resolvedConfigPath}`);
+      console.log(`📂 Project files path: ${resolvedProjectPath || 'N/A'}`);
 
       // Log activity: starting
       await this.logConfigActivity(
@@ -172,7 +183,7 @@ export class ConfigGenerationService {
         analysisResult: analysisResults,
         projectContext: {
           files: [], // Files already analyzed
-          projectPath: configSet.localPath, // Use config folder, not project folder!
+          projectPath: resolvedConfigPath, // Use RESOLVED absolute config folder!
           readme: analysisResults.projectStructure.documentationFiles[0],
         },
         configType,
@@ -240,7 +251,8 @@ export class ConfigGenerationService {
           const fileType = fileExtension || 'text';
 
           // Security: Validate path to prevent traversal attacks
-          if (!isPathSafe(configSet.localPath, fileName)) {
+          const resolvedConfigPath = resolveProjectPath(configSet.localPath);
+          if (!resolvedConfigPath || !isPathSafe(resolvedConfigPath, fileName)) {
             await this.logConfigActivity(configSetId, 'read_file', 'failed', fileName, {
               error: 'Path traversal detected',
             });
@@ -249,7 +261,7 @@ export class ConfigGenerationService {
           }
 
           // Read file content from disk (AI wrote it in config folder)
-          const filePath = path.join(configSet.localPath, fileName);
+          const filePath = path.join(resolvedConfigPath, fileName);
           let content = '';
 
           try {
@@ -385,9 +397,12 @@ export class ConfigGenerationService {
       try {
         const fs = await import('fs/promises');
         const path = await import('path');
-        const summaryPath = path.join(configSet.localPath, '_summary.json');
-        const summaryContent = await fs.readFile(summaryPath, 'utf-8');
-        metadata = JSON.parse(summaryContent);
+        const resolvedConfigPath = resolveProjectPath(configSet.localPath);
+        if (resolvedConfigPath) {
+          const summaryPath = path.join(resolvedConfigPath, '_summary.json');
+          const summaryContent = await fs.readFile(summaryPath, 'utf-8');
+          metadata = JSON.parse(summaryContent);
+        }
       } catch (error) {
         // File doesn't exist or couldn't be read - that's okay
         console.log('_summary.json not found or unreadable for config:', configSetId);

@@ -31,6 +31,39 @@ export function getProjectDir(projectId: string): string {
 }
 
 /**
+ * Convert an absolute project path to a relative path from DXLANDER_HOME
+ * Example: /home/user/.dxlander/projects/abc123 -> projects/abc123
+ */
+export function getRelativeProjectPath(absolutePath: string): string {
+  const dxlanderHome = getDXLanderHome();
+  const resolvedAbsolute = path.resolve(absolutePath);
+  const resolvedHome = path.resolve(dxlanderHome);
+  
+  if (!resolvedAbsolute.startsWith(resolvedHome)) {
+    // Path is not within DXLANDER_HOME, return as-is for backward compatibility
+    return absolutePath;
+  }
+  
+  return path.relative(resolvedHome, resolvedAbsolute);
+}
+
+/**
+ * Resolve a relative path (or absolute path) to an absolute project path
+ * Example: projects/abc123 -> /home/user/.dxlander/projects/abc123
+ */
+export function resolveProjectPath(pathStr: string | null | undefined): string | null {
+  if (!pathStr) return null;
+  
+  // If already absolute, return as-is
+  if (path.isAbsolute(pathStr)) {
+    return pathStr;
+  }
+  
+  // Otherwise, resolve relative to DXLANDER_HOME
+  return path.join(getDXLanderHome(), pathStr);
+}
+
+/**
  * Get project files directory (where imported source code lives)
  * Structure: ~/.dxlander/projects/{projectId}/files/
  */
@@ -196,7 +229,7 @@ export function saveProjectFiles(projectId: string, files: Map<string, string>):
   return {
     filesCount: filesWritten,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path
   };
 }
 
@@ -237,7 +270,7 @@ export function persistTempProjectDirectory(
   return {
     filesCount,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path
   };
 }
 

@@ -258,6 +258,7 @@ export const configsRouter = router({
         const { eq, and } = await import('drizzle-orm');
         const fs = await import('fs/promises');
         const path = await import('path');
+        const { resolveProjectPath } = await import('@dxlander/shared');
 
         // Verify config belongs to user
         const configSet = await db.query.configSets.findFirst({
@@ -275,8 +276,14 @@ export const configsRouter = router({
           throw new Error('Configuration local path not found');
         }
 
+        // Resolve relative path to absolute for file operations
+        const resolvedPath = resolveProjectPath(configSet.localPath);
+        if (!resolvedPath) {
+          throw new Error('Could not resolve configuration path');
+        }
+
         // Write updated metadata to _summary.json on disk
-        const summaryPath = path.join(configSet.localPath, '_summary.json');
+        const summaryPath = path.join(resolvedPath, '_summary.json');
         await fs.writeFile(summaryPath, JSON.stringify(input.metadata, null, 2), 'utf-8');
 
         // Update the configSet's updatedAt timestamp
