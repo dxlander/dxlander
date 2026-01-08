@@ -106,6 +106,27 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     return validImagePattern.test(image);
   }
 
+  /**
+   * Validate environment variable key.
+   * Must start with letter or underscore, contain only alphanumeric and underscore.
+   */
+  private validateEnvVarKey(key: string): boolean {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key);
+  }
+
+  /**
+   * Filter and validate environment variables, removing invalid keys.
+   */
+  private filterValidEnvVars(envVars: Record<string, string>): Record<string, string> {
+    const filtered: Record<string, string> = {};
+    for (const [key, value] of Object.entries(envVars)) {
+      if (this.validateEnvVarKey(key)) {
+        filtered[key] = value;
+      }
+    }
+    return filtered;
+  }
+
   // ============================================================
   // IDeploymentExecutor Interface Implementation
   // ============================================================
@@ -134,10 +155,13 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     this.validateProjectName(projectName);
     let logs = '';
 
+    // Filter out invalid environment variable keys
+    const validEnvVars = envVars ? this.filterValidEnvVars(envVars) : {};
+
     try {
       onProgress?.({ type: 'info', message: 'Starting Docker Compose deployment...' });
 
-      if (envVars && Object.keys(envVars).length > 0) {
+      if (Object.keys(validEnvVars).length > 0) {
         const envPath = path.join(workDir, '.env');
         // Backup existing .env file if it exists
         if (fs.existsSync(envPath)) {
@@ -145,7 +169,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
           fs.copyFileSync(envPath, backupPath);
           onProgress?.({ type: 'info', message: 'Existing .env file backed up' });
         }
-        this.writeEnvFile(envVars, envPath);
+        this.writeEnvFile(validEnvVars, envPath);
         onProgress?.({ type: 'info', message: 'Environment variables written to .env file' });
       }
 
@@ -159,13 +183,13 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
         cwd: workDir,
         maxBuffer: 50 * 1024 * 1024,
         timeout: 30 * 60 * 1000, // 30 minute timeout for builds
-        env: { ...process.env, ...envVars },
+        env: { ...process.env, ...validEnvVars },
       });
 
       logs = stdout + (stderr ? `\n${stderr}` : '');
 
       const services = await this.getComposeServices(workDir, projectName);
-      const serviceUrls = await this.getDeployUrls(workDir, projectName, envVars);
+      const serviceUrls = await this.getDeployUrls(workDir, projectName, validEnvVars);
 
       onProgress?.({ type: 'success', message: `Services started: ${services.join(', ')}` });
 
@@ -245,6 +269,10 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     if (options?.removeVolumes) cmd += ' -v';
     if (options?.removeImages) {
       const rmiValue = options.removeImages === true ? 'all' : options.removeImages;
+      // Validate rmiValue to prevent command injection
+      if (rmiValue !== 'all' && rmiValue !== 'local') {
+        throw new Error('Invalid removeImages option: must be true, "all", or "local"');
+      }
       cmd += ` --rmi ${rmiValue}`;
     }
 
