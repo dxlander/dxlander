@@ -545,8 +545,17 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
   }
 
   private async checkDiskSpace(): Promise<PreFlightCheck> {
+    // Skip disk space check on Windows (df command not available)
+    if (process.platform === 'win32') {
+      return {
+        name: 'Disk Space',
+        status: 'passed',
+        message: 'Disk space check skipped on Windows',
+      };
+    }
+
     try {
-      const { stdout } = await execAsync("df -h / | tail -1 | awk '{print $5}'");
+      const { stdout } = await execAsync("df -h / | tail -1 | awk '{print $5}'", { timeout: 5000 });
       const usagePercent = parseInt(stdout.trim().replace('%', ''), 10);
 
       if (usagePercent > 95) {

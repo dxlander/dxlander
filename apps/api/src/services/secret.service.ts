@@ -94,8 +94,7 @@ export class SecretService {
 
     try {
       return encryptionService.decryptObjectFromStorage(secret.encryptedCredentials);
-    } catch (error) {
-      console.error('Failed to decrypt credentials:', error);
+    } catch {
       return null;
     }
   }
@@ -172,7 +171,12 @@ export class SecretService {
     userId: string,
     status: 'connected' | 'error' | 'unknown',
     error?: string
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const existing = await db.query.secrets.findFirst({
+      where: and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)),
+    });
+    if (!existing) return false;
+
     await db
       .update(schema.secrets)
       .set({
@@ -182,12 +186,18 @@ export class SecretService {
         updatedAt: new Date(),
       })
       .where(and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)));
+    return true;
   }
 
   /**
    * Increment usage count atomically
    */
-  async incrementUsageCount(id: string, userId: string): Promise<void> {
+  async incrementUsageCount(id: string, userId: string): Promise<boolean> {
+    const existing = await db.query.secrets.findFirst({
+      where: and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)),
+    });
+    if (!existing) return false;
+
     await db
       .update(schema.secrets)
       .set({
@@ -196,6 +206,7 @@ export class SecretService {
         updatedAt: new Date(),
       })
       .where(and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)));
+    return true;
   }
 
   /**
@@ -225,7 +236,7 @@ export class SecretService {
   /**
    * Format secret for response (parse JSON fields)
    */
-  private formatSecret(secret: any): Secret {
+  private formatSecret(secret: typeof schema.secrets.$inferSelect): Secret {
     return {
       id: secret.id,
       userId: secret.userId,
@@ -234,11 +245,11 @@ export class SecretService {
       serviceType: secret.serviceType,
       credentialType: secret.credentialType,
       status: secret.status,
-      autoInjected: secret.autoInjected,
+      autoInjected: secret.autoInjected ?? true,
       detectedIn: this.safeParseJson(secret.detectedIn),
       lastTested: secret.lastTested,
       lastError: secret.lastError,
-      usageCount: secret.usageCount,
+      usageCount: secret.usageCount ?? 0,
       lastUsed: secret.lastUsed,
       createdAt: secret.createdAt,
       updatedAt: secret.updatedAt,
