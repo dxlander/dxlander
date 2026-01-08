@@ -169,6 +169,7 @@ export class SecretService {
    */
   async updateTestStatus(
     id: string,
+    userId: string,
     status: 'connected' | 'error' | 'unknown',
     error?: string
   ): Promise<void> {
@@ -180,13 +181,13 @@ export class SecretService {
         lastError: error || null,
         updatedAt: new Date(),
       })
-      .where(eq(schema.secrets.id, id));
+      .where(and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)));
   }
 
   /**
    * Increment usage count atomically
    */
-  async incrementUsageCount(id: string): Promise<void> {
+  async incrementUsageCount(id: string, userId: string): Promise<void> {
     await db
       .update(schema.secrets)
       .set({
@@ -194,7 +195,7 @@ export class SecretService {
         lastUsed: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(schema.secrets.id, id));
+      .where(and(eq(schema.secrets.id, id), eq(schema.secrets.userId, userId)));
   }
 
   /**

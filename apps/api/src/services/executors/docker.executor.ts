@@ -159,7 +159,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     try {
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" start`;
-      await execAsync(cmd, { cwd: workDir });
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
       return { success: true };
     } catch (error: any) {
       return { success: false, errorMessage: error.message };
@@ -173,7 +173,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     try {
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" stop`;
-      await execAsync(cmd, { cwd: workDir });
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
       return { success: true };
     } catch (error: any) {
       return { success: false, errorMessage: error.message };
@@ -187,7 +187,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     try {
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" restart`;
-      await execAsync(cmd, { cwd: workDir });
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
       return { success: true };
     } catch (error: any) {
       return { success: false, errorMessage: error.message };
@@ -205,7 +205,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
       cmd += ` --rmi ${rmiValue}`;
     }
 
-    await execAsync(cmd, { cwd: workDir });
+    await execAsync(cmd, { cwd: workDir, timeout: 300000 });
   }
 
   async getLogs(workDir: string, projectName: string, options?: LogOptions): Promise<string> {
@@ -218,6 +218,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
       const { stdout, stderr } = await execAsync(cmd, {
         cwd: workDir,
         maxBuffer: 10 * 1024 * 1024,
+        timeout: 30000,
       });
 
       return stdout + (stderr || '');
@@ -236,7 +237,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     try {
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" ps --format json`;
-      const { stdout } = await execAsync(cmd, { cwd: workDir });
+      const { stdout } = await execAsync(cmd, { cwd: workDir, timeout: 30000 });
 
       const services: ComposeServiceStatus[] = [];
 
@@ -598,7 +599,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
   private async getComposeServices(workDir: string, projectName: string): Promise<string[]> {
     try {
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" config --services`;
-      const { stdout } = await execAsync(cmd, { cwd: workDir });
+      const { stdout } = await execAsync(cmd, { cwd: workDir, timeout: 30000 });
       return stdout.trim().split('\n').filter(Boolean);
     } catch {
       return [];
