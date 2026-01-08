@@ -562,15 +562,12 @@ export function generateSecurePassword(length: number = 24): string {
   let result = '';
   const array = new Uint8Array(length);
   const cryptoApi = globalThis.crypto;
-  if (cryptoApi && cryptoApi.getRandomValues) {
-    cryptoApi.getRandomValues(array);
-    for (let i = 0; i < length; i++) {
-      result += chars[array[i] % chars.length];
-    }
-  } else {
-    for (let i = 0; i < length; i++) {
-      result += chars[Math.floor(Math.random() * chars.length)];
-    }
+  if (!cryptoApi || !cryptoApi.getRandomValues) {
+    throw new Error('Secure random number generator not available');
+  }
+  cryptoApi.getRandomValues(array);
+  for (let i = 0; i < length; i++) {
+    result += chars[array[i] % chars.length];
   }
   return result;
 }

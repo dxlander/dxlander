@@ -4,7 +4,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { db, schema } from '@dxlander/database';
 import {
   encryptionService,
@@ -184,23 +184,13 @@ export class SecretService {
   }
 
   /**
-   * Increment usage count
+   * Increment usage count atomically
    */
   async incrementUsageCount(id: string): Promise<void> {
-    // Get current secret
-    const secret = await db.query.secrets.findFirst({
-      where: eq(schema.secrets.id, id),
-    });
-
-    if (!secret) {
-      return;
-    }
-
-    // Increment usage count
     await db
       .update(schema.secrets)
       .set({
-        usageCount: (secret.usageCount || 0) + 1,
+        usageCount: sql`COALESCE(${schema.secrets.usageCount}, 0) + 1`,
         lastUsed: new Date(),
         updatedAt: new Date(),
       })
@@ -244,7 +234,7 @@ export class SecretService {
       credentialType: secret.credentialType,
       status: secret.status,
       autoInjected: secret.autoInjected,
-      detectedIn: secret.detectedIn ? JSON.parse(secret.detectedIn) : null,
+      detectedIn: this.safeParseJson(secret.detectedIn),
       lastTested: secret.lastTested,
       lastError: secret.lastError,
       usageCount: secret.usageCount,
@@ -253,5 +243,14 @@ export class SecretService {
       updatedAt: secret.updatedAt,
       projectId: secret.projectId,
     };
+  }
+
+  private safeParseJson(json: string | null): string[] | null {
+    if (!json) return null;
+    try {
+      return JSON.parse(json);
+    } catch {
+      return null;
+    }
   }
 }

@@ -289,7 +289,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
         platform: selectedPlatform as 'docker' | 'vercel' | 'railway',
       });
     }
-  }, [showNewDeploymentDialog, selectedPlatform]);
+  }, [showNewDeploymentDialog, selectedPlatform, configSetId, preflightMutation]);
 
   const runPreflight = () => {
     setPreflightLoading(true);

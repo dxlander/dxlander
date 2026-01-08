@@ -51,6 +51,29 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     this.docker = new Docker();
   }
 
+  /**
+   * Validate project name to prevent command injection.
+   * Docker Compose project names must be lowercase alphanumeric with hyphens/underscores.
+   */
+  private validateProjectName(name: string): string {
+    if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) {
+      throw new Error(
+        `Invalid project name: ${name}. Must be lowercase alphanumeric with hyphens/underscores.`
+      );
+    }
+    return name;
+  }
+
+  /**
+   * Validate service name for use in shell commands.
+   */
+  private validateServiceName(name: string): string {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(name)) {
+      throw new Error(`Invalid service name: ${name}`);
+    }
+    return name;
+  }
+
   // ============================================================
   // IDeploymentExecutor Interface Implementation
   // ============================================================
@@ -75,6 +98,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
 
   async deploy(options: DeployOptions): Promise<DeployResult> {
     const { workDir, projectName, envVars, onProgress } = options;
+    this.validateProjectName(projectName);
     let logs = '';
 
     try {
@@ -95,6 +119,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
       const { stdout, stderr } = await execAsync(cmd, {
         cwd: workDir,
         maxBuffer: 50 * 1024 * 1024,
+        timeout: 30 * 60 * 1000, // 30 minute timeout for builds
         env: { ...process.env, ...envVars },
       });
 
@@ -132,6 +157,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" start`;
       await execAsync(cmd, { cwd: workDir });
       return { success: true };
@@ -145,6 +171,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" stop`;
       await execAsync(cmd, { cwd: workDir });
       return { success: true };
@@ -158,6 +185,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" restart`;
       await execAsync(cmd, { cwd: workDir });
       return { success: true };
@@ -167,6 +195,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
   }
 
   async delete(workDir: string, projectName: string, options?: DeleteOptions): Promise<void> {
+    this.validateProjectName(projectName);
     let cmd = `docker compose -p "${projectName}"`;
     cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
     cmd += ' down';
@@ -181,9 +210,10 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
 
   async getLogs(workDir: string, projectName: string, options?: LogOptions): Promise<string> {
     try {
+      this.validateProjectName(projectName);
       let cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" logs`;
-      if (options?.tail) cmd += ` --tail ${options.tail}`;
-      if (options?.service) cmd += ` ${options.service}`;
+      if (options?.tail) cmd += ` --tail ${Math.floor(Number(options.tail)) || 100}`;
+      if (options?.service) cmd += ` ${this.validateServiceName(options.service)}`;
 
       const { stdout, stderr } = await execAsync(cmd, {
         cwd: workDir,
@@ -204,6 +234,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     services: Array<{ name: string; status: string; ports?: string[] }>;
   }> {
     try {
+      this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" ps --format json`;
       const { stdout } = await execAsync(cmd, { cwd: workDir });
 
