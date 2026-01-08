@@ -184,8 +184,8 @@ export const SetupStepValidationSchema = z.object({
 
 export type SetupStepValidation = z.infer<typeof SetupStepValidationSchema>;
 
-// Integration Vault types
-export * from './integration-vault';
+// Secret Manager types
+export * from './secret';
 
 // Deployment types
 export * from './deployment';
@@ -195,3 +195,6 @@ export * from './ai-providers';
 
 // Serialized types for API responses
 export * from './serialized';
+
+// Config Service types (detected third-party services)
+export * from './config-service';

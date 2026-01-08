@@ -54,7 +54,7 @@ import {
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
-import type { SerializedIntegrationVaultEntry, IntegrationField } from '@dxlander/shared';
+import type { SerializedSecret, SecretField } from '@dxlander/shared';
 
 // Service type options with descriptions
 const SERVICE_TYPES = [
@@ -93,37 +93,37 @@ const SERVICE_TYPES = [
 ] as const;
 
 // Use shared types
-type Integration = SerializedIntegrationVaultEntry;
-type Field = IntegrationField;
+type Secret = SerializedSecret;
+type Field = SecretField;
 
-interface IntegrationFormData {
+interface SecretFormData {
   name: string;
   service: string;
   fields: Field[];
 }
 
-export default function IntegrationsPage() {
+export default function SecretsPage() {
   const [searchQuery, setSearchQuery] = useState('');
-  const [showNewIntegrationDialog, setShowNewIntegrationDialog] = useState(false);
+  const [showNewSecretDialog, setShowNewSecretDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [selectedIntegration, setSelectedIntegration] = useState<Integration | null>(null);
+  const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null);
 
   // Form state
-  const [formData, setFormData] = useState<IntegrationFormData>({
+  const [formData, setFormData] = useState<SecretFormData>({
     name: '',
     service: '',
     fields: [{ key: '', value: '' }],
   });
 
   // tRPC queries and mutations
-  const { data: integrations = [], isLoading, refetch } = trpc.integrations.list.useQuery();
+  const { data: secrets = [], isLoading, refetch } = trpc.secrets.list.useQuery();
 
-  const createMutation = trpc.integrations.create.useMutation({
+  const createMutation = trpc.secrets.create.useMutation({
     onSuccess: () => {
-      toast.success('Integration created successfully');
+      toast.success('Secret created successfully');
       refetch();
-      setShowNewIntegrationDialog(false);
+      setShowNewSecretDialog(false);
       resetForm();
     },
     onError: (error) => {
@@ -131,12 +131,12 @@ export default function IntegrationsPage() {
     },
   });
 
-  const updateMutation = trpc.integrations.update.useMutation({
+  const updateMutation = trpc.secrets.update.useMutation({
     onSuccess: () => {
-      toast.success('Integration updated successfully');
+      toast.success('Secret updated successfully');
       refetch();
       setShowEditDialog(false);
-      setSelectedIntegration(null);
+      setSelectedSecret(null);
       resetForm();
     },
     onError: (error) => {
@@ -144,21 +144,21 @@ export default function IntegrationsPage() {
     },
   });
 
-  const deleteMutation = trpc.integrations.delete.useMutation({
+  const deleteMutation = trpc.secrets.delete.useMutation({
     onSuccess: () => {
-      toast.success('Integration deleted successfully');
+      toast.success('Secret deleted successfully');
       refetch();
       setShowDeleteDialog(false);
-      setSelectedIntegration(null);
+      setSelectedSecret(null);
     },
     onError: (error) => {
       toast.error(error.message);
     },
   });
 
-  const { data: editFields } = trpc.integrations.getFields.useQuery(
-    { id: selectedIntegration?.id || '' },
-    { enabled: !!selectedIntegration && showEditDialog }
+  const { data: editFields } = trpc.secrets.getFields.useQuery(
+    { id: selectedSecret?.id || '' },
+    { enabled: !!selectedSecret && showEditDialog }
   );
 
   const resetForm = () => {
@@ -192,7 +192,7 @@ export default function IntegrationsPage() {
 
   const handleCreate = () => {
     if (!formData.name || !formData.service) {
-      toast.error('Please enter integration name and service type');
+      toast.error('Please enter secret name and service type');
       return;
     }
 
@@ -210,34 +210,34 @@ export default function IntegrationsPage() {
   };
 
   const handleUpdate = () => {
-    if (!selectedIntegration) return;
+    if (!selectedSecret) return;
 
     const validFields = formData.fields.filter((f) => f.key && f.value);
 
     updateMutation.mutate({
-      id: selectedIntegration.id,
+      id: selectedSecret.id,
       name: formData.name || undefined,
       fields: validFields.length > 0 ? validFields : undefined,
     });
   };
 
   const handleDelete = () => {
-    if (!selectedIntegration) return;
-    deleteMutation.mutate({ id: selectedIntegration.id });
+    if (!selectedSecret) return;
+    deleteMutation.mutate({ id: selectedSecret.id });
   };
 
-  const handleEditClick = async (integration: Integration) => {
-    setSelectedIntegration(integration);
+  const handleEditClick = async (secret: Secret) => {
+    setSelectedSecret(secret);
     setFormData({
-      name: integration.name,
-      service: integration.service,
+      name: secret.name,
+      service: secret.service,
       fields: [{ key: '', value: '' }],
     });
     setShowEditDialog(true);
   };
 
-  const handleDeleteClick = (integration: Integration) => {
-    setSelectedIntegration(integration);
+  const handleDeleteClick = (secret: Secret) => {
+    setSelectedSecret(secret);
     setShowDeleteDialog(true);
   };
 
@@ -251,17 +251,17 @@ export default function IntegrationsPage() {
     }
   }, [editFields, showEditDialog]);
 
-  const filteredIntegrations = integrations.filter(
-    (integration) =>
-      integration.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      integration.service.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredSecrets = secrets.filter(
+    (secret) =>
+      secret.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      secret.service.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const headerActions = (
     <div className="flex items-center space-x-3">
-      <Button onClick={() => setShowNewIntegrationDialog(true)}>
+      <Button onClick={() => setShowNewSecretDialog(true)}>
         <Plus className="h-4 w-4 mr-2" />
-        Add Integration
+        Add Secret
       </Button>
       <Link href="/dashboard">
         <Button variant="ghost" size="sm">
@@ -275,8 +275,8 @@ export default function IntegrationsPage() {
   return (
     <PageLayout background="default">
       <Header
-        title="Integrations"
-        subtitle="Manage API keys, service accounts, and third-party credentials"
+        title="Secret Manager"
+        subtitle="Securely manage API keys, service accounts, and third-party credentials"
         actions={headerActions}
       />
 
@@ -310,7 +310,7 @@ export default function IntegrationsPage() {
           <div className="relative w-full md:w-96">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
-              placeholder="Search integrations..."
+              placeholder="Search secrets..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10"
@@ -322,40 +322,40 @@ export default function IntegrationsPage() {
             <Card>
               <CardContent className="p-16 text-center">
                 <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-                <p className="text-gray-600">Loading integrations...</p>
+                <p className="text-gray-600">Loading secrets...</p>
               </CardContent>
             </Card>
           )}
 
           {/* Empty State */}
-          {!isLoading && filteredIntegrations.length === 0 && (
+          {!isLoading && filteredSecrets.length === 0 && (
             <Card className="border-dashed border-2">
               <CardContent className="p-16 text-center">
                 <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
                   <Key className="h-12 w-12" />
                 </IconWrapper>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  {searchQuery ? 'No integrations found' : 'No integrations yet'}
+                  {searchQuery ? 'No secrets found' : 'No secrets yet'}
                 </h3>
                 <p className="text-gray-600 mb-8 max-w-md mx-auto">
                   {searchQuery
-                    ? 'Try adjusting your search or add a new integration'
-                    : 'Add your first integration to securely store credentials for any third-party service. Define custom fields for maximum flexibility.'}
+                    ? 'Try adjusting your search or add a new secret'
+                    : 'Add your first secret to securely store credentials for any third-party service. Define custom fields for maximum flexibility.'}
                 </p>
-                <Button size="lg" onClick={() => setShowNewIntegrationDialog(true)}>
+                <Button size="lg" onClick={() => setShowNewSecretDialog(true)}>
                   <Plus className="h-5 w-5 mr-2" />
-                  Add First Integration
+                  Add First Secret
                 </Button>
               </CardContent>
             </Card>
           )}
 
-          {/* Integrations Grid */}
-          {!isLoading && filteredIntegrations.length > 0 && (
+          {/* Secrets Grid */}
+          {!isLoading && filteredSecrets.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              {filteredIntegrations.map((integration) => (
+              {filteredSecrets.map((secret) => (
                 <Card
-                  key={integration.id}
+                  key={secret.id}
                   className="hover:shadow-elegant transition-all hover:border-ocean-300"
                 >
                   <CardContent className="p-6">
@@ -369,10 +369,10 @@ export default function IntegrationsPage() {
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <h4 className="font-semibold text-gray-900 truncate">
-                                {integration.name}
+                                {secret.name}
                               </h4>
                               <Badge variant="secondary" className="flex-shrink-0">
-                                {integration.service}
+                                {secret.service}
                               </Badge>
                             </div>
                             <div className="flex items-center gap-2 text-xs text-gray-600">
@@ -389,14 +389,14 @@ export default function IntegrationsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-48">
-                            <DropdownMenuItem onClick={() => handleEditClick(integration)}>
+                            <DropdownMenuItem onClick={() => handleEditClick(secret)}>
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               className="text-red-600"
-                              onClick={() => handleDeleteClick(integration)}
+                              onClick={() => handleDeleteClick(secret)}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -406,10 +406,10 @@ export default function IntegrationsPage() {
                       </div>
 
                       {/* Error Message */}
-                      {integration.lastError && (
+                      {secret.lastError && (
                         <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
                           <AlertCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
-                          <p className="text-sm text-red-600">{integration.lastError}</p>
+                          <p className="text-sm text-red-600">{secret.lastError}</p>
                         </div>
                       )}
 
@@ -418,13 +418,13 @@ export default function IntegrationsPage() {
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Used</p>
                           <p className="text-sm font-semibold text-gray-900">
-                            {integration.usageCount}x
+                            {secret.usageCount}x
                           </p>
                         </div>
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Created</p>
                           <p className="text-sm font-semibold text-gray-900">
-                            {formatDistanceToNow(new Date(integration.createdAt), {
+                            {formatDistanceToNow(new Date(secret.createdAt), {
                               addSuffix: true,
                             })}
                           </p>
@@ -432,8 +432,8 @@ export default function IntegrationsPage() {
                         <div>
                           <p className="text-xs text-gray-500 mb-1">Last Used</p>
                           <p className="text-sm font-semibold text-gray-900">
-                            {integration.lastUsed
-                              ? formatDistanceToNow(new Date(integration.lastUsed), {
+                            {secret.lastUsed
+                              ? formatDistanceToNow(new Date(secret.lastUsed), {
                                   addSuffix: true,
                                 })
                               : 'Never'}
@@ -449,11 +449,11 @@ export default function IntegrationsPage() {
         </div>
       </Section>
 
-      {/* Add Integration Dialog */}
-      <Dialog open={showNewIntegrationDialog} onOpenChange={setShowNewIntegrationDialog}>
+      {/* Add Secret Dialog */}
+      <Dialog open={showNewSecretDialog} onOpenChange={setShowNewSecretDialog}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">Add New Integration</DialogTitle>
+            <DialogTitle className="text-xl">Add New Secret</DialogTitle>
             <DialogDescription>
               Securely store credentials for any third-party service. All fields are encrypted with
               AES-256-GCM.
@@ -461,17 +461,16 @@ export default function IntegrationsPage() {
           </DialogHeader>
 
           <div className="space-y-6 py-4">
-            {/* Integration Name */}
+            {/* Secret Name */}
             <div className="space-y-2">
               <FloatingInput
-                label="Integration Name"
+                label="Secret Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 leftIcon={<Key className="h-4 w-4" />}
               />
               <p className="text-xs text-gray-500">
-                A friendly name to identify this integration (e.g., "Production Supabase", "Stripe
-                Live")
+                A friendly name to identify this secret (e.g., "Production Supabase", "Stripe Live")
               </p>
             </div>
 
@@ -503,7 +502,7 @@ export default function IntegrationsPage() {
                 </SelectContent>
               </Select>
               <p className="text-xs text-gray-500">
-                Choose the category that best describes this integration
+                Choose the category that best describes this secret
               </p>
             </div>
 
@@ -569,7 +568,7 @@ export default function IntegrationsPage() {
             <Button
               variant="outline"
               onClick={() => {
-                setShowNewIntegrationDialog(false);
+                setShowNewSecretDialog(false);
                 resetForm();
               }}
             >
@@ -584,7 +583,7 @@ export default function IntegrationsPage() {
               ) : (
                 <>
                   <ShieldCheck className="h-4 w-4 mr-2" />
-                  Add Integration
+                  Add Secret
                 </>
               )}
             </Button>
@@ -592,19 +591,19 @@ export default function IntegrationsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Integration Dialog */}
+      {/* Edit Secret Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl">Edit Integration</DialogTitle>
+            <DialogTitle className="text-xl">Edit Secret</DialogTitle>
             <DialogDescription>
-              Update integration name or credentials. Leave fields empty to keep existing values.
+              Update secret name or credentials. Leave fields empty to keep existing values.
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-6 py-4">
             <FloatingInput
-              label="Integration Name"
+              label="Secret Name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               leftIcon={<Key className="h-4 w-4" />}
@@ -660,7 +659,7 @@ export default function IntegrationsPage() {
               variant="outline"
               onClick={() => {
                 setShowEditDialog(false);
-                setSelectedIntegration(null);
+                setSelectedSecret(null);
                 resetForm();
               }}
             >
@@ -675,7 +674,7 @@ export default function IntegrationsPage() {
               ) : (
                 <>
                   <Edit className="h-4 w-4 mr-2" />
-                  Update Integration
+                  Update Secret
                 </>
               )}
             </Button>
@@ -687,9 +686,9 @@ export default function IntegrationsPage() {
       <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Integration</DialogTitle>
+            <DialogTitle>Delete Secret</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete "{selectedIntegration?.name}"? This action cannot be
+              Are you sure you want to delete "{selectedSecret?.name}"? This action cannot be
               undone.
             </DialogDescription>
           </DialogHeader>
@@ -699,7 +698,7 @@ export default function IntegrationsPage() {
               variant="outline"
               onClick={() => {
                 setShowDeleteDialog(false);
-                setSelectedIntegration(null);
+                setSelectedSecret(null);
               }}
             >
               Cancel

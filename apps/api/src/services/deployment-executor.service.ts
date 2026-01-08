@@ -4,14 +4,21 @@ import { randomUUID } from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
 import { homedir } from 'os';
-import { DockerDeploymentExecutor, type PreFlightResult } from './executors/docker.executor';
-import { ConfigIntegrationService } from './config-integration.service';
-import type {
-  DeploymentPlatform,
-  DeploymentStatus,
-  Deployment,
-  DeploymentActivityLog,
+import * as yaml from 'yaml';
+import { getExecutorRegistry, initializeExecutors } from './executors';
+import { ConfigServiceService } from './config-service.service';
+import {
+  validateDockerComposeImpl,
+  type DeploymentPlatform,
+  type DeploymentStatus,
+  type Deployment,
+  type DeploymentActivityLog,
+  type PreFlightCheck,
 } from '@dxlander/shared';
+import type { PreFlightResult } from './executors/types';
+
+// Initialize executors on module load
+initializeExecutors();
 
 /**
  * Deployment creation options
@@ -42,17 +49,11 @@ export interface DeploymentProgressEvent {
  * Deployment Executor Service
  *
  * Orchestrates deployment operations across different platforms.
- * Currently supports Docker (local) with extensibility for Vercel, Railway, etc.
+ * Uses the executor registry to support multiple deployment targets.
  */
 export class DeploymentExecutorService {
-  private dockerExecutor: DockerDeploymentExecutor;
-
-  constructor() {
-    this.dockerExecutor = new DockerDeploymentExecutor();
-  }
-
   /**
-   * Create and execute a deployment using Docker Compose
+   * Create and execute a deployment using the appropriate executor
    */
   async createDeployment(options: CreateDeploymentOptions): Promise<Deployment> {
     const {
@@ -65,6 +66,10 @@ export class DeploymentExecutorService {
       notes,
       onProgress,
     } = options;
+
+    // Get the executor for the requested platform
+    const registry = getExecutorRegistry();
+    const executor = registry.get(platform);
 
     // Validate config exists and belongs to user
     const config = await db.query.configSets.findFirst({
@@ -88,15 +93,6 @@ export class DeploymentExecutorService {
       throw new Error('Project not found');
     }
 
-    // Project structure:
-    // - Config localPath: ~/.dxlander/projects/{projectId}/configs/{configId}/
-    //   (contains Dockerfile, docker-compose.yml, .dockerignore, .env.example)
-    // - Source files: ~/.dxlander/projects/{projectId}/files/ (contains actual project source code)
-    //
-    // For Docker Compose deployments:
-    // - Create a persistent build directory for this deployment
-    // - Combine source files + config files (Dockerfile, docker-compose.yml, .dockerignore)
-    // - Use compose project name for isolation
     const projectDir = path.dirname(path.dirname(config.localPath));
     const filesDir = path.join(projectDir, 'files');
 
@@ -104,7 +100,6 @@ export class DeploymentExecutorService {
       throw new Error('Project source files not found');
     }
 
-    // Check for required config files
     const dockerfilePath = path.join(config.localPath, 'Dockerfile');
     const composeFilePath = path.join(config.localPath, 'docker-compose.yml');
 
@@ -120,11 +115,7 @@ export class DeploymentExecutorService {
     const deploymentId = randomUUID();
     const now = new Date();
     const deploymentName = name || `${project.name}-${Date.now()}`;
-
-    // Compose project name: sanitized, lowercase, no special chars
     const composeProjectName = `dxlander-${deploymentId.substring(0, 12)}`;
-
-    // Persistent build directory for this deployment (needed for start/stop/restart/logs)
     const dxlanderHome = process.env.DXLANDER_HOME || path.join(homedir(), '.dxlander');
     const buildDir = path.join(dxlanderHome, 'deployments', deploymentId);
 
@@ -146,12 +137,7 @@ export class DeploymentExecutorService {
       updatedAt: now,
     });
 
-    // Log deployment start
-    await this.logActivity(
-      deploymentId,
-      'deployment_started',
-      'Starting Docker Compose deployment'
-    );
+    await this.logActivity(deploymentId, 'deployment_started', 'Starting deployment');
 
     onProgress?.({
       phase: 'pre_flight',
@@ -160,14 +146,11 @@ export class DeploymentExecutorService {
     });
 
     try {
-      // Update status
       await this.updateDeploymentStatus(deploymentId, 'pre_flight');
 
-      // Step 1: Create build directory with source files
+      // Create build directory and copy files
       fs.mkdirSync(buildDir, { recursive: true });
       this.copyDirectorySync(filesDir, buildDir);
-
-      // Step 2: Copy config files (Dockerfile, docker-compose.yml, .dockerignore)
       fs.copyFileSync(dockerfilePath, path.join(buildDir, 'Dockerfile'));
       fs.copyFileSync(composeFilePath, path.join(buildDir, 'docker-compose.yml'));
 
@@ -176,8 +159,20 @@ export class DeploymentExecutorService {
         fs.copyFileSync(dockerignorePath, path.join(buildDir, '.dockerignore'));
       }
 
-      // Run pre-flight checks for compose deployment
-      const preFlightResult = await this.dockerExecutor.runComposePreFlightChecks(buildDir);
+      // Get config services to determine which services to keep/remove
+      const configServices = await ConfigServiceService.getConfigServices(userId, configSetId);
+      const provisionServiceNames = configServices
+        .filter((s) => s.sourceMode === 'provision')
+        .map((s) => s.composeServiceName)
+        .filter(Boolean) as string[];
+
+      // Run pre-flight checks
+      const preFlightResult = await executor.runPreFlightChecks({
+        configPath: buildDir,
+        userId,
+        configSetId,
+        provisionServiceNames,
+      });
 
       await this.logActivity(
         deploymentId,
@@ -187,8 +182,10 @@ export class DeploymentExecutorService {
       );
 
       if (!preFlightResult.passed) {
-        const failedChecks = preFlightResult.checks.filter((c) => c.status === 'failed');
-        const errorMessage = failedChecks.map((c) => c.message).join('; ');
+        const failedChecks = preFlightResult.checks.filter(
+          (c: PreFlightCheck) => c.status === 'failed'
+        );
+        const errorMessage = failedChecks.map((c: PreFlightCheck) => c.message).join('; ');
 
         await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
 
@@ -209,72 +206,155 @@ export class DeploymentExecutorService {
         details: { checks: preFlightResult.checks },
       });
 
-      // Get resolved environment variables
-      const envVars = await ConfigIntegrationService.getResolvedEnvVars(userId, configSetId);
+      // Process docker-compose.yml based on config service modes
+      // Simplified: keep AI-generated services for 'provision' mode, remove for 'external'/'none'
+      const composePath = path.join(buildDir, 'docker-compose.yml');
+      const composeContent = fs.readFileSync(composePath, 'utf-8');
+      const composeDoc = yaml.parse(composeContent);
 
-      // Validate environment variable names before build
+      if (!composeDoc.services) {
+        composeDoc.services = {};
+      }
+      if (!composeDoc.volumes) {
+        composeDoc.volumes = {};
+      }
+
+      // Find the main app service (has build context)
+      let appServiceName = 'app';
+      if (!composeDoc.services['app']) {
+        appServiceName =
+          Object.keys(composeDoc.services).find(
+            (name) => composeDoc.services[name]?.build !== undefined
+          ) ||
+          Object.keys(composeDoc.services)[0] ||
+          'app';
+      }
+      const appService = composeDoc.services[appServiceName];
+
+      const removedServices: string[] = [];
+
+      for (const configService of configServices) {
+        const composeServiceName = configService.composeServiceName;
+
+        if (configService.sourceMode === 'external' || configService.sourceMode === 'none') {
+          // Remove the service - user provides external connection or skips
+          if (
+            composeServiceName &&
+            composeDoc.services[composeServiceName] &&
+            composeServiceName !== appServiceName
+          ) {
+            delete composeDoc.services[composeServiceName];
+
+            // Remove from depends_on
+            if (appService?.depends_on) {
+              if (Array.isArray(appService.depends_on)) {
+                appService.depends_on = appService.depends_on.filter(
+                  (dep: string) => dep !== composeServiceName
+                );
+              } else if (typeof appService.depends_on === 'object') {
+                delete appService.depends_on[composeServiceName];
+              }
+            }
+
+            removedServices.push(composeServiceName);
+          }
+        }
+        // For 'provision' mode: keep the AI-generated service as-is
+      }
+
+      // Clean up empty depends_on
+      if (appService?.depends_on) {
+        if (Array.isArray(appService.depends_on) && appService.depends_on.length === 0) {
+          delete appService.depends_on;
+        } else if (
+          typeof appService.depends_on === 'object' &&
+          Object.keys(appService.depends_on).length === 0
+        ) {
+          delete appService.depends_on;
+        }
+      }
+
+      // Clean up unused volumes
+      const usedVolumes = new Set<string>();
+      for (const [, serviceConfig] of Object.entries(composeDoc.services)) {
+        const svc = serviceConfig as any;
+        if (Array.isArray(svc.volumes)) {
+          for (const vol of svc.volumes) {
+            if (typeof vol === 'string' && vol.includes(':')) {
+              usedVolumes.add(vol.split(':')[0]);
+            }
+          }
+        }
+      }
+      for (const volumeName of Object.keys(composeDoc.volumes || {})) {
+        if (!usedVolumes.has(volumeName)) {
+          delete composeDoc.volumes[volumeName];
+        }
+      }
+
+      // Write updated docker-compose.yml
+      const updatedComposeContent = yaml.stringify(composeDoc, { lineWidth: 0 });
+      fs.writeFileSync(composePath, updatedComposeContent, 'utf-8');
+
+      if (removedServices.length > 0) {
+        await this.logActivity(
+          deploymentId,
+          'compose_updated',
+          `Docker-compose updated: ${removedServices.length} service(s) removed (using external)`,
+          { removed: removedServices }
+        );
+
+        // Validate modified compose file
+        const validationResult = await validateDockerComposeImpl({ projectPath: buildDir });
+
+        if (!validationResult.valid) {
+          const errorMessage = `Docker-compose validation failed: ${validationResult.message}`;
+          await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
+
+          onProgress?.({
+            phase: 'error',
+            status: 'failed',
+            message: errorMessage,
+          });
+
+          return await this.getDeployment(deploymentId);
+        }
+      }
+
+      // Get resolved environment variables
+      const envVars = await ConfigServiceService.getResolvedEnvVars(userId, configSetId);
+
+      // Validate env var names
       const envValidationErrors = this.validateEnvVarNames(envVars);
       if (envValidationErrors.length > 0) {
         const errorMessage = `Invalid environment variable names:\n${envValidationErrors.join('\n')}`;
-
-        await this.logActivity(
-          deploymentId,
-          'env_validation_failed',
-          'Environment variable validation failed',
-          { errors: envValidationErrors }
-        );
-
         await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
 
         onProgress?.({
           phase: 'error',
           status: 'failed',
-          message: 'Environment variable validation failed',
-          details: { errors: envValidationErrors },
+          message: errorMessage,
         });
 
         return await this.getDeployment(deploymentId);
       }
 
-      // Extract port mappings from env vars (any key containing 'PORT')
-      // Creates 1:1 mappings e.g., PORT=3000 -> 3000:3000, DB_PORT=5432 -> 5432:5432
-      const extractedPorts: Array<{ host: number; container: number; protocol: 'tcp' }> = [];
-      for (const [key, value] of Object.entries(envVars)) {
-        if (key.toUpperCase().includes('PORT') && value) {
-          const portNum = parseInt(value, 10);
-          if (!isNaN(portNum) && portNum > 0 && portNum <= 65535) {
-            extractedPorts.push({ host: portNum, container: portNum, protocol: 'tcp' });
-          }
-        }
-      }
-
-      // Update deployment record with extracted ports
-      if (extractedPorts.length > 0) {
-        await db
-          .update(schema.deployments)
-          .set({ ports: JSON.stringify(extractedPorts) })
-          .where(eq(schema.deployments.id, deploymentId));
-      }
-
-      // Build and deploy phase using docker compose
+      // Deploy
       await this.updateDeploymentStatus(deploymentId, 'building');
 
       onProgress?.({
         phase: 'build',
         status: 'building',
-        message: 'Building and starting services with Docker Compose...',
+        message: 'Building and starting services...',
       });
 
-      const composeResult = await this.dockerExecutor.composeUp({
+      const deployResult = await executor.deploy({
         workDir: buildDir,
         projectName: composeProjectName,
         envVars,
-        build: true,
-        detach: true,
         onProgress: (event) => {
-          const phase = event.type === 'error' ? 'error' : 'build';
           onProgress?.({
-            phase,
+            phase: event.type === 'error' ? 'error' : 'build',
             status: event.type === 'error' ? 'failed' : 'building',
             message: event.message,
           });
@@ -283,54 +363,43 @@ export class DeploymentExecutorService {
 
       await this.logActivity(
         deploymentId,
-        'compose_up_complete',
-        composeResult.success
-          ? 'Docker Compose deployment successful'
-          : 'Docker Compose deployment failed',
-        {
-          projectName: composeProjectName,
-          services: composeResult.services,
-          success: composeResult.success,
-        }
+        'deploy_complete',
+        deployResult.success ? 'Deployment successful' : 'Deployment failed',
+        { services: deployResult.services, success: deployResult.success }
       );
 
-      if (!composeResult.success) {
+      if (!deployResult.success) {
         await this.updateDeploymentStatus(
           deploymentId,
           'failed',
-          composeResult.errorMessage,
-          composeResult.logs
+          deployResult.errorMessage,
+          deployResult.logs
         );
 
         onProgress?.({
           phase: 'error',
           status: 'failed',
-          message: 'Docker Compose deployment failed',
-          details: { error: composeResult.errorMessage },
+          message: 'Deployment failed',
+          details: { error: deployResult.errorMessage },
         });
 
         return await this.getDeployment(deploymentId);
       }
 
-      // Get deploy URL from compose services
-      const deployUrl = await this.dockerExecutor.getComposeDeployUrl(buildDir, composeProjectName);
-
-      // Get compose project status for port info (available for future use)
-      const _composeStatus = await this.dockerExecutor.composePs(buildDir, composeProjectName);
-
-      // Success!
+      // Success
       await db
         .update(schema.deployments)
         .set({
           status: 'running',
-          buildLogs: composeResult.logs,
-          deployUrl,
+          buildLogs: deployResult.logs,
+          deployUrl: deployResult.deployUrl,
+          serviceUrls: deployResult.serviceUrls ? JSON.stringify(deployResult.serviceUrls) : null,
           completedAt: new Date(),
           updatedAt: new Date(),
           metadata: JSON.stringify({
             composeProjectName,
             buildDir,
-            services: composeResult.services,
+            services: deployResult.services,
           }),
         })
         .where(eq(schema.deployments.id, deploymentId));
@@ -340,9 +409,8 @@ export class DeploymentExecutorService {
         status: 'running',
         message: 'Deployment successful',
         details: {
-          projectName: composeProjectName,
-          services: composeResult.services,
-          deployUrl,
+          deployUrl: deployResult.deployUrl,
+          serviceUrls: deployResult.serviceUrls,
         },
       });
 
@@ -367,12 +435,10 @@ export class DeploymentExecutorService {
   async runPreFlightChecks(
     userId: string,
     configSetId: string,
-    platform: DeploymentPlatform,
-    _requestedPorts?: number[]
+    platform: DeploymentPlatform
   ): Promise<PreFlightResult> {
-    if (platform !== 'docker') {
-      throw new Error(`Platform ${platform} is not yet supported`);
-    }
+    const registry = getExecutorRegistry();
+    const executor = registry.get(platform);
 
     const config = await db.query.configSets.findFirst({
       where: and(eq(schema.configSets.id, configSetId), eq(schema.configSets.userId, userId)),
@@ -382,25 +448,19 @@ export class DeploymentExecutorService {
       throw new Error('Config set not found or missing local path');
     }
 
-    // Use compose pre-flight checks
-    return await this.dockerExecutor.runComposePreFlightChecks(config.localPath);
-  }
+    // Get provision service names for image validation
+    const configServices = await ConfigServiceService.getConfigServices(userId, configSetId);
+    const provisionServiceNames = configServices
+      .filter((s) => s.sourceMode === 'provision')
+      .map((s) => s.composeServiceName)
+      .filter(Boolean) as string[];
 
-  /**
-   * Detect exposed ports from Dockerfile
-   */
-  async detectPorts(userId: string, configSetId: string): Promise<number[]> {
-    const config = await db.query.configSets.findFirst({
-      where: and(eq(schema.configSets.id, configSetId), eq(schema.configSets.userId, userId)),
+    return await executor.runPreFlightChecks({
+      configPath: config.localPath,
+      userId,
+      configSetId,
+      provisionServiceNames,
     });
-
-    if (!config || !config.localPath) {
-      throw new Error('Config set not found or missing local path');
-    }
-
-    return await this.dockerExecutor.parseDockerfilePorts(
-      path.join(config.localPath, 'Dockerfile')
-    );
   }
 
   /**
@@ -410,13 +470,15 @@ export class DeploymentExecutorService {
     const deployment = await this.getDeploymentWithAuth(userId, deploymentId);
     const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
 
-    const result = await this.dockerExecutor.composeStart(buildDir, composeProjectName);
+    const executor = getExecutorRegistry().get(deployment.platform);
+    const result = await executor.start(buildDir, composeProjectName);
+
     if (!result.success) {
       throw new Error(result.errorMessage || 'Failed to start services');
     }
 
     await this.updateDeploymentStatus(deploymentId, 'running');
-    await this.logActivity(deploymentId, 'services_started', 'Compose services started');
+    await this.logActivity(deploymentId, 'services_started', 'Services started');
   }
 
   /**
@@ -426,7 +488,9 @@ export class DeploymentExecutorService {
     const deployment = await this.getDeploymentWithAuth(userId, deploymentId);
     const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
 
-    const result = await this.dockerExecutor.composeStop(buildDir, composeProjectName);
+    const executor = getExecutorRegistry().get(deployment.platform);
+    const result = await executor.stop(buildDir, composeProjectName);
+
     if (!result.success) {
       throw new Error(result.errorMessage || 'Failed to stop services');
     }
@@ -440,7 +504,7 @@ export class DeploymentExecutorService {
       })
       .where(eq(schema.deployments.id, deploymentId));
 
-    await this.logActivity(deploymentId, 'services_stopped', 'Compose services stopped');
+    await this.logActivity(deploymentId, 'services_stopped', 'Services stopped');
   }
 
   /**
@@ -450,13 +514,15 @@ export class DeploymentExecutorService {
     const deployment = await this.getDeploymentWithAuth(userId, deploymentId);
     const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
 
-    const result = await this.dockerExecutor.composeRestart(buildDir, composeProjectName);
+    const executor = getExecutorRegistry().get(deployment.platform);
+    const result = await executor.restart(buildDir, composeProjectName);
+
     if (!result.success) {
       throw new Error(result.errorMessage || 'Failed to restart services');
     }
 
     await this.updateDeploymentStatus(deploymentId, 'running');
-    await this.logActivity(deploymentId, 'services_restarted', 'Compose services restarted');
+    await this.logActivity(deploymentId, 'services_restarted', 'Services restarted');
   }
 
   /**
@@ -471,14 +537,13 @@ export class DeploymentExecutorService {
 
     try {
       const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
+      const executor = getExecutorRegistry().get(deployment.platform);
 
-      // Use compose down to stop and remove containers
-      await this.dockerExecutor.composeDown(buildDir, composeProjectName, {
+      await executor.delete(buildDir, composeProjectName, {
         removeVolumes: true,
         removeImages: removeImages ? 'local' : undefined,
       });
 
-      // Clean up build directory
       if (fs.existsSync(buildDir)) {
         try {
           fs.rmSync(buildDir, { recursive: true, force: true });
@@ -487,10 +552,9 @@ export class DeploymentExecutorService {
         }
       }
     } catch {
-      // Compose metadata may not exist for old deployments
+      // Metadata may not exist
     }
 
-    // Update status to terminated
     await db
       .update(schema.deployments)
       .set({
@@ -511,7 +575,6 @@ export class DeploymentExecutorService {
     options: { type?: 'build' | 'runtime' | 'all'; tail?: number; service?: string } = {}
   ): Promise<{ buildLogs?: string; runtimeLogs?: string }> {
     const deployment = await this.getDeploymentWithAuth(userId, deploymentId);
-
     const result: { buildLogs?: string; runtimeLogs?: string } = {};
 
     if (options.type === 'build' || options.type === 'all' || !options.type) {
@@ -521,13 +584,13 @@ export class DeploymentExecutorService {
     if (options.type === 'runtime' || options.type === 'all' || !options.type) {
       try {
         const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
+        const executor = getExecutorRegistry().get(deployment.platform);
 
-        result.runtimeLogs = await this.dockerExecutor.composeLogs(buildDir, composeProjectName, {
+        result.runtimeLogs = await executor.getLogs(buildDir, composeProjectName, {
           tail: options.tail,
           service: options.service,
         });
 
-        // Update runtime logs in DB
         await db
           .update(schema.deployments)
           .set({
@@ -536,7 +599,7 @@ export class DeploymentExecutorService {
           })
           .where(eq(schema.deployments.id, deploymentId));
       } catch {
-        // Compose project may not exist
+        // Deployment may not exist
       }
     }
 
@@ -551,29 +614,34 @@ export class DeploymentExecutorService {
 
     try {
       const { composeProjectName, buildDir } = this.getComposeMetadata(deployment);
+      const executor = getExecutorRegistry().get(deployment.platform);
 
-      // Check compose project status
-      const composeStatus = await this.dockerExecutor.composePs(buildDir, composeProjectName);
+      const status = await executor.getStatus(buildDir, composeProjectName);
 
       let newStatus: DeploymentStatus;
-      if (composeStatus.services.length === 0) {
+      if (status.services.length === 0) {
         newStatus = 'stopped';
-      } else if (composeStatus.running) {
-        newStatus = 'running';
+      } else if (status.running) {
+        const hasRestarting = status.services.some((s) => s.status === 'restarting');
+        newStatus = hasRestarting ? 'failed' : 'running';
       } else {
-        // Some services exist but not running
-        const hasExited = composeStatus.services.some((s) => s.status === 'exited');
-        newStatus = hasExited ? 'stopped' : 'failed';
+        const hasExited = status.services.some((s) => s.status === 'exited');
+        const hasRestarting = status.services.some((s) => s.status === 'restarting');
+        if (hasRestarting) {
+          newStatus = 'failed';
+        } else if (hasExited) {
+          newStatus = 'stopped';
+        } else {
+          newStatus = 'failed';
+        }
       }
 
-      // Update DB if status changed
       if (newStatus !== deployment.status) {
         await this.updateDeploymentStatus(deploymentId, newStatus);
       }
 
       return newStatus;
     } catch {
-      // Compose metadata may not exist
       return deployment.status as DeploymentStatus;
     }
   }
@@ -614,7 +682,6 @@ export class DeploymentExecutorService {
   ): Promise<Deployment[]> {
     const { projectId, configSetId, status, limit = 20, offset = 0 } = options;
 
-    // Build conditions array
     const conditions = [eq(schema.deployments.userId, userId)];
 
     if (projectId) {
@@ -765,7 +832,6 @@ export class DeploymentExecutorService {
 
   /**
    * Validate environment variable names
-   * Returns array of error messages for invalid variable names
    */
   private validateEnvVarNames(envVars: Record<string, string>): string[] {
     const errors: string[] = [];
@@ -779,15 +845,13 @@ export class DeploymentExecutorService {
 
       if (!validNameRegex.test(name)) {
         if (name.includes('*')) {
-          errors.push(`"${name}": Wildcard (*) is not allowed in variable names`);
+          errors.push(`"${name}": Wildcard (*) is not allowed`);
         } else if (name.includes(' ')) {
-          errors.push(`"${name}": Spaces are not allowed in variable names`);
+          errors.push(`"${name}": Spaces are not allowed`);
         } else if (/^[0-9]/.test(name)) {
-          errors.push(`"${name}": Variable names cannot start with a number`);
+          errors.push(`"${name}": Cannot start with a number`);
         } else {
-          errors.push(
-            `"${name}": Contains invalid characters (only letters, numbers, and underscores allowed)`
-          );
+          errors.push(`"${name}": Contains invalid characters`);
         }
       }
     }
@@ -815,6 +879,7 @@ export class DeploymentExecutorService {
       ports: deployment.ports ? JSON.parse(deployment.ports) : null,
       exposedPorts: deployment.exposedPorts ? JSON.parse(deployment.exposedPorts) : null,
       deployUrl: deployment.deployUrl,
+      serviceUrls: deployment.serviceUrls ? JSON.parse(deployment.serviceUrls) : null,
       previewUrl: deployment.previewUrl,
       buildLogs: deployment.buildLogs,
       runtimeLogs: deployment.runtimeLogs,

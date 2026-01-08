@@ -3,8 +3,8 @@ import { projectsRouter } from './projects';
 import { analysisRouter } from './analysis';
 import { deploymentsRouter } from './deployments';
 import { deploymentTargetsRouter } from './deployment-targets';
-import { integrationsRouter } from './integrations';
-import { configIntegrationsRouter } from './config-integrations';
+import { secretsRouter } from './secrets';
+import { configServicesRouter } from './config-services';
 import { setupRouter } from './setup';
 import { settingsRouter } from './settings';
 import { configsRouter } from './configs';
@@ -16,8 +16,8 @@ export const appRouter = router({
   analysis: analysisRouter,
   deployments: deploymentsRouter,
   deploymentTargets: deploymentTargetsRouter,
-  integrations: integrationsRouter,
-  configIntegrations: configIntegrationsRouter,
+  secrets: secretsRouter,
+  configServices: configServicesRouter,
   settings: settingsRouter,
   configs: configsRouter,
   aiProviders: aiProvidersRouter,

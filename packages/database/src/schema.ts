@@ -338,6 +338,7 @@ export const deployments = sqliteTable(
 
     // URLs
     deployUrl: text('deploy_url'),
+    serviceUrls: text('service_urls'), // JSON: [{ service: "api", url: "http://localhost:3000" }]
     previewUrl: text('preview_url'),
 
     // Logs
@@ -396,18 +397,43 @@ export const deploymentActivityLogs = sqliteTable(
   })
 );
 
-// Config-Integration Links - Link saved integrations to configs
-export const configIntegrations = sqliteTable(
-  'config_integrations',
+// Config Services - Detected third-party services with source configuration
+// Stores editable service data and how to source credentials (provision, secret, none)
+export const configServices = sqliteTable(
+  'config_services',
   {
     id: text('id').primaryKey(),
     configSetId: text('config_set_id').notNull(),
-    integrationId: text('integration_id').notNull(),
 
-    // Override values (JSON: { "API_KEY": "override_value" })
-    overrides: text('overrides'),
+    // Service details (editable by user)
+    name: text('name').notNull(),
+    category: text('category').notNull(), // database, cache, email, payment, etc.
+    detectedFrom: text('detected_from'), // Where AI detected this from
+    isRequired: integer('is_required', { mode: 'boolean' }).notNull().default(true),
+    isProvisionable: integer('is_provisionable', { mode: 'boolean' }).notNull().default(false),
+    knownService: text('known_service'), // postgresql, mysql, redis, etc. (nullable)
+    requiredEnvVars: text('required_env_vars'), // JSON: [{ key, description, example }]
+    notes: text('notes'),
+    isEdited: integer('is_edited', { mode: 'boolean' }).notNull().default(false),
 
-    // Order for environment variable injection
+    // Docker compose service name (set by AI when generating configs)
+    // Used to identify which service to remove when user switches to external credentials
+    composeServiceName: text('compose_service_name'),
+
+    // Source mode configuration
+    sourceMode: text('source_mode').notNull().default('secret'), // provision, secret, none
+
+    // Provision mode config (JSON)
+    provisionConfig: text('provision_config'), // { service, image, tag, credentials, customEnv, volumes }
+
+    // Secret mode config (per-field credentials)
+    // JSON: { KEY: { type: 'manual' | 'reference', value?: string, secretId?: string, secretKey?: string } }
+    secretCredentials: text('secret_credentials'),
+
+    // Generated env vars (computed from source mode)
+    generatedEnvVars: text('generated_env_vars'), // JSON: { KEY: "value" } - final env vars to inject
+
+    // Order for displaying
     orderIndex: integer('order_index').default(0),
 
     createdAt: integer('created_at', { mode: 'timestamp' })
@@ -418,9 +444,9 @@ export const configIntegrations = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => ({
-    configSetIdIdx: index('config_integrations_config_set_id_idx').on(table.configSetId),
-    integrationIdIdx: index('config_integrations_integration_id_idx').on(table.integrationId),
-    uniqueLink: index('config_integrations_unique_idx').on(table.configSetId, table.integrationId),
+    configSetIdIdx: index('config_services_config_set_id_idx').on(table.configSetId),
+    sourceModeIdx: index('config_services_source_mode_idx').on(table.sourceMode),
+    categoryIdx: index('config_services_category_idx').on(table.category),
   })
 );
 
@@ -487,16 +513,17 @@ export const aiProviders = sqliteTable(
   })
 );
 
-// Integrations - Third-party service credentials (Supabase, Stripe, AWS, etc.)
-export const integrations = sqliteTable(
-  'integrations',
+// Secrets - User-managed credentials for third-party services (Secret Manager)
+export const secrets = sqliteTable(
+  'secrets',
   {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull(),
+    projectId: text('project_id'), // Optional: Link to specific project
 
-    // Integration metadata
-    name: text('name').notNull(), // "Production Supabase", "Stripe Live Keys"
-    service: text('service').notNull(), // 'supabase', 'stripe', 'aws-s3', etc.
+    // Secret metadata
+    name: text('name').notNull(), // "Production PostgreSQL", "Stripe Live Keys"
+    service: text('service').notNull(), // 'postgresql', 'stripe', 'aws-s3', etc.
     serviceType: text('service_type').notNull(), // 'database', 'payment', 'storage', 'email', 'auth'
 
     // Credential type and storage
@@ -524,9 +551,9 @@ export const integrations = sqliteTable(
       .$defaultFn(() => new Date()),
   },
   (table) => ({
-    userIdIdx: index('integrations_user_id_idx').on(table.userId),
-    serviceIdx: index('integrations_service_idx').on(table.service),
-    serviceTypeIdx: index('integrations_service_type_idx').on(table.serviceType),
+    userIdIdx: index('secrets_user_id_idx').on(table.userId),
+    serviceIdx: index('secrets_service_idx').on(table.service),
+    serviceTypeIdx: index('secrets_service_type_idx').on(table.serviceType),
   })
 );
 
@@ -619,10 +646,10 @@ export const schema = {
   buildRuns,
   deployments,
   deploymentActivityLogs,
-  configIntegrations,
+  configServices,
   settings,
   aiProviders,
-  integrations,
+  secrets,
   deploymentCredentials,
   auditLogs,
 };

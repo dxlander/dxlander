@@ -95,7 +95,7 @@ interface OverviewTabProps {
   configFilesCount: number;
   totalEnvCount: number;
   requiredEnvCount: number;
-  integrationsCount: number;
+  servicesCount: number;
 }
 
 export function OverviewTab({
@@ -103,7 +103,7 @@ export function OverviewTab({
   configFilesCount,
   totalEnvCount,
   requiredEnvCount,
-  integrationsCount,
+  servicesCount,
 }: OverviewTabProps) {
   return (
     <div className="space-y-6">
@@ -316,10 +316,10 @@ export function OverviewTab({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Integrations</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{integrationsCount}</p>
-                {integrationsCount > 0 && (
-                  <p className="text-xs text-blue-600 mt-1">External services</p>
+                <p className="text-sm font-medium text-gray-500">Services</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{servicesCount}</p>
+                {servicesCount > 0 && (
+                  <p className="text-xs text-blue-600 mt-1">Detected third-party services</p>
                 )}
               </div>
               <ExternalLink className="h-10 w-10 text-blue-500" />

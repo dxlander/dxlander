@@ -1,126 +1,30 @@
 import Docker from 'dockerode';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as net from 'net';
+import * as yaml from 'yaml';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import {
   validateDockerComposeImpl,
   type PreFlightCheck,
-  type PortMapping,
-  type DeploymentStatus,
+  type DeploymentPlatform,
 } from '@dxlander/shared';
+import type {
+  IDeploymentExecutor,
+  PreFlightOptions,
+  PreFlightResult,
+  DeployOptions,
+  DeployResult,
+  DeleteOptions,
+  LogOptions,
+} from './types';
 
 const execAsync = promisify(exec);
 
 /**
- * Pre-flight check result
- */
-export interface PreFlightResult {
-  passed: boolean;
-  checks: PreFlightCheck[];
-}
-
-/**
- * Build options for Docker image
- */
-export interface DockerBuildOptions {
-  contextPath: string;
-  dockerfilePath?: string;
-  imageTag: string;
-  buildArgs?: Record<string, string>;
-  onProgress?: (event: BuildProgressEvent) => void;
-}
-
-/**
- * Build progress event
- */
-export interface BuildProgressEvent {
-  type: 'stream' | 'error' | 'status';
-  message: string;
-  progress?: number;
-}
-
-/**
- * Build result
- */
-export interface DockerBuildResult {
-  success: boolean;
-  imageId?: string;
-  imageTag: string;
-  buildLogs: string;
-  errorMessage?: string;
-}
-
-/**
- * Deploy options
- */
-export interface DockerDeployOptions {
-  imageTag: string;
-  containerName: string;
-  ports: PortMapping[];
-  environmentVariables: Record<string, string>;
-  onProgress?: (event: DeployProgressEvent) => void;
-}
-
-/**
- * Deploy progress event
- */
-export interface DeployProgressEvent {
-  type: 'status' | 'info' | 'error';
-  message: string;
-}
-
-/**
- * Deploy result
- */
-export interface DockerDeployResult {
-  success: boolean;
-  containerId?: string;
-  deployUrl?: string;
-  ports: PortMapping[];
-  errorMessage?: string;
-}
-
-/**
- * Container status
- */
-export interface ContainerStatus {
-  status: DeploymentStatus;
-  containerId: string;
-  running: boolean;
-  ports: PortMapping[];
-  startedAt?: string;
-  exitCode?: number;
-}
-
-/**
- * Docker Compose up options
- */
-export interface ComposeUpOptions {
-  workDir: string;
-  projectName: string;
-  envVars?: Record<string, string>;
-  build?: boolean;
-  detach?: boolean;
-  onProgress?: (event: DeployProgressEvent) => void;
-}
-
-/**
- * Docker Compose up result
- */
-export interface ComposeUpResult {
-  success: boolean;
-  projectName: string;
-  services: string[];
-  errorMessage?: string;
-  logs: string;
-}
-
-/**
  * Docker Compose service status
  */
-export interface ComposeServiceStatus {
+interface ComposeServiceStatus {
   name: string;
   status: 'running' | 'exited' | 'paused' | 'restarting' | 'dead' | 'created' | 'unknown';
   health?: 'healthy' | 'unhealthy' | 'starting' | 'none';
@@ -129,25 +33,18 @@ export interface ComposeServiceStatus {
 }
 
 /**
- * Docker Compose project status
- */
-export interface ComposeProjectStatus {
-  projectName: string;
-  services: ComposeServiceStatus[];
-  running: boolean;
-}
-
-/**
  * Docker Deployment Executor
  *
- * Handles Docker-based deployments including:
- * - Pre-flight checks
- * - Image building
- * - Container deployment
- * - Container management (start, stop, restart, delete)
+ * Handles Docker Compose deployments including:
+ * - Pre-flight checks (Docker, Compose, images validation)
+ * - Deployment via docker compose up
+ * - Lifecycle management (start, stop, restart, delete)
  * - Log retrieval
+ *
+ * Implements IDeploymentExecutor for the pluggable executor architecture.
  */
-export class DockerDeploymentExecutor {
+export class DockerDeploymentExecutor implements IDeploymentExecutor {
+  readonly platform: DeploymentPlatform = 'docker';
   private docker: Docker;
 
   constructor() {
@@ -155,29 +52,96 @@ export class DockerDeploymentExecutor {
   }
 
   /**
-   * Run pre-flight checks before deployment
+   * Validate project name to prevent command injection.
+   * Docker Compose project names must be lowercase alphanumeric with hyphens/underscores.
    */
-  async runPreFlightChecks(
-    configPath: string,
-    requestedPorts: number[] = []
-  ): Promise<PreFlightResult> {
+  private validateProjectName(name: string): string {
+    if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) {
+      throw new Error(
+        `Invalid project name: ${name}. Must be lowercase alphanumeric with hyphens/underscores.`
+      );
+    }
+    return name;
+  }
+
+  /**
+   * Validate service name for use in shell commands.
+   */
+  private validateServiceName(name: string): string {
+    if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(name)) {
+      throw new Error(`Invalid service name: ${name}`);
+    }
+    return name;
+  }
+
+  /**
+   * Validate workDir to prevent path traversal attacks.
+   * Ensures the path is absolute and doesn't contain traversal sequences.
+   */
+  private validateWorkDir(workDir: string): void {
+    if (!path.isAbsolute(workDir)) {
+      throw new Error('Working directory must be an absolute path');
+    }
+    const normalized = path.normalize(workDir);
+    if (normalized !== workDir || workDir.includes('..')) {
+      throw new Error('Invalid working directory path');
+    }
+    if (!fs.existsSync(workDir) || !fs.statSync(workDir).isDirectory()) {
+      throw new Error('Working directory does not exist');
+    }
+  }
+
+  /**
+   * Validate Docker image name to prevent command injection.
+   * Docker image names: [registry/][namespace/]name[:tag][@digest]
+   * Valid characters: lowercase letters, digits, ., -, _, /, :, @
+   */
+  private validateImageName(image: string): boolean {
+    if (!image || image.length > 256) {
+      return false;
+    }
+    // Docker image name pattern: allows registry, namespace, name, tag, and digest
+    // Rejects shell metacharacters: ; & | $ ` \ " ' ( ) { } < > ! # *
+    const validImagePattern = /^[a-zA-Z0-9][a-zA-Z0-9._\-/:@]*$/;
+    return validImagePattern.test(image);
+  }
+
+  /**
+   * Validate environment variable key.
+   * Must start with letter or underscore, contain only alphanumeric and underscore.
+   */
+  private validateEnvVarKey(key: string): boolean {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key);
+  }
+
+  /**
+   * Filter and validate environment variables, removing invalid keys.
+   */
+  private filterValidEnvVars(envVars: Record<string, string>): Record<string, string> {
+    const filtered: Record<string, string> = {};
+    for (const [key, value] of Object.entries(envVars)) {
+      if (this.validateEnvVarKey(key)) {
+        filtered[key] = value;
+      }
+    }
+    return filtered;
+  }
+
+  // ============================================================
+  // IDeploymentExecutor Interface Implementation
+  // ============================================================
+
+  async runPreFlightChecks(options: PreFlightOptions): Promise<PreFlightResult> {
     const checks: PreFlightCheck[] = [];
 
-    // Check 1: Docker installed
     checks.push(await this.checkDockerInstalled());
-
-    // Check 2: Docker daemon running
     checks.push(await this.checkDockerRunning());
-
-    // Check 3: Dockerfile exists
-    checks.push(await this.checkDockerfileExists(configPath));
-
-    // Check 4: Ports available
-    for (const port of requestedPorts) {
-      checks.push(await this.checkPortAvailable(port));
-    }
-
-    // Check 5: Sufficient disk space
+    checks.push(await this.checkDockerComposeInstalled());
+    checks.push(await this.checkComposeFileExists(options.configPath));
+    checks.push(await this.validateComposeFile(options.configPath));
+    checks.push(
+      await this.checkImagesExist(options.configPath, options.provisionServiceNames || [])
+    );
     checks.push(await this.checkDiskSpace());
 
     const passed = checks.every((c) => c.status !== 'failed');
@@ -185,9 +149,263 @@ export class DockerDeploymentExecutor {
     return { passed, checks };
   }
 
-  /**
-   * Check if Docker is installed
-   */
+  async deploy(options: DeployOptions): Promise<DeployResult> {
+    const { workDir, projectName, envVars, onProgress } = options;
+    this.validateWorkDir(workDir);
+    this.validateProjectName(projectName);
+    let logs = '';
+
+    // Filter out invalid environment variable keys
+    const validEnvVars = envVars ? this.filterValidEnvVars(envVars) : {};
+
+    try {
+      onProgress?.({ type: 'info', message: 'Starting Docker Compose deployment...' });
+
+      if (Object.keys(validEnvVars).length > 0) {
+        const envPath = path.join(workDir, '.env');
+        // Backup existing .env file if it exists
+        if (fs.existsSync(envPath)) {
+          const backupPath = path.join(workDir, `.env.backup.${Date.now()}`);
+          fs.copyFileSync(envPath, backupPath);
+          onProgress?.({ type: 'info', message: 'Existing .env file backed up' });
+        }
+        this.writeEnvFile(validEnvVars, envPath);
+        onProgress?.({ type: 'info', message: 'Environment variables written to .env file' });
+      }
+
+      let cmd = `docker compose -p "${projectName}"`;
+      cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
+      cmd += ' up --build -d';
+
+      onProgress?.({ type: 'info', message: 'Building and starting services...' });
+
+      const { stdout, stderr } = await execAsync(cmd, {
+        cwd: workDir,
+        maxBuffer: 50 * 1024 * 1024,
+        timeout: 30 * 60 * 1000, // 30 minute timeout for builds
+        env: { ...process.env, ...validEnvVars },
+      });
+
+      logs = stdout + (stderr ? `\n${stderr}` : '');
+
+      const services = await this.getComposeServices(workDir, projectName);
+      const serviceUrls = await this.getDeployUrls(workDir, projectName, validEnvVars);
+
+      onProgress?.({ type: 'success', message: `Services started: ${services.join(', ')}` });
+
+      return {
+        success: true,
+        services,
+        logs,
+        deployUrl: serviceUrls[0]?.url,
+        serviceUrls,
+      };
+    } catch (error: any) {
+      const errorOutput = error.stdout || error.stderr || error.message;
+      logs += errorOutput;
+
+      onProgress?.({ type: 'error', message: 'Docker Compose deployment failed' });
+
+      return {
+        success: false,
+        services: [],
+        errorMessage: error.message,
+        logs,
+      };
+    }
+  }
+
+  async start(
+    workDir: string,
+    projectName: string
+  ): Promise<{ success: boolean; errorMessage?: string }> {
+    try {
+      this.validateWorkDir(workDir);
+      this.validateProjectName(projectName);
+      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" start`;
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, errorMessage: error.message };
+    }
+  }
+
+  async stop(
+    workDir: string,
+    projectName: string
+  ): Promise<{ success: boolean; errorMessage?: string }> {
+    try {
+      this.validateWorkDir(workDir);
+      this.validateProjectName(projectName);
+      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" stop`;
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, errorMessage: error.message };
+    }
+  }
+
+  async restart(
+    workDir: string,
+    projectName: string
+  ): Promise<{ success: boolean; errorMessage?: string }> {
+    try {
+      this.validateWorkDir(workDir);
+      this.validateProjectName(projectName);
+      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" restart`;
+      await execAsync(cmd, { cwd: workDir, timeout: 60000 });
+      return { success: true };
+    } catch (error: any) {
+      return { success: false, errorMessage: error.message };
+    }
+  }
+
+  async delete(workDir: string, projectName: string, options?: DeleteOptions): Promise<void> {
+    this.validateWorkDir(workDir);
+    this.validateProjectName(projectName);
+    let cmd = `docker compose -p "${projectName}"`;
+    cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
+    cmd += ' down';
+    if (options?.removeVolumes) cmd += ' -v';
+    if (options?.removeImages) {
+      const rmiValue = options.removeImages === true ? 'all' : options.removeImages;
+      // Validate rmiValue to prevent command injection
+      if (rmiValue !== 'all' && rmiValue !== 'local') {
+        throw new Error('Invalid removeImages option: must be true, "all", or "local"');
+      }
+      cmd += ` --rmi ${rmiValue}`;
+    }
+
+    await execAsync(cmd, { cwd: workDir, timeout: 300000 });
+  }
+
+  async getLogs(workDir: string, projectName: string, options?: LogOptions): Promise<string> {
+    try {
+      this.validateWorkDir(workDir);
+      this.validateProjectName(projectName);
+      let cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" logs`;
+      if (options?.tail) {
+        const tailValue = Math.max(1, Math.floor(Number(options.tail)) || 100);
+        cmd += ` --tail ${tailValue}`;
+      }
+      if (options?.service) cmd += ` ${this.validateServiceName(options.service)}`;
+
+      const { stdout, stderr } = await execAsync(cmd, {
+        cwd: workDir,
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: 30000,
+      });
+
+      return stdout + (stderr || '');
+    } catch (error: any) {
+      return `Error getting logs: ${error.message}`;
+    }
+  }
+
+  async getStatus(
+    workDir: string,
+    projectName: string
+  ): Promise<{
+    running: boolean;
+    services: Array<{ name: string; status: string; ports?: string[] }>;
+  }> {
+    try {
+      this.validateWorkDir(workDir);
+      this.validateProjectName(projectName);
+      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" ps --format json`;
+      const { stdout } = await execAsync(cmd, { cwd: workDir, timeout: 30000 });
+
+      const services: ComposeServiceStatus[] = [];
+
+      const lines = stdout.trim().split('\n').filter(Boolean);
+      for (const line of lines) {
+        try {
+          const data = JSON.parse(line);
+          services.push({
+            name: data.Service || data.Name || 'unknown',
+            status: this.parseComposeStatus(data.State || data.Status),
+            health: data.Health || 'none',
+            ports: data.Publishers?.map((p: any) => `${p.PublishedPort}:${p.TargetPort}`) || [],
+            containerId: data.ID,
+          });
+        } catch {
+          continue;
+        }
+      }
+
+      const running = services.length > 0 && services.some((s) => s.status === 'running');
+
+      return {
+        running,
+        services: services.map((s) => ({
+          name: s.name,
+          status: s.status,
+          ports: s.ports,
+        })),
+      };
+    } catch {
+      return { running: false, services: [] };
+    }
+  }
+
+  async getDeployUrls(
+    workDir: string,
+    projectName: string,
+    envVars?: Record<string, string>
+  ): Promise<Array<{ service: string; url: string }>> {
+    const serviceUrls: { service: string; url: string }[] = [];
+    const foundServices = new Set<string>();
+
+    const status = await this.getStatus(workDir, projectName);
+
+    for (const service of status.services) {
+      if (service.ports && service.ports.length > 0) {
+        for (const portMapping of service.ports) {
+          const hostPort = portMapping.split(':')[0];
+          if (hostPort && hostPort !== '0' && /^\d+$/.test(hostPort)) {
+            serviceUrls.push({
+              service: service.name,
+              url: `http://localhost:${hostPort}`,
+            });
+            foundServices.add(service.name);
+            break;
+          }
+        }
+      }
+    }
+
+    try {
+      const composePath = path.join(workDir, 'docker-compose.yml');
+      const composeContent = fs.readFileSync(composePath, 'utf-8');
+      const composeDoc = yaml.parse(composeContent);
+
+      if (composeDoc.services) {
+        for (const [serviceName, serviceConfig] of Object.entries(composeDoc.services)) {
+          if (foundServices.has(serviceName)) continue;
+
+          const svc = serviceConfig as any;
+          if (svc.ports && Array.isArray(svc.ports) && svc.ports.length > 0) {
+            const hostPort = this.resolvePortConfig(svc.ports[0], envVars);
+            if (hostPort) {
+              serviceUrls.push({
+                service: serviceName,
+                url: `http://localhost:${hostPort}`,
+              });
+            }
+          }
+        }
+      }
+    } catch {
+      // Ignore parsing errors
+    }
+
+    return serviceUrls;
+  }
+
+  // ============================================================
+  // Pre-flight Check Methods
+  // ============================================================
+
   private async checkDockerInstalled(): Promise<PreFlightCheck> {
     try {
       await execAsync('docker --version');
@@ -206,9 +424,6 @@ export class DockerDeploymentExecutor {
     }
   }
 
-  /**
-   * Check if Docker daemon is running
-   */
   private async checkDockerRunning(): Promise<PreFlightCheck> {
     try {
       await this.docker.ping();
@@ -227,108 +442,7 @@ export class DockerDeploymentExecutor {
     }
   }
 
-  /**
-   * Check if Dockerfile exists in config path
-   */
-  private async checkDockerfileExists(configPath: string): Promise<PreFlightCheck> {
-    const dockerfilePath = path.join(configPath, 'Dockerfile');
-
-    if (fs.existsSync(dockerfilePath)) {
-      return {
-        name: 'Dockerfile Exists',
-        status: 'passed',
-        message: 'Dockerfile found in config directory',
-      };
-    }
-
-    return {
-      name: 'Dockerfile Exists',
-      status: 'failed',
-      message: 'Dockerfile not found in config directory',
-      fix: 'Generate a Dockerfile configuration for this project',
-    };
-  }
-
-  /**
-   * Check if a port is available
-   */
-  private async checkPortAvailable(port: number): Promise<PreFlightCheck> {
-    return new Promise((resolve) => {
-      const server = net.createServer();
-
-      server.once('error', (err: NodeJS.ErrnoException) => {
-        if (err.code === 'EADDRINUSE') {
-          resolve({
-            name: `Port ${port} Available`,
-            status: 'failed',
-            message: `Port ${port} is already in use`,
-            fix: `Stop the process using port ${port} or use a different port`,
-          });
-        } else {
-          resolve({
-            name: `Port ${port} Available`,
-            status: 'warning',
-            message: `Could not check port ${port}: ${err.message}`,
-          });
-        }
-      });
-
-      server.once('listening', () => {
-        server.close();
-        resolve({
-          name: `Port ${port} Available`,
-          status: 'passed',
-          message: `Port ${port} is available`,
-        });
-      });
-
-      server.listen(port, '127.0.0.1');
-    });
-  }
-
-  /**
-   * Check available disk space
-   */
-  private async checkDiskSpace(): Promise<PreFlightCheck> {
-    try {
-      const { stdout } = await execAsync("df -h / | tail -1 | awk '{print $5}'");
-      const usagePercent = parseInt(stdout.trim().replace('%', ''), 10);
-
-      if (usagePercent > 95) {
-        return {
-          name: 'Disk Space',
-          status: 'failed',
-          message: `Disk is ${usagePercent}% full`,
-          fix: 'Free up disk space before building Docker images',
-        };
-      }
-
-      if (usagePercent > 85) {
-        return {
-          name: 'Disk Space',
-          status: 'warning',
-          message: `Disk is ${usagePercent}% full - consider freeing space`,
-        };
-      }
-
-      return {
-        name: 'Disk Space',
-        status: 'passed',
-        message: `Disk usage is at ${usagePercent}%`,
-      };
-    } catch {
-      return {
-        name: 'Disk Space',
-        status: 'warning',
-        message: 'Could not check disk space',
-      };
-    }
-  }
-
-  /**
-   * Check if Docker Compose is available (v2 plugin)
-   */
-  async checkDockerComposeInstalled(): Promise<PreFlightCheck> {
+  private async checkDockerComposeInstalled(): Promise<PreFlightCheck> {
     try {
       const { stdout } = await execAsync('docker compose version');
       const versionMatch = stdout.match(/v?(\d+\.\d+\.\d+)/);
@@ -348,10 +462,7 @@ export class DockerDeploymentExecutor {
     }
   }
 
-  /**
-   * Check if docker-compose.yml exists in path
-   */
-  async checkComposeFileExists(workDir: string): Promise<PreFlightCheck> {
+  private async checkComposeFileExists(workDir: string): Promise<PreFlightCheck> {
     const composeFile = path.join(workDir, 'docker-compose.yml');
     const composeYamlFile = path.join(workDir, 'docker-compose.yaml');
 
@@ -371,11 +482,7 @@ export class DockerDeploymentExecutor {
     };
   }
 
-  /**
-   * Validate docker-compose.yml syntax using dclint schema validation
-   * This catches invalid properties like Kubernetes-specific fields
-   */
-  async validateComposeFile(workDir: string): Promise<PreFlightCheck> {
+  private async validateComposeFile(workDir: string): Promise<PreFlightCheck> {
     const composeFile = path.join(workDir, 'docker-compose.yml');
     const composeYamlFile = path.join(workDir, 'docker-compose.yaml');
 
@@ -383,7 +490,7 @@ export class DockerDeploymentExecutor {
       return {
         name: 'Compose Validation',
         status: 'warning',
-        message: 'No compose file to validate (will be caught by file check)',
+        message: 'No compose file to validate',
       };
     }
 
@@ -422,7 +529,6 @@ export class DockerDeploymentExecutor {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
-
       return {
         name: 'Compose Validation',
         status: 'failed',
@@ -432,359 +538,143 @@ export class DockerDeploymentExecutor {
     }
   }
 
-  /**
-   * Parse exposed ports from Dockerfile
-   */
-  async parseDockerfilePorts(dockerfilePath: string): Promise<number[]> {
-    if (!fs.existsSync(dockerfilePath)) {
-      return [];
+  private async checkImagesExist(
+    workDir: string,
+    provisionServiceNames: string[]
+  ): Promise<PreFlightCheck> {
+    const composePath = path.join(workDir, 'docker-compose.yml');
+
+    if (!fs.existsSync(composePath)) {
+      return {
+        name: 'Docker Images',
+        status: 'warning',
+        message: 'No docker-compose.yml to validate images',
+      };
     }
 
-    const content = fs.readFileSync(dockerfilePath, 'utf-8');
-    const ports: number[] = [];
+    try {
+      const composeContent = fs.readFileSync(composePath, 'utf-8');
+      const composeDoc = yaml.parse(composeContent);
 
-    const exposeRegex = /^EXPOSE\s+(\d+(?:\/(?:tcp|udp))?(?:\s+\d+(?:\/(?:tcp|udp))?)*)/gim;
-    let match;
+      const invalidImages: string[] = [];
+      const checkedImages: string[] = [];
 
-    while ((match = exposeRegex.exec(content)) !== null) {
-      const portStr = match[1];
-      const portMatches = portStr.match(/\d+/g);
-      if (portMatches) {
-        for (const port of portMatches) {
-          ports.push(parseInt(port, 10));
+      for (const [serviceName, service] of Object.entries(composeDoc.services || {})) {
+        const svc = service as any;
+
+        if (svc.build) continue;
+
+        if (provisionServiceNames.length > 0 && !provisionServiceNames.includes(serviceName)) {
+          continue;
         }
-      }
-    }
 
-    return [...new Set(ports)];
-  }
-
-  /**
-   * Build a Docker image using Docker CLI
-   *
-   * We use the Docker CLI instead of dockerode's buildImage because:
-   * 1. BuildKit (default in modern Docker) has different output formats
-   * 2. Multi-stage builds don't always report imageId correctly via API
-   * 3. Docker CLI handles tagging reliably
-   */
-  async buildImage(options: DockerBuildOptions): Promise<DockerBuildResult> {
-    const {
-      contextPath,
-      dockerfilePath = 'Dockerfile',
-      imageTag,
-      buildArgs = {},
-      onProgress,
-    } = options;
-
-    let buildLogs = '';
-
-    try {
-      onProgress?.({
-        type: 'status',
-        message: 'Starting Docker build...',
-      });
-
-      // Build the docker build command
-      let cmd = `docker build -t "${imageTag}" -f "${dockerfilePath}"`;
-
-      // Add build args
-      for (const [key, value] of Object.entries(buildArgs)) {
-        cmd += ` --build-arg "${key}=${value}"`;
-      }
-
-      cmd += ` "${contextPath}"`;
-
-      // Execute the build
-      const { stdout, stderr } = await execAsync(cmd, {
-        maxBuffer: 50 * 1024 * 1024, // 50MB buffer for build output
-      });
-
-      buildLogs = stdout + (stderr ? `\n${stderr}` : '');
-
-      // Extract image ID from build output
-      let imageId: string | undefined;
-
-      // Try to find image ID from "Successfully built" message (legacy builder)
-      const legacyMatch = buildLogs.match(/Successfully built ([a-f0-9]+)/);
-      if (legacyMatch) {
-        imageId = legacyMatch[1];
-      }
-
-      // Try to find from "writing image sha256:" (BuildKit)
-      const buildkitMatch = buildLogs.match(/writing image sha256:([a-f0-9]+)/i);
-      if (buildkitMatch) {
-        imageId = buildkitMatch[1].substring(0, 12);
-      }
-
-      // Verify the image exists
-      try {
-        const { stdout: inspectOutput } = await execAsync(
-          `docker inspect "${imageTag}" --format "{{.Id}}"`
-        );
-        imageId = inspectOutput.trim().replace('sha256:', '').substring(0, 12);
-      } catch {
-        // Image inspect failed
-      }
-
-      onProgress?.({
-        type: 'status',
-        message: 'Build completed successfully',
-      });
-
-      return {
-        success: true,
-        imageId,
-        imageTag,
-        buildLogs,
-      };
-    } catch (error: any) {
-      // Extract build logs from error output
-      const errorOutput = error.stdout || error.stderr || error.message;
-      buildLogs += errorOutput;
-
-      onProgress?.({
-        type: 'error',
-        message: 'Build failed',
-      });
-
-      return {
-        success: false,
-        imageTag,
-        buildLogs,
-        errorMessage: error.message,
-      };
-    }
-  }
-
-  /**
-   * Deploy (run) a Docker container
-   */
-  async deploy(options: DockerDeployOptions): Promise<DockerDeployResult> {
-    const { imageTag, containerName, ports, environmentVariables, onProgress } = options;
-
-    try {
-      onProgress?.({
-        type: 'status',
-        message: 'Creating container...',
-      });
-
-      // Build port bindings
-      const portBindings: Docker.PortMap = {};
-      const exposedPorts: Record<string, object> = {};
-
-      for (const mapping of ports) {
-        const containerPort = `${mapping.container}/${mapping.protocol || 'tcp'}`;
-        exposedPorts[containerPort] = {};
-        portBindings[containerPort] = [
-          {
-            HostIp: '0.0.0.0',
-            HostPort: String(mapping.host),
-          },
-        ];
-      }
-
-      // Build environment array
-      const env = Object.entries(environmentVariables).map(([key, value]) => `${key}=${value}`);
-
-      // Create container
-      const container = await this.docker.createContainer({
-        Image: imageTag,
-        name: containerName,
-        ExposedPorts: exposedPorts,
-        Env: env,
-        HostConfig: {
-          PortBindings: portBindings,
-          RestartPolicy: {
-            Name: 'unless-stopped',
-          },
-        },
-      });
-
-      onProgress?.({
-        type: 'status',
-        message: 'Starting container...',
-      });
-
-      // Start container
-      await container.start();
-
-      const containerId = container.id;
-
-      // Determine deploy URL (first port mapping)
-      let deployUrl: string | undefined;
-      if (ports.length > 0) {
-        deployUrl = `http://localhost:${ports[0].host}`;
-      }
-
-      onProgress?.({
-        type: 'info',
-        message: `Container started: ${containerId.substring(0, 12)}`,
-      });
-
-      return {
-        success: true,
-        containerId,
-        deployUrl,
-        ports,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        ports,
-        errorMessage: error.message,
-      };
-    }
-  }
-
-  /**
-   * Start a stopped container
-   */
-  async start(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.start();
-  }
-
-  /**
-   * Stop a running container
-   */
-  async stop(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.stop();
-  }
-
-  /**
-   * Restart a container
-   */
-  async restart(containerId: string): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.restart();
-  }
-
-  /**
-   * Remove a container (optionally force)
-   */
-  async remove(containerId: string, force = false): Promise<void> {
-    const container = this.docker.getContainer(containerId);
-    await container.remove({ force });
-  }
-
-  /**
-   * Remove a Docker image
-   */
-  async removeImage(imageTag: string, force = false): Promise<void> {
-    const image = this.docker.getImage(imageTag);
-    await image.remove({ force });
-  }
-
-  /**
-   * Get container logs
-   */
-  async getLogs(
-    containerId: string,
-    options: { tail?: number; since?: number } = {}
-  ): Promise<string> {
-    const container = this.docker.getContainer(containerId);
-
-    const logs = await container.logs({
-      stdout: true,
-      stderr: true,
-      tail: options.tail ?? 100,
-      since: options.since ?? 0,
-      timestamps: true,
-    });
-
-    if (Buffer.isBuffer(logs)) {
-      return this.demuxDockerLogs(logs);
-    }
-
-    // Handle string or stream
-    if (typeof logs === 'string') {
-      return logs;
-    }
-
-    return '';
-  }
-
-  /**
-   * Demux Docker log stream (remove stream headers)
-   */
-  private demuxDockerLogs(buffer: Buffer): string {
-    const lines: string[] = [];
-    let offset = 0;
-
-    while (offset < buffer.length) {
-      if (offset + 8 > buffer.length) break;
-
-      const size = buffer.readUInt32BE(offset + 4);
-      offset += 8;
-
-      if (offset + size > buffer.length) break;
-
-      const line = buffer.slice(offset, offset + size).toString('utf-8');
-      lines.push(line);
-      offset += size;
-    }
-
-    return lines.join('');
-  }
-
-  /**
-   * Get container status
-   */
-  async getStatus(containerId: string): Promise<ContainerStatus | null> {
-    try {
-      const container = this.docker.getContainer(containerId);
-      const info = await container.inspect();
-
-      const running = info.State.Running;
-      let status: DeploymentStatus;
-
-      if (running) {
-        status = 'running';
-      } else if (info.State.ExitCode === 0) {
-        status = 'stopped';
-      } else {
-        status = 'failed';
-      }
-
-      // Parse port mappings
-      const ports: PortMapping[] = [];
-      const portBindings = info.HostConfig.PortBindings || {};
-
-      for (const [containerPort, bindings] of Object.entries(portBindings)) {
-        const bindingsArray = bindings as Array<{ HostIp: string; HostPort: string }> | undefined;
-        if (bindingsArray && bindingsArray.length > 0) {
-          const [portNum] = containerPort.split('/');
-          const protocol = containerPort.includes('/udp') ? 'udp' : 'tcp';
-
-          ports.push({
-            host: parseInt(bindingsArray[0].HostPort, 10),
-            container: parseInt(portNum, 10),
-            protocol: protocol as 'tcp' | 'udp',
-          });
+        if (svc.image) {
+          const imageExists = await this.checkImageExists(svc.image);
+          if (!imageExists) {
+            invalidImages.push(`${serviceName}: ${svc.image}`);
+          } else {
+            checkedImages.push(svc.image);
+          }
         }
       }
 
+      if (invalidImages.length > 0) {
+        return {
+          name: 'Docker Images',
+          status: 'failed',
+          message: `Invalid images found: ${invalidImages.join(', ')}`,
+          fix: 'Update the image tags in your docker-compose.yml or edit in the Files tab',
+          details: { invalidImages },
+        };
+      }
+
+      if (checkedImages.length === 0) {
+        return {
+          name: 'Docker Images',
+          status: 'passed',
+          message: 'No external images to validate (all services use build)',
+        };
+      }
+
       return {
-        status,
-        containerId,
-        running,
-        ports,
-        startedAt: info.State.StartedAt,
-        exitCode: info.State.ExitCode,
+        name: 'Docker Images',
+        status: 'passed',
+        message: `All ${checkedImages.length} Docker image(s) are valid`,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      return {
+        name: 'Docker Images',
+        status: 'warning',
+        message: `Could not validate images: ${errorMessage}`,
+      };
+    }
+  }
+
+  private async checkImageExists(image: string): Promise<boolean> {
+    if (!this.validateImageName(image)) {
+      return false;
+    }
+    try {
+      await execAsync(`docker manifest inspect "${image}"`, { timeout: 15000 });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private async checkDiskSpace(): Promise<PreFlightCheck> {
+    // Skip disk space check on Windows (df command not available)
+    if (process.platform === 'win32') {
+      return {
+        name: 'Disk Space',
+        status: 'passed',
+        message: 'Disk space check skipped on Windows',
+      };
+    }
+
+    try {
+      const { stdout } = await execAsync("df -h / | tail -1 | awk '{print $5}'", { timeout: 5000 });
+      const usagePercent = parseInt(stdout.trim().replace('%', ''), 10);
+
+      if (usagePercent > 95) {
+        return {
+          name: 'Disk Space',
+          status: 'failed',
+          message: `Disk is ${usagePercent}% full`,
+          fix: 'Free up disk space before building Docker images',
+        };
+      }
+
+      if (usagePercent > 85) {
+        return {
+          name: 'Disk Space',
+          status: 'warning',
+          message: `Disk is ${usagePercent}% full - consider freeing space`,
+        };
+      }
+
+      return {
+        name: 'Disk Space',
+        status: 'passed',
+        message: `Disk usage is at ${usagePercent}%`,
       };
     } catch {
-      return null;
+      return {
+        name: 'Disk Space',
+        status: 'warning',
+        message: 'Could not check disk space',
+      };
     }
   }
 
-  /**
-   * Write environment variables to a .env file
-   */
-  writeEnvFile(envVars: Record<string, string>, outputPath: string): void {
+  // ============================================================
+  // Helper Methods
+  // ============================================================
+
+  private writeEnvFile(envVars: Record<string, string>, outputPath: string): void {
     const content = Object.entries(envVars)
       .map(([key, value]) => {
-        // Escape special characters in value
         const escapedValue =
           value.includes(' ') || value.includes('"') ? `"${value.replace(/"/g, '\\"')}"` : value;
         return `${key}=${escapedValue}`;
@@ -794,184 +684,16 @@ export class DockerDeploymentExecutor {
     fs.writeFileSync(outputPath, content, 'utf-8');
   }
 
-  /**
-   * List all containers (optionally filter by label)
-   */
-  async listContainers(filters?: { label?: string[] }): Promise<Docker.ContainerInfo[]> {
-    const options: Docker.ContainerListOptions = {
-      all: true,
-    };
-
-    if (filters?.label && filters.label.length > 0) {
-      options.filters = { label: filters.label };
-    }
-
-    return await this.docker.listContainers(options);
-  }
-
-  /**
-   * Run pre-flight checks for Docker Compose deployment
-   */
-  async runComposePreFlightChecks(workDir: string): Promise<PreFlightResult> {
-    const checks: PreFlightCheck[] = [];
-
-    checks.push(await this.checkDockerInstalled());
-    checks.push(await this.checkDockerRunning());
-    checks.push(await this.checkDockerComposeInstalled());
-    checks.push(await this.checkComposeFileExists(workDir));
-    checks.push(await this.validateComposeFile(workDir));
-    checks.push(await this.checkDiskSpace());
-
-    const passed = checks.every((c) => c.status !== 'failed');
-
-    return { passed, checks };
-  }
-
-  /**
-   * Start services with Docker Compose
-   */
-  async composeUp(options: ComposeUpOptions): Promise<ComposeUpResult> {
-    const { workDir, projectName, envVars = {}, build = true, detach = true, onProgress } = options;
-
-    let logs = '';
-
+  private async getComposeServices(workDir: string, projectName: string): Promise<string[]> {
     try {
-      onProgress?.({
-        type: 'status',
-        message: 'Starting Docker Compose deployment...',
-      });
-
-      if (envVars && Object.keys(envVars).length > 0) {
-        const envPath = path.join(workDir, '.env');
-        this.writeEnvFile(envVars, envPath);
-        onProgress?.({
-          type: 'info',
-          message: 'Environment variables written to .env file',
-        });
-      }
-
-      let cmd = `docker compose -p "${projectName}"`;
-      cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
-      cmd += ' up';
-      if (build) cmd += ' --build';
-      if (detach) cmd += ' -d';
-
-      onProgress?.({
-        type: 'status',
-        message: 'Building and starting services...',
-      });
-
-      const { stdout, stderr } = await execAsync(cmd, {
-        cwd: workDir,
-        maxBuffer: 50 * 1024 * 1024,
-        env: { ...process.env, ...envVars },
-      });
-
-      logs = stdout + (stderr ? `\n${stderr}` : '');
-
-      const services = await this.getComposeServices(workDir, projectName);
-
-      onProgress?.({
-        type: 'status',
-        message: `Services started: ${services.join(', ')}`,
-      });
-
-      return {
-        success: true,
-        projectName,
-        services,
-        logs,
-      };
-    } catch (error: any) {
-      const errorOutput = error.stdout || error.stderr || error.message;
-      logs += errorOutput;
-
-      onProgress?.({
-        type: 'error',
-        message: 'Docker Compose deployment failed',
-      });
-
-      return {
-        success: false,
-        projectName,
-        services: [],
-        errorMessage: error.message,
-        logs,
-      };
-    }
-  }
-
-  /**
-   * Stop and remove Docker Compose services
-   */
-  async composeDown(
-    workDir: string,
-    projectName: string,
-    options: { removeVolumes?: boolean; removeImages?: 'all' | 'local' } = {}
-  ): Promise<{ success: boolean; errorMessage?: string }> {
-    try {
-      let cmd = `docker compose -p "${projectName}"`;
-      cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
-      cmd += ' down';
-      if (options.removeVolumes) cmd += ' -v';
-      if (options.removeImages) cmd += ` --rmi ${options.removeImages}`;
-
-      await execAsync(cmd, { cwd: workDir });
-
-      return { success: true };
-    } catch (error: any) {
-      return {
-        success: false,
-        errorMessage: error.message,
-      };
-    }
-  }
-
-  /**
-   * Get Docker Compose project status
-   */
-  async composePs(workDir: string, projectName: string): Promise<ComposeProjectStatus> {
-    try {
-      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" ps --format json`;
-      const { stdout } = await execAsync(cmd, { cwd: workDir });
-
-      const services: ComposeServiceStatus[] = [];
-
-      const lines = stdout.trim().split('\n').filter(Boolean);
-      for (const line of lines) {
-        try {
-          const data = JSON.parse(line);
-          services.push({
-            name: data.Service || data.Name || 'unknown',
-            status: this.parseComposeStatus(data.State || data.Status),
-            health: data.Health || 'none',
-            ports: data.Publishers?.map((p: any) => `${p.PublishedPort}:${p.TargetPort}`) || [],
-            containerId: data.ID,
-          });
-        } catch {
-          continue;
-        }
-      }
-
-      const running = services.length > 0 && services.some((s) => s.status === 'running');
-
-      return {
-        projectName,
-        services,
-        running,
-      };
+      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" config --services`;
+      const { stdout } = await execAsync(cmd, { cwd: workDir, timeout: 30000 });
+      return stdout.trim().split('\n').filter(Boolean);
     } catch {
-      return {
-        projectName,
-        services: [],
-        running: false,
-      };
+      return [];
     }
   }
 
-  /**
-   * Parse compose container status string
-   */
   private parseComposeStatus(status: string): ComposeServiceStatus['status'] {
     const lower = status.toLowerCase();
     if (lower.includes('running') || lower.includes('up')) return 'running';
@@ -983,106 +705,34 @@ export class DockerDeploymentExecutor {
     return 'unknown';
   }
 
-  /**
-   * Get logs from Docker Compose services
-   */
-  async composeLogs(
-    workDir: string,
-    projectName: string,
-    options: { tail?: number; since?: string; service?: string } = {}
-  ): Promise<string> {
-    try {
-      let cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" logs`;
-      if (options.tail) cmd += ` --tail ${options.tail}`;
-      if (options.since) cmd += ` --since ${options.since}`;
-      if (options.service) cmd += ` ${options.service}`;
+  private resolvePortConfig(
+    portConfig: string | { target?: number; published?: number },
+    envVars?: Record<string, string>
+  ): string | undefined {
+    if (typeof portConfig === 'string') {
+      const parts = portConfig.split(':');
+      let hostPort: string | undefined;
 
-      const { stdout, stderr } = await execAsync(cmd, {
-        cwd: workDir,
-        maxBuffer: 10 * 1024 * 1024,
-      });
+      if (parts.length === 2) {
+        hostPort = parts[0];
+      } else if (parts.length === 3) {
+        hostPort = parts[1];
+      }
 
-      return stdout + (stderr || '');
-    } catch (error: any) {
-      return `Error getting logs: ${error.message}`;
-    }
-  }
-
-  /**
-   * Start stopped Docker Compose services
-   */
-  async composeStart(
-    workDir: string,
-    projectName: string
-  ): Promise<{ success: boolean; errorMessage?: string }> {
-    try {
-      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" start`;
-      await execAsync(cmd, { cwd: workDir });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, errorMessage: error.message };
-    }
-  }
-
-  /**
-   * Stop Docker Compose services (without removing)
-   */
-  async composeStop(
-    workDir: string,
-    projectName: string
-  ): Promise<{ success: boolean; errorMessage?: string }> {
-    try {
-      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" stop`;
-      await execAsync(cmd, { cwd: workDir });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, errorMessage: error.message };
-    }
-  }
-
-  /**
-   * Restart Docker Compose services
-   */
-  async composeRestart(
-    workDir: string,
-    projectName: string
-  ): Promise<{ success: boolean; errorMessage?: string }> {
-    try {
-      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" restart`;
-      await execAsync(cmd, { cwd: workDir });
-      return { success: true };
-    } catch (error: any) {
-      return { success: false, errorMessage: error.message };
-    }
-  }
-
-  /**
-   * Get list of services defined in compose file
-   */
-  private async getComposeServices(workDir: string, projectName: string): Promise<string[]> {
-    try {
-      const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" config --services`;
-      const { stdout } = await execAsync(cmd, { cwd: workDir });
-      return stdout.trim().split('\n').filter(Boolean);
-    } catch {
-      return [];
-    }
-  }
-
-  /**
-   * Get the URL to access the first exposed service
-   */
-  async getComposeDeployUrl(workDir: string, projectName: string): Promise<string | undefined> {
-    const status = await this.composePs(workDir, projectName);
-
-    for (const service of status.services) {
-      if (service.ports.length > 0) {
-        const firstPort = service.ports[0];
-        const hostPort = firstPort.split(':')[0];
-        if (hostPort && hostPort !== '0') {
-          return `http://localhost:${hostPort}`;
+      if (hostPort) {
+        const envVarMatch = hostPort.match(/\$\{(\w+)(?::-(\d+))?\}/);
+        if (envVarMatch) {
+          const varName = envVarMatch[1];
+          const defaultValue = envVarMatch[2];
+          hostPort = envVars?.[varName] || defaultValue || '3000';
         }
       }
+
+      if (hostPort && /^\d+$/.test(hostPort)) {
+        return hostPort;
+      }
+    } else if (typeof portConfig === 'object' && portConfig.published) {
+      return String(portConfig.published);
     }
 
     return undefined;

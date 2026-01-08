@@ -47,6 +47,14 @@ export interface PortMapping {
 }
 
 /**
+ * Service URL for multi-service deployments
+ */
+export interface ServiceUrl {
+  service: string;
+  url: string;
+}
+
+/**
  * Pre-flight check result
  */
 export interface PreFlightCheck {
@@ -54,7 +62,7 @@ export interface PreFlightCheck {
   status: 'passed' | 'failed' | 'warning' | 'pending';
   message: string;
   fix?: string;
-  timestamp?: Date;
+  details?: unknown;
 }
 
 /**
@@ -65,7 +73,7 @@ export interface SerializedPreFlightCheck {
   status: 'passed' | 'failed' | 'warning' | 'pending';
   message: string;
   fix?: string;
-  timestamp?: string;
+  details?: unknown;
 }
 
 /**
@@ -87,6 +95,7 @@ export interface Deployment {
   ports?: PortMapping[] | null;
   exposedPorts?: number[] | null;
   deployUrl?: string | null;
+  serviceUrls?: ServiceUrl[] | null;
   previewUrl?: string | null;
   buildLogs?: string | null;
   runtimeLogs?: string | null;
@@ -140,27 +149,6 @@ export interface SerializedDeploymentActivityLog {
 }
 
 /**
- * Config-Integration link (for linking saved integrations to configs)
- */
-export interface ConfigIntegration {
-  id: string;
-  configSetId: string;
-  integrationId: string;
-  overrides?: Record<string, string> | null;
-  orderIndex: number;
-  createdAt: Date;
-  updatedAt: Date;
-}
-
-/**
- * Serialized Config-Integration link
- */
-export type SerializedConfigIntegration = Omit<ConfigIntegration, 'createdAt' | 'updatedAt'> & {
-  createdAt: string;
-  updatedAt: string;
-};
-
-/**
  * Input schema for creating deployments
  */
 export const CreateDeploymentSchema = z.object({
@@ -188,17 +176,6 @@ export const CreateDeploymentSchema = z.object({
   notes: z.string().optional(),
 });
 export type CreateDeploymentInput = z.infer<typeof CreateDeploymentSchema>;
-
-/**
- * Input schema for linking integration to config
- */
-export const LinkConfigIntegrationSchema = z.object({
-  configSetId: z.string().min(1),
-  integrationId: z.string().min(1),
-  overrides: z.record(z.string()).optional(),
-  orderIndex: z.number().int().default(0),
-});
-export type LinkConfigIntegrationInput = z.infer<typeof LinkConfigIntegrationSchema>;
 
 /**
  * Deployment platform configuration

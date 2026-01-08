@@ -1,21 +1,21 @@
 import { z } from 'zod';
 
 /**
- * Integration Vault Types
+ * Secret Manager Types
  *
- * These types are for the user-managed integration credentials vault,
- * separate from the AI-detected integrations during project analysis.
+ * These types are for the user-managed secrets vault (renamed from Integration Vault).
+ * Secrets are grouped credential sets that can be referenced by deployment configs.
  */
 
 // Field for dynamic key-value credentials
-export const IntegrationFieldSchema = z.object({
+export const SecretFieldSchema = z.object({
   key: z.string().min(1, 'Field key is required'),
   value: z.string().min(1, 'Field value is required'),
 });
-export type IntegrationField = z.infer<typeof IntegrationFieldSchema>;
+export type SecretField = z.infer<typeof SecretFieldSchema>;
 
-// Service types
-export type IntegrationServiceType =
+// Service types for categorization
+export type SecretServiceType =
   | 'DATABASE'
   | 'EMAIL'
   | 'PAYMENT'
@@ -24,8 +24,8 @@ export type IntegrationServiceType =
   | 'API'
   | 'OTHER';
 
-// Base integration vault entry (backend/database version with Date objects)
-export interface IntegrationVaultEntry {
+// Base secret entry (backend/database version with Date objects)
+export interface Secret {
   id: string;
   userId: string;
   name: string;
@@ -45,7 +45,7 @@ export interface IntegrationVaultEntry {
 }
 
 // Serialized version for API responses (dates as strings)
-export interface SerializedIntegrationVaultEntry {
+export interface SerializedSecret {
   id: string;
   userId: string;
   name: string;
@@ -65,37 +65,37 @@ export interface SerializedIntegrationVaultEntry {
 }
 
 // Input schemas for API operations
-export const CreateIntegrationVaultEntrySchema = z.object({
-  name: z.string().min(1, 'Integration name is required'),
+export const CreateSecretSchema = z.object({
+  name: z.string().min(1, 'Secret name is required'),
   service: z.string().min(1, 'Service type is required'),
-  fields: z.array(IntegrationFieldSchema).min(1, 'At least one field is required'),
+  fields: z.array(SecretFieldSchema).min(1, 'At least one field is required'),
   autoInjected: z.boolean().optional().default(true),
   projectId: z.string().optional(),
 });
-export type CreateIntegrationVaultEntryInput = z.infer<typeof CreateIntegrationVaultEntrySchema>;
+export type CreateSecretInput = z.infer<typeof CreateSecretSchema>;
 
-export const UpdateIntegrationVaultEntrySchema = z.object({
+export const UpdateSecretSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).optional(),
-  fields: z.array(IntegrationFieldSchema).optional(),
+  fields: z.array(SecretFieldSchema).optional(),
   autoInjected: z.boolean().optional(),
 });
-export type UpdateIntegrationVaultEntryInput = z.infer<typeof UpdateIntegrationVaultEntrySchema>;
+export type UpdateSecretInput = z.infer<typeof UpdateSecretSchema>;
 
 // For internal service use
-export interface CreateIntegrationServiceInput {
+export interface CreateSecretServiceInput {
   userId: string;
   name: string;
   service: string;
   serviceType: string;
   credentialType: string;
-  credentials: Record<string, any>;
+  credentials: Record<string, string>;
   autoInjected?: boolean;
   projectId?: string;
 }
 
-export interface UpdateIntegrationServiceInput {
+export interface UpdateSecretServiceInput {
   name?: string;
-  credentials?: Record<string, any>;
+  credentials?: Record<string, string>;
   autoInjected?: boolean;
 }

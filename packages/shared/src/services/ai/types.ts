@@ -231,6 +231,7 @@ export interface IntegrationDetection {
     | 'multiple'; // Type of credentials needed
   requiresSignup: boolean; // Does user need to create an account with this service?
   optional: boolean; // Is this integration optional for the app to function?
+  composeServiceName?: string; // Exact service name in docker-compose.yml (set during config generation)
 }
 
 /**
@@ -347,6 +348,7 @@ export interface DeploymentConfigResult {
       requiredKeys: string[];
       optional: boolean;
       detectedFrom: string;
+      composeServiceName?: string; // Exact service name in docker-compose.yml
     }>;
     databases?: string[];
     caches?: string[];

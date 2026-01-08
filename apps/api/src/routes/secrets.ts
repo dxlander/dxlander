@@ -1,15 +1,15 @@
 import { z } from 'zod';
 import { router, protectedProcedure, IdSchema } from '@dxlander/shared';
-import { IntegrationService } from '../services/integration.service';
+import { SecretService } from '../services/secret.service';
 import { db, schema } from '@dxlander/database';
 import { randomUUID } from 'crypto';
 
-const integrationService = new IntegrationService();
+const secretService = new SecretService();
 
 // Validation schemas
-const CreateIntegrationSchema = z.object({
-  name: z.string().min(1, 'Integration name is required'),
-  service: z.string().min(1, 'Service type is required'), // e.g., "SUPABASE", "STRIPE", "CUSTOM_API"
+const CreateSecretSchema = z.object({
+  name: z.string().min(1, 'Secret name is required'),
+  service: z.string().min(1, 'Service type is required'),
   fields: z
     .array(
       z.object({
@@ -19,10 +19,10 @@ const CreateIntegrationSchema = z.object({
     )
     .min(1, 'At least one field is required'),
   autoInjected: z.boolean().optional().default(true),
-  projectId: z.string().optional(), // Optional: if adding from project detection
+  projectId: z.string().optional(),
 });
 
-const UpdateIntegrationSchema = z.object({
+const UpdateSecretSchema = z.object({
   id: z.string().min(1),
   name: z.string().min(1).optional(),
   fields: z
@@ -36,9 +36,9 @@ const UpdateIntegrationSchema = z.object({
   autoInjected: z.boolean().optional(),
 });
 
-export const integrationsRouter = router({
+export const secretsRouter = router({
   /**
-   * Get all saved integrations for the current user
+   * Get all saved secrets for the current user
    */
   list: protectedProcedure.query(async ({ ctx }) => {
     const { userId } = ctx;
@@ -46,12 +46,12 @@ export const integrationsRouter = router({
       throw new Error('User not authenticated');
     }
 
-    const integrations = await integrationService.getIntegrationsByUserId(userId);
-    return integrations;
+    const secrets = await secretService.getSecretsByUserId(userId);
+    return secrets;
   }),
 
   /**
-   * Get a specific integration
+   * Get a specific secret (metadata only, no credentials)
    */
   get: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
     const { userId } = ctx;
@@ -59,16 +59,33 @@ export const integrationsRouter = router({
       throw new Error('User not authenticated');
     }
 
-    const integration = await integrationService.getIntegrationById(input.id, userId);
-    if (!integration) {
-      throw new Error('Integration not found');
+    const secret = await secretService.getSecretById(input.id, userId);
+    if (!secret) {
+      throw new Error('Secret not found');
     }
 
-    return integration;
+    return secret;
   }),
 
   /**
-   * Get decrypted fields for an integration
+   * Get just the key names from a secret (for UI loading without exposing values)
+   */
+  getKeys: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
+    const { userId } = ctx;
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    const keys = await secretService.getSecretKeys(input.id, userId);
+    if (!keys) {
+      throw new Error('Secret not found or failed to decrypt');
+    }
+
+    return keys;
+  }),
+
+  /**
+   * Get decrypted fields for a secret (for editing)
    */
   getFields: protectedProcedure.input(IdSchema).query(async ({ input, ctx }) => {
     const { userId } = ctx;
@@ -76,9 +93,9 @@ export const integrationsRouter = router({
       throw new Error('User not authenticated');
     }
 
-    const credentials = await integrationService.getDecryptedCredentials(input.id, userId);
+    const credentials = await secretService.getDecryptedCredentials(input.id, userId);
     if (!credentials) {
-      throw new Error('Integration not found or failed to decrypt');
+      throw new Error('Secret not found or failed to decrypt');
     }
 
     // Convert credentials object to fields array
@@ -91,9 +108,9 @@ export const integrationsRouter = router({
   }),
 
   /**
-   * Create a new integration with dynamic fields
+   * Create a new secret with dynamic fields
    */
-  create: protectedProcedure.input(CreateIntegrationSchema).mutation(async ({ input, ctx }) => {
+  create: protectedProcedure.input(CreateSecretSchema).mutation(async ({ input, ctx }) => {
     const { userId } = ctx;
     if (!userId) {
       throw new Error('User not authenticated');
@@ -109,12 +126,12 @@ export const integrationsRouter = router({
       // Map service type from dropdown to serviceType field
       const serviceType = input.service.toLowerCase();
 
-      const integration = await integrationService.createIntegration({
+      const secret = await secretService.createSecret({
         userId,
         name: input.name,
-        service: input.service, // Keep original case for display (DATABASE, EMAIL, etc.)
-        serviceType, // Lowercase for filtering (database, email, etc.)
-        credentialType: 'key_value', // All dynamic integrations use key-value pairs
+        service: input.service,
+        serviceType,
+        credentialType: 'key_value',
         credentials,
         autoInjected: input.autoInjected,
         projectId: input.projectId,
@@ -124,25 +141,25 @@ export const integrationsRouter = router({
       await db.insert(schema.auditLogs).values({
         id: randomUUID(),
         userId,
-        action: 'integration_created',
-        resourceType: 'integration',
-        resourceId: integration.id,
+        action: 'secret_created',
+        resourceType: 'secret',
+        resourceId: secret.id,
         metadata: JSON.stringify({ service: input.service, fieldCount: input.fields.length }),
         status: 'success',
         createdAt: new Date(),
       });
 
-      return integration;
+      return secret;
     } catch (error) {
-      console.error('Failed to create integration:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to create integration');
+      console.error('Failed to create secret:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to create secret');
     }
   }),
 
   /**
-   * Update an existing integration
+   * Update an existing secret
    */
-  update: protectedProcedure.input(UpdateIntegrationSchema).mutation(async ({ input, ctx }) => {
+  update: protectedProcedure.input(UpdateSecretSchema).mutation(async ({ input, ctx }) => {
     const { userId } = ctx;
     if (!userId) {
       throw new Error('User not authenticated');
@@ -158,7 +175,7 @@ export const integrationsRouter = router({
         }
       }
 
-      const integration = await integrationService.updateIntegration(input.id, userId, {
+      const secret = await secretService.updateSecret(input.id, userId, {
         name: input.name,
         credentials,
         autoInjected: input.autoInjected,
@@ -168,26 +185,26 @@ export const integrationsRouter = router({
       await db.insert(schema.auditLogs).values({
         id: randomUUID(),
         userId,
-        action: 'integration_updated',
-        resourceType: 'integration',
-        resourceId: integration.id,
+        action: 'secret_updated',
+        resourceType: 'secret',
+        resourceId: secret.id,
         metadata: JSON.stringify({
-          service: integration.service,
+          service: secret.service,
           fieldsUpdated: input.fields ? input.fields.length : 0,
         }),
         status: 'success',
         createdAt: new Date(),
       });
 
-      return integration;
+      return secret;
     } catch (error) {
-      console.error('Failed to update integration:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to update integration');
+      console.error('Failed to update secret:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to update secret');
     }
   }),
 
   /**
-   * Delete an integration
+   * Delete a secret
    */
   delete: protectedProcedure.input(IdSchema).mutation(async ({ input, ctx }) => {
     const { userId } = ctx;
@@ -196,38 +213,38 @@ export const integrationsRouter = router({
     }
 
     try {
-      // Get integration before deleting (for audit log)
-      const integration = await integrationService.getIntegrationById(input.id, userId);
-      if (!integration) {
-        throw new Error('Integration not found');
+      // Get secret before deleting (for audit log)
+      const secret = await secretService.getSecretById(input.id, userId);
+      if (!secret) {
+        throw new Error('Secret not found');
       }
 
-      await integrationService.deleteIntegration(input.id, userId);
+      await secretService.deleteSecret(input.id, userId);
 
       // Log audit event
       await db.insert(schema.auditLogs).values({
         id: randomUUID(),
         userId,
-        action: 'integration_deleted',
-        resourceType: 'integration',
+        action: 'secret_deleted',
+        resourceType: 'secret',
         resourceId: input.id,
-        metadata: JSON.stringify({ service: integration.service }),
+        metadata: JSON.stringify({ service: secret.service }),
         status: 'success',
         createdAt: new Date(),
       });
 
       return {
         success: true,
-        deletedIntegration: integration,
+        deletedSecret: secret,
       };
     } catch (error) {
-      console.error('Failed to delete integration:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to delete integration');
+      console.error('Failed to delete secret:', error);
+      throw new Error(error instanceof Error ? error.message : 'Failed to delete secret');
     }
   }),
 
   /**
-   * Get integrations by service name
+   * Get secrets by service name
    */
   listByService: protectedProcedure
     .input(z.object({ service: z.string() }))
@@ -237,7 +254,7 @@ export const integrationsRouter = router({
         throw new Error('User not authenticated');
       }
 
-      const integrations = await integrationService.getIntegrationsByService(userId, input.service);
-      return integrations;
+      const secrets = await secretService.getSecretsByService(userId, input.service);
+      return secrets;
     }),
 });

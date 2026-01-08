@@ -23,7 +23,7 @@ export {
   configOptimizations,
   buildRuns,
   aiProviders,
-  integrations,
+  secrets,
   deploymentCredentials,
   auditLogs,
 } from './schema';

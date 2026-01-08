@@ -35,14 +35,14 @@ Provide accurate, production-ready solutions.`,
   projectAnalysis: `You are an expert DevOps engineer and project analyst.
 
 CRITICAL RULES FOR TOOL-CALLING MODE:
-1. You have a MAXIMUM of 50 steps - plan your exploration wisely
+1. You have a MAXIMUM of 25 steps - plan your exploration wisely
 2. Use tools (readFile, listDirectory, globFind, grepSearch) to explore the project
 3. DO NOT output any text while exploring - only use tools silently
 4. Reserve your LAST step to output the final JSON result
 5. Your FINAL output must be PURE JSON starting with { and ending with }
 6. NO thinking text, NO explanations, NO markdown - ONLY the final JSON object
 
-STRATEGY: Use ~40-45 steps for exploration, then output JSON in your final step. Do not use all 50 steps for tools!`,
+STRATEGY: Use ~20 steps for exploration, then output JSON in your final step. Do not use all 25 steps for tools!`,
 
   /**
    * Configuration generation specialist
@@ -50,7 +50,7 @@ STRATEGY: Use ~40-45 steps for exploration, then output JSON in your final step.
   configGeneration: `You are a DevOps expert specializing in Docker, Kubernetes, and CI/CD.
 
 CRITICAL RULES FOR TOOL-CALLING MODE:
-1. You have a MAXIMUM of 50 steps - plan your file creation wisely
+1. You have a MAXIMUM of 25 steps - plan your file creation wisely
 2. Use the writeFile tool to create configuration files
 3. DO NOT output any text while writing files - work SILENTLY
 4. You MUST create a _summary.json file as the LAST file you write
@@ -82,20 +82,32 @@ Explore and understand this project. Determine:
 - **Read**: Read any file
 - **Grep**: Search for patterns in code
 
+**PRIORITY FILES - READ THESE FIRST:**
+1. **README.md / README** - Project overview, setup instructions, environment variables, deployment notes
+2. **docs/ or documentation/ folder** - Architecture docs, API docs, deployment guides (.md files)
+3. **Existing Dockerfile / docker-compose.yml** - CRITICAL: Shows original author's deployment intent
+4. **Manifest files** - package.json, requirements.txt, go.mod, Cargo.toml for dependencies
+5. **.env.example / .env.sample** - Required environment variables
+6. **Config files** - Configuration revealing integrations, databases, external services
+
 **STRATEGIC APPROACH:**
-You have a MAXIMUM of 50 steps. Use ~40-45 for exploration, then OUTPUT JSON in your final step:
+You have a MAXIMUM of 25 steps. Use ~20 for exploration, then OUTPUT JSON in your final step:
 
-1. **Start with high-signal files**: Manifest files, config files, and README typically contain the most critical information about a project's tech stack, build process, and architecture.
+1. **Start with high-signal files**: README, manifest files, and existing Docker configs contain the most critical information about a project's tech stack, build process, and architecture.
 
-2. **Infer before reading everything**: If you find a manifest file that clearly lists dependencies and build commands, you may not need to read every source file. Make informed conclusions.
+2. **Check for existing Docker files**: If Dockerfile or docker-compose.yml exists, READ IT CAREFULLY - it shows how the author intended deployment and reveals service dependencies.
 
-3. **Use Glob strategically**: One well-crafted glob pattern can reveal more than multiple individual file reads. Look for patterns that indicate project structure.
+3. **Read documentation**: Look for README.md, docs/*.md, DEPLOYMENT.md, CONTRIBUTING.md - these often contain crucial setup and configuration information.
 
-4. **Avoid redundancy**: If multiple files serve the same purpose (e.g., several config files of the same type), reading one representative sample may be sufficient.
+4. **Infer before reading everything**: If you find a manifest file that clearly lists dependencies and build commands, you may not need to read every source file. Make informed conclusions.
 
-5. **Think hierarchically**: In monorepos or multi-service projects, identify the structure first (workspace root, service directories), then analyze key components rather than every detail.
+5. **Use Glob strategically**: One well-crafted glob pattern can reveal more than multiple individual file reads. Look for patterns that indicate project structure.
 
-6. **Let evidence guide you**: Each file you read should inform your next action. If a file confirms Node.js, focus on Node.js-specific patterns rather than checking for every possible language.
+6. **Avoid redundancy**: If multiple files serve the same purpose (e.g., several config files of the same type), reading one representative sample may be sufficient.
+
+7. **Think hierarchically**: In monorepos or multi-service projects, identify the structure first (workspace root, service directories), then analyze key components rather than every detail.
+
+8. **Let evidence guide you**: Each file you read should inform your next action. If a file confirms Node.js, focus on Node.js-specific patterns rather than checking for every possible language.
 
 ${hasReadme ? `**README AVAILABLE:**\n\`\`\`\n${context.readme}\n\`\`\`\n\n` : ''}
 
@@ -245,243 +257,64 @@ Return a JSON object with this structure:
 
 ---
 
-## CRITICAL: INTEGRATION DETECTION GUIDE
+## ENVIRONMENT VARIABLE NAMING (CASE-SENSITIVE!)
 
-### **ENVIRONMENT VARIABLES vs INTEGRATIONS - KEY DISTINCTION**
+Environment variable names are CASE-SENSITIVE. Documentation can be WRONG.
 
-**ENVIRONMENT VARIABLES (Broader Category):**
-- ALL variables needed during deployment (required OR optional)
-- Includes BOTH integration credentials AND non-integration configuration
-- Examples:
-  - Integration: SUPABASE_URL, STRIPE_SECRET_KEY, SENDGRID_API_KEY
-  - Non-Integration: PORT, NODE_ENV, ENCRYPTION_KEY, DATABASE_PATH, LOG_LEVEL
-
-**INTEGRATIONS (Subset of Environment Variables):**
-- ONLY external services requiring credentials
-- Must satisfy ALL 4 criteria below
-
----
-
-### **WHAT IS AN INTEGRATION?**
-
-An integration is a THIRD-PARTY EXTERNAL SERVICE that requires:
-1. Authentication credentials (API keys, tokens, connection strings, OAuth)
-2. Network communication with external servers/APIs
-3. A user account with the service provider (requires signup)
-4. Configuration stored in environment variables or config files
-
-**INTEGRATION VALIDATION CHECKLIST:**
-
-For each potential integration, ask:
-- [ ] Does it require credentials stored OUTSIDE the application code?
-- [ ] Does it communicate with an EXTERNAL service over the network?
-- [ ] Would a developer need to SIGN UP for an account to use it?
-- [ ] Does it require API keys, tokens, connection strings, or service accounts?
-
-✅ **If ALL answers are YES → It's an INTEGRATION**
-❌ **If ANY answer is NO → It's probably a built-in capability or non-integration env var**
-
----
-
-### **WHAT IS NOT AN INTEGRATION?**
-
-❌ Browser APIs (localStorage, sessionStorage, cookies, IndexedDB, WebSockets API)
-❌ Built-in platform features (Node.js fs, crypto, http modules)
-❌ Client-side libraries that don't connect to external services
-❌ File uploads to the same application
-❌ In-app features (authentication UI, forms, validation)
-❌ App configuration (PORT, NODE_ENV, LOG_LEVEL, MAX_CONNECTIONS)
-❌ Security keys (ENCRYPTION_KEY, JWT_SECRET - unless from external service like Auth0)
-❌ Local paths (DATABASE_PATH for SQLite, UPLOAD_DIR)
-
-Built-in features → builtInCapabilities array
-App configuration → environmentVariables array with linkedIntegration: null
-
----
-
-### **HOW TO HANDLE ENVIRONMENT VARIABLES**
-
-**ALL environment variables go in the "environmentVariables" array, whether they're for integrations or not.**
-
-**For Integration Credentials:**
-\`\`\`json
-{
-  "name": "SUPABASE_URL",
-  "required": true,
-  "description": "Supabase project URL",
-  "linkedIntegration": "supabase"  // ← Links to integration
-}
+**EFFICIENT VERIFICATION (do this ONCE early in exploration):**
+Run a SINGLE grep to find all env var usages upfront:
 \`\`\`
-
-**For Non-Integration Variables:**
-\`\`\`json
-{
-  "name": "PORT",
-  "required": false,
-  "description": "Server port number",
-  "linkedIntegration": null  // ← No integration link
-}
+grep -r "process.env\\." src/ lib/ helpers/ 2>/dev/null | head -50
 \`\`\`
+This reveals the EXACT case used in code. Use those names, NOT README/docs if they differ.
 
-**Examples of Non-Integration Environment Variables:**
-- PORT, HOST, BASE_URL (application configuration)
-- NODE_ENV, ENVIRONMENT (runtime mode)
-- ENCRYPTION_KEY, JWT_SECRET (unless from external service)
-- DATABASE_PATH (for local SQLite files)
-- LOG_LEVEL, DEBUG (logging configuration)
-- MAX_CONNECTIONS, TIMEOUT (performance settings)
-- UPLOAD_DIR, TEMP_DIR (file paths)
+**Example:** If code has \`process.env.secret\` but README says \`SECRET\`, use \`secret\`.
 
 ---
 
-**INTEGRATION DETECTION STRATEGY (Framework-Agnostic):**
+## EXTERNAL SERVICES DETECTION (integrations array)
 
-**1. Environment Variables (HIGHEST SIGNAL):**
-   - Check .env, .env.example, .env.local, .env.production files
-   - Look for patterns: *_API_KEY, *_SECRET*, *_TOKEN, *_URL (if external service)
-   - Examples: SUPABASE_URL, STRIPE_SECRET_KEY, SENDGRID_API_KEY, DATABASE_URL
-   
-**2. Configuration Files:**
-   - config.js, config.json, app.config.*, next.config.*, nuxt.config.*
-   - Look for service configurations (database connections, API endpoints)
-   
-**3. Package Dependencies:**
-   - package.json, requirements.txt, Cargo.toml, go.mod, composer.json
-   - Known SDKs: @supabase/*, stripe, @stripe/*, openai, @sendgrid/*, aws-sdk, @aws-sdk/*
-   - Database drivers: pg, mysql, mongodb, redis, ioredis
-   
-**4. Import Statements in Code:**
-   - Search for: import/require statements of known service SDKs
-   - Examples: \`import { createClient } from '@supabase/supabase-js'\`
-   
-**5. README and Documentation:**
-   - "Setup", "Configuration", "Environment Variables", "Getting Started" sections
-   - Service mentions with setup instructions
-   - Links to external service documentation
+**WHAT IS AN EXTERNAL SERVICE?**
+A third-party service requiring ALL of:
+1. Authentication credentials (API keys, tokens, connection strings)
+2. Network communication with external servers
+3. User account signup with the service provider
 
-**6. Infrastructure Files:**
-   - docker-compose.yml (external services like postgres, redis)
-   - terraform files (cloud services)
-   - k8s manifests (external dependencies)
+**WHAT IS NOT AN EXTERNAL SERVICE (do NOT add to integrations):**
+- Browser APIs: localStorage, sessionStorage, cookies, IndexedDB, WebSockets API
+- Built-in modules: Node.js fs, crypto, http, path
+- Client-side libraries without external connections
+- App configuration: PORT, NODE_ENV, HOST, LOG_LEVEL
+- Internal secrets: JWT_SECRET, ENCRYPTION_KEY (unless from Auth0/external provider)
+- Local paths: DATABASE_PATH (SQLite), UPLOAD_DIR
 
----
+**DETECTION SOURCES (priority order):**
+1. **.env.example, .env.local** - Check actual variable names and cases
+2. **Code imports** - SDK usage (stripe, @supabase/*, openai, mongodb, pg, redis)
+3. **docker-compose.yml** - External service dependencies
+4. **README** - Secondary source (VERIFY against code!)
 
-**INTEGRATION OUTPUT FORMAT:**
-
-For each detected integration, provide COMPLETE information:
-
-\`\`\`json
-{
-  "name": "Friendly Display Name",
-  "service": "technical-identifier-lowercase",
-  "type": "database|cache|queue|storage|payment|auth|email|sms|analytics|monitoring|ai|search|cdn|deployment|api|other",
-  "confidence": 85,
-  "requiredKeys": ["ALL_REQUIRED_ENV_VARS", "DOCUMENTED_IN_README"],
-  "optionalKeys": ["OPTIONAL_ENV_VARS"],
-  "detectedFrom": "Comprehensive evidence: Found in .env.example (DATABASE_URL), package.json (pg dependency), and src/lib/db.ts (PostgreSQL client initialization)",
-  "files": ["specific/files/that/use/this/integration.ts"],
-  "credentialType": "api_key|connection_string|json_service_account|oauth_token|multiple",
-  "requiresSignup": true,
-  "optional": false
-}
-\`\`\`
-
-**Key Integration Examples:**
-
-**Databases:**
-- PostgreSQL, MySQL, MongoDB, Supabase, PlanetScale, Neon, Xata
-- Detection: connection strings (postgresql://, mongodb://, mysql://)
-- Credentials: CONNECTION_STRING or URL + username + password
-
-**Caches/Queues:**
-- Redis, Memcached, RabbitMQ, AWS SQS, Google Pub/Sub
-- Detection: redis://, amqp://, or specific SDK imports
-
-**Payment:**
-- Stripe, PayPal, Square, Paddle
-- Detection: SDK imports, API key patterns, webhook endpoints
-
-**Authentication:**
-- Auth0, Clerk, Supabase Auth, Firebase Auth, AWS Cognito
-- Detection: auth SDK imports, OAuth configs
-
-**Email/SMS:**
-- SendGrid, Mailgun, Twilio, Vonage, AWS SES, Resend
-- Detection: SDK imports, API keys in env
-
-**Storage:**
-- AWS S3, Google Cloud Storage, Cloudinary, Uploadthing
-- Detection: SDK imports, bucket configs, upload endpoints
-
-**AI Services:**
-- OpenAI, Anthropic, Cohere, Replicate, Hugging Face
-- Detection: API keys (OPENAI_API_KEY, ANTHROPIC_API_KEY)
-
-**DO NOT include:**
-- localStorage/sessionStorage (built-in capability, not integration)
-- fetch/axios (HTTP client, not integration unless specific API)
-- Generic npm packages (lodash, moment, etc.)
+**COMMON SERVICE TYPES:**
+- Databases: PostgreSQL, MongoDB, MySQL, Supabase, Redis
+- Payment: Stripe, PayPal, Square
+- Auth: Auth0, Clerk, Firebase Auth, Supabase Auth
+- Email/SMS: SendGrid, Twilio, Resend
+- Storage: AWS S3, Cloudinary
+- AI: OpenAI, Anthropic
 
 ---
 
-**IMPORTANT NOTES:**
-- \`summary\` provides high-level understanding - CRITICAL for users to understand what the project is
-- \`deployable\` flag indicates if project can be deployed (see DEPLOYABILITY GUIDE below)
-- \`deploymentNotes\` explains deployment context (e.g., "This is a library for reuse, not a standalone app")
+## DEPLOYABILITY ASSESSMENT
 
----
+**DEPLOYABLE (true):** Apps that run standalone - web apps, APIs, microservices, anything listening on a port
 
-## CRITICAL: DEPLOYABILITY ASSESSMENT GUIDE
+**NOT DEPLOYABLE (false):** Libraries consumed by other projects - npm packages, component libraries, plugins, SDKs
 
-**You MUST correctly assess whether a project is deployable or not. This is crucial information for users.**
-
-### DEPLOYABLE PROJECTS (deployable: true)
-Projects that run as standalone applications/services:
-- **Web Applications**: Next.js, Nuxt, React apps, Vue apps, Angular apps
-- **Backend APIs**: Express, FastAPI, Django, Rails, Flask, NestJS, Hono
-- **Full-stack Apps**: T3 Stack, Remix, SvelteKit with server
-- **Microservices**: Any service that listens on a port
-- **Databases/Data Services**: Custom database wrappers, data APIs
-- **CLI Tools with Server Mode**: Tools that can run as a service
-- **Static Sites**: Gatsby, Astro, Hugo (can be served via nginx container)
-
-### NON-DEPLOYABLE PROJECTS (deployable: false)
-Projects meant to be consumed by other projects, NOT run standalone:
-
-**Libraries/Packages:**
-- npm packages (lodash, date-fns, axios)
-- React component libraries (MUI, Chakra UI, custom component libs)
-- React Native libraries (image pickers, camera modules, gesture handlers)
-- Python packages (utilities, data processing libs)
-- Rust crates, Go modules, Ruby gems
-
-**SDK/Development Tools:**
-- Babel plugins, ESLint plugins, Webpack plugins
-- Code generators, scaffolding tools
-- Testing utilities and frameworks
-- Type definitions (@types/* packages)
-
-**Example Projects/Templates:**
-- Boilerplates and starter kits (unless they're meant to run as-is)
-- Tutorial code, learning exercises
-- Code snippets collections
-
-**Hardware/Embedded:**
-- Arduino sketches
-- Firmware code
-- IoT device code (unless it has a web interface)
-
-### HOW TO DETECT NON-DEPLOYABLE PROJECTS
-
-**Strong indicators of a LIBRARY (not deployable):**
-1. **package.json has "main" or "exports" pointing to lib/dist** - It's an npm package
-2. **No start script, only build** - Libraries are built, not run
-3. **README mentions "npm install <package-name>"** - It's consumed as a dependency
-4. **peerDependencies for React/React Native** - It's a component library
-5. **Keywords like "library", "component", "utility", "helper", "sdk"**
-6. **Files in /lib or /dist but no server code**
-7. **React Native package with native iOS/Android code** - It's a native module
-8. **No ports, no server, no HTTP handling**
+**Quick Detection:**
+- Has start script + listens on PORT → deployable
+- Has "main"/"exports" in package.json pointing to lib/dist → library
+- README says "npm install package-name" → library
+- peerDependencies for React → component library
 
 **Strong indicators of a DEPLOYABLE APP:**
 1. **Start script runs a server** (node server.js, npm start, etc.)
@@ -491,98 +324,21 @@ Projects meant to be consumed by other projects, NOT run standalone:
 5. **Dockerfile or docker-compose.yml present**
 6. **Vercel/Railway/Heroku config present**
 
-### EXAMPLES OF CORRECT ASSESSMENTS
-
-**Example 1: React Native Image Resizer Package**
-\`\`\`json
-{
-  "summary": {
-    "overview": "A React Native library for resizing images on iOS and Android devices",
-    "purpose": "Provides native image manipulation capabilities for React Native apps",
-    "deployable": false,
-    "deploymentNotes": "This is an npm package/library meant to be installed as a dependency in React Native applications. It contains native iOS and Android modules and cannot be deployed as a standalone service."
-  },
-  "projectType": "library"
-}
-\`\`\`
-
-**Example 2: Express API Backend**
-\`\`\`json
-{
-  "summary": {
-    "overview": "A REST API built with Express.js for user management",
-    "purpose": "Provides authentication and user CRUD operations",
-    "deployable": true,
-    "deploymentNotes": "Production-ready Express API. Requires PostgreSQL database and environment variables for secrets."
-  },
-  "projectType": "single-app"
-}
-\`\`\`
-
-**Example 3: Shared UI Component Library**
-\`\`\`json
-{
-  "summary": {
-    "overview": "A design system and component library built with React and styled-components",
-    "purpose": "Provides reusable UI components for web applications",
-    "deployable": false,
-    "deploymentNotes": "This is a component library published to npm. It should be installed as a dependency (npm install @company/ui-kit) in consumer applications, not deployed directly."
-  },
-  "projectType": "library"
-}
-\`\`\`
-
-**Example 4: Monorepo with Mixed Projects**
-\`\`\`json
-{
-  "summary": {
-    "overview": "A monorepo containing a Next.js web app, API server, and shared packages",
-    "purpose": "Full-stack application with shared code",
-    "deployable": true,
-    "deploymentNotes": "The /apps/web and /apps/api directories are deployable services. The /packages/* directories are internal libraries. Deploy each app separately."
-  },
-  "projectType": "monorepo"
-}
-\`\`\`
-
 ---
-- \`frameworks\` is an ARRAY - projects can have multiple frameworks (e.g., Next.js frontend + Express backend)
-- \`ports\` is an ARRAY - projects can listen on multiple ports
-- \`integrations\` is ONLY for external services requiring credentials - be STRICT about this
-- \`builtInCapabilities\` is for platform features (no credentials needed)
-- Include \`projectStructure\` to document directory organization
-- Include \`security\` section to flag potential security issues
-- For each integration, list ALL \`requiredKeys\` - this is critical for deployment
-- \`detectedFrom\` should provide comprehensive evidence (multiple sources)
-- Link environment variables to their integrations via \`linkedIntegration\` field
 
-**CRITICAL OUTPUT RULES:**
-- DO NOT output any text while using tools - explore SILENTLY
-- ONLY output text when you are COMPLETELY DONE with all exploration
-- Your ONLY output should be the final JSON object
-- Return ONLY the JSON object - NO explanatory text before or after
-- Do NOT start with "I'll analyze...", thinking, or any preamble
-- Your response must be PURE JSON starting with { and ending with }
-- Base everything on evidence (files, code, patterns)
-- If uncertain, lower confidence score
-- Be thorough but accurate
-- Work efficiently - each tool use should maximize information gain
-- Be STRICT about integration detection - when in doubt, it's probably a built-in capability
+**KEY OUTPUT NOTES:**
+- \`frameworks\` and \`ports\` are ARRAYs (projects can have multiple)
+- \`integrations\` = ONLY external services requiring credentials
+- \`builtInCapabilities\` = platform features (no credentials)
+- For each integration, list ALL \`requiredKeys\` with EXACT case from code
+- Link env vars to integrations via \`linkedIntegration\` field
 
-**OUTPUT FORMAT EXAMPLES:**
+**OUTPUT RULES:**
+- Explore SILENTLY using tools - NO text output during exploration
+- Your ONLY output is the final JSON object (starts with {, ends with })
+- NO preamble, NO explanations - PURE JSON only
 
-❌ WRONG (thinking text during exploration):
-The package.json shows this is a Node.js project...
-{ "summary": { ... } }
-
-❌ WRONG (preamble before JSON):
-I'll analyze this project...
-{ "summary": { ... } }
-
-✅ CORRECT (pure JSON only, after silent exploration):
-{ "summary": { ... } }
-
-**BEGIN EXPLORATION NOW. You have 50 steps max - use tools silently, then return ONLY the final JSON before step 50.**
+**BEGIN EXPLORATION NOW. You have 25 steps max - use tools silently, then return ONLY the final JSON before step 25.**
 `.trim();
 }
 
@@ -615,12 +371,23 @@ ${JSON.stringify(analysisResult, null, 2)}
 Generate Docker + docker-compose.yml configuration files in the CURRENT WORKING DIRECTORY.
 
 **TOOLS AVAILABLE:**
+- **readFile**: Read existing files (CHECK FOR EXISTING DOCKER FILES FIRST!)
+- **globFind**: Search for files by pattern
 - **writeFile**: Create configuration files (Dockerfile, docker-compose.yml, .dockerignore, .env.example, _summary.json)
 - **validateDockerCompose**: Validate docker-compose.yml against official Docker Compose schema. MUST be called after writing docker-compose.yml!
+
+**STEP 1 - CHECK FOR EXISTING FILES (CRITICAL):**
+Before generating any files, use globFind and readFile to check if these files already exist:
+- Dockerfile, Dockerfile.* (existing Docker builds)
+- docker-compose.yml, docker-compose.yaml, compose.yml (existing compose configs)
+- README.md, docs/*.md (documentation with deployment notes)
+
+If the project has existing Docker files, READ THEM CAREFULLY. They show the original author's deployment intent and may contain important configuration details you should preserve or adapt.
 
 **CRITICAL INSTRUCTIONS:**
 - ALL files MUST be written using RELATIVE paths (e.g., "Dockerfile", "docker-compose.yml")
 - DO NOT use absolute paths (e.g., /Users/... or /home/...)
+- If existing Docker files exist, use them as a reference - adapt and improve rather than starting from scratch
 - Create ONLY production-ready files - no development variants, Makefiles, or separate README files
 - The writeFile tool will automatically save files in your current working directory
 - **ALWAYS validate docker-compose.yml immediately after writing it**
@@ -691,15 +458,37 @@ This file contains project discovery details, AI analysis, third-party integrati
   "integrations": {
     "detected": [
       {
-        "name": "Supabase",
-        "service": "supabase",
+        "name": "PostgreSQL Database",
+        "service": "postgresql",
         "type": "database",
-        "requiredKeys": ["SUPABASE_URL", "SUPABASE_ANON_KEY"],
-        "optionalKeys": ["SUPABASE_SERVICE_ROLE_KEY"],
+        "requiredKeys": ["DATABASE_URL"],
         "optional": false,
-        "detectedFrom": "Found in .env.example, package.json (@supabase/supabase-js), and src/lib/supabase.ts",
-        "credentialType": "multiple",
-        "notes": "Supabase provides PostgreSQL database, authentication, and storage"
+        "detectedFrom": "Found in docker-compose.yml and src/lib/db.ts",
+        "credentialType": "connection_string",
+        "composeServiceName": "postgres",
+        "notes": "PostgreSQL database for data storage"
+      },
+      {
+        "name": "MongoDB Database",
+        "service": "mongodb",
+        "type": "database",
+        "requiredKeys": ["MONGO_URI"],
+        "optional": false,
+        "detectedFrom": "Found in docker-compose.yml and src/lib/mongo.ts",
+        "credentialType": "connection_string",
+        "composeServiceName": "mongodb",
+        "notes": "MongoDB for document storage"
+      },
+      {
+        "name": "Redis Cache",
+        "service": "redis",
+        "type": "cache",
+        "requiredKeys": ["REDIS_URL"],
+        "optional": true,
+        "detectedFrom": "Found in docker-compose.yml",
+        "credentialType": "connection_string",
+        "composeServiceName": "redis",
+        "notes": "Redis for caching and session storage"
       },
       {
         "name": "Stripe Payments",
@@ -710,17 +499,8 @@ This file contains project discovery details, AI analysis, third-party integrati
         "optional": false,
         "detectedFrom": "Found in src/lib/stripe.ts with Stripe SDK import",
         "credentialType": "api_key",
-        "notes": "Payment processing integration"
-      },
-      {
-        "name": "OpenAI API",
-        "service": "openai",
-        "type": "ai",
-        "requiredKeys": ["OPENAI_API_KEY"],
-        "optional": true,
-        "detectedFrom": "Found in README.md and src/lib/ai.ts",
-        "credentialType": "api_key",
-        "notes": "AI features can work with fallback if API key not provided"
+        "composeServiceName": null,
+        "notes": "External API - no container in docker-compose"
       }
     ],
     "databases": ["PostgreSQL (via Supabase)"],
@@ -825,31 +605,47 @@ This file contains project discovery details, AI analysis, third-party integrati
 }
 \`\`\`
 
-**CRITICAL: INTEGRATION DETECTION RULES**
+**CRITICAL: ENVIRONMENT VARIABLE NAMING (CASE-SENSITIVE!)**
 
-An integration is a THIRD-PARTY SERVICE requiring external credentials. Use this validation:
-- ✅ Requires API keys, tokens, or connection strings
-- ✅ Connects to external servers/APIs
-- ✅ Requires signing up for a service account
-- ❌ NOT built-in features (localStorage, cookies, browser APIs)
-- ❌ NOT client-side libraries without external connections
+Environment variable names are CASE-SENSITIVE. Documentation can be WRONG.
 
-**Detection Sources:**
-1. .env.example, .env.local.example - Look for API keys, tokens, URLs
-2. package.json/requirements.txt - SDKs like @supabase/*, stripe, openai, pg, redis
-3. README.md - Setup sections mentioning third-party services
-4. Code imports - SDK imports like \`import { createClient } from '@supabase/supabase-js'\`
-5. docker-compose.yml - External service dependencies
+**REQUIRED VERIFICATION:**
+For EVERY env var, grep the codebase to find EXACT usage in code:
+\`\`\`
+grep -r "process.env." src/ helpers/ lib/   # Find all env var usages
+\`\`\`
+Use the EXACT case from code (e.g., \`process.env.secret\`), NOT from README or .env.example if they differ!
 
-**For Each Integration:**
-- List ALL required environment variable keys (e.g., ["SUPABASE_URL", "SUPABASE_ANON_KEY"])
-- List optional keys (e.g., ["SUPABASE_SERVICE_ROLE_KEY"])
-- Specify credential type: api_key, connection_string, json_service_account, oauth_token, multiple
-- Note where detected (be specific: "Found in .env.example and src/lib/supabase.ts")
-- Categorize by type: database, cache, queue, payment, auth, email, sms, storage, ai, analytics, monitoring
+**Example Problem:**
+- README says: \`SECRET=your_jwt_secret\`
+- Code uses: \`process.env.secret\` (lowercase!)
+- Docker-compose must use: \`secret: \${secret}\` (lowercase!)
 
-**Built-in Capabilities (NOT Integrations):**
-If you find localStorage, sessionStorage, cookies, IndexedDB, or browser APIs, put them in \`builtInCapabilities\`, NOT \`integrations\`.
+---
+
+**EXTERNAL SERVICES (integrations array)**
+
+An external service requires: credentials + external network + service signup
+
+**NOT external services:** localStorage, cookies, browser APIs, built-in modules, PORT, NODE_ENV, JWT_SECRET
+
+**Detection Sources (priority order):**
+1. **Code usage** - Grep for \`process.env.xxx\` to get EXACT variable names
+2. **.env.example, .env.local** - Usually reliable
+3. **Package imports** - SDKs like @supabase/*, stripe, openai, pg, redis
+4. **README** - Secondary source (VERIFY against code!)
+
+**CRITICAL: composeServiceName Field**
+- Has container in docker-compose → \`"composeServiceName": "postgres"\` (exact name)
+- External API (no container) → \`"composeServiceName": null\` (Stripe, OpenAI, etc.)
+
+**For Each Service:**
+- \`requiredKeys\`: ALL env vars with EXACT case from code
+- \`composeServiceName\`: service name from docker-compose or null
+- \`type\`: database, cache, payment, auth, email, storage, ai, etc.
+
+**Built-in Capabilities (NOT services):**
+localStorage, sessionStorage, cookies, browser APIs → \`builtInCapabilities\` array, NOT \`integrations\`.
 
 **IMPORTANT RULES:**
 - The _summary.json file is for metadata and analysis - NOT a deployment config file
@@ -1247,7 +1043,6 @@ function findJsonByBracketMatching(text: string): {
   let maxDepth = 0;
   let inString = false;
   let escapeNext = false;
-  let _lastValidIndex = startIndex;
 
   for (let i = startIndex; i < text.length; i++) {
     const char = text[i];
@@ -1274,7 +1069,6 @@ function findJsonByBracketMatching(text: string): {
       maxDepth = Math.max(maxDepth, depth);
     } else if (char === '}') {
       depth--;
-      _lastValidIndex = i;
       if (depth === 0) {
         return { json: text.substring(startIndex, i + 1), isTruncated: false, missingBraces: 0 };
       }

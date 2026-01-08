@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -47,11 +47,13 @@ import {
   XCircle,
   Key,
   Info,
+  CheckCircle,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { toast } from 'sonner';
 import { formatDistanceToNow } from 'date-fns';
 import { useDeploymentProgress } from '@/lib/hooks/useSSE';
+import type { SerializedPreFlightCheck } from '@dxlander/shared';
 
 interface DeploymentTabProps {
   configSetId: string;
@@ -150,6 +152,11 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
   const [deploymentName, setDeploymentName] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<string>('docker');
   const [deploymentNotes, setDeploymentNotes] = useState('');
+
+  // Preflight checks state
+  const [preflightChecks, setPreflightChecks] = useState<SerializedPreFlightCheck[]>([]);
+  const [preflightPassed, setPreflightPassed] = useState<boolean | null>(null);
+  const [preflightLoading, setPreflightLoading] = useState(false);
 
   // Queries
   const {
@@ -258,6 +265,42 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
     },
   });
 
+  const preflightMutation = trpc.deployments.runPreFlightChecks.useMutation({
+    onSuccess: (data) => {
+      setPreflightChecks(data.checks);
+      setPreflightPassed(data.passed);
+      setPreflightLoading(false);
+    },
+    onError: (error) => {
+      toast.error(`Preflight check failed: ${error.message}`);
+      setPreflightLoading(false);
+      setPreflightPassed(false);
+    },
+  });
+
+  // Run preflight checks when dialog opens
+  useEffect(() => {
+    if (showNewDeploymentDialog && selectedPlatform === 'docker') {
+      setPreflightLoading(true);
+      setPreflightChecks([]);
+      setPreflightPassed(null);
+      preflightMutation.mutate({
+        configSetId,
+        platform: selectedPlatform as 'docker' | 'vercel' | 'railway',
+      });
+    }
+  }, [showNewDeploymentDialog, selectedPlatform, configSetId]);
+
+  const runPreflight = () => {
+    setPreflightLoading(true);
+    setPreflightChecks([]);
+    setPreflightPassed(null);
+    preflightMutation.mutate({
+      configSetId,
+      platform: selectedPlatform as 'docker' | 'vercel' | 'railway',
+    });
+  };
+
   // SSE for deployment progress
   const { data: deploymentProgress } = useDeploymentProgress(deployingId, !!deployingId);
 
@@ -276,6 +319,9 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
     setDeploymentName('');
     setSelectedPlatform('docker');
     setDeploymentNotes('');
+    setPreflightChecks([]);
+    setPreflightPassed(null);
+    setPreflightLoading(false);
   };
 
   const handleCreateDeployment = () => {
@@ -368,7 +414,26 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                             </span>
                           )}
                         </div>
-                        {deployment.deployUrl && (
+                        {/* Service URLs - show all if multiple, or just deployUrl */}
+                        {deployment.serviceUrls && deployment.serviceUrls.length > 1 ? (
+                          <div className="mt-2 space-y-1">
+                            {deployment.serviceUrls.map(
+                              (svc: { service: string; url: string }, idx: number) => (
+                                <a
+                                  key={idx}
+                                  href={svc.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center gap-2 text-sm text-ocean-600 hover:underline"
+                                >
+                                  <ExternalLink className="h-3 w-3" />
+                                  <span className="font-medium">{svc.service}:</span>
+                                  {svc.url}
+                                </a>
+                              )
+                            )}
+                          </div>
+                        ) : deployment.deployUrl ? (
                           <a
                             href={deployment.deployUrl}
                             target="_blank"
@@ -378,7 +443,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                             <ExternalLink className="h-3 w-3" />
                             {deployment.deployUrl}
                           </a>
-                        )}
+                        ) : null}
                         {deployment.ports && (
                           <div className="flex items-center gap-2 mt-2">
                             <span className="text-xs text-gray-500">Ports:</span>
@@ -508,6 +573,69 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
               </Select>
             </div>
 
+            {/* Pre-flight Checks */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium">Pre-flight Checks</label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={runPreflight}
+                  disabled={preflightLoading}
+                  className="h-7 px-2"
+                >
+                  <RefreshCw className={`h-3 w-3 ${preflightLoading ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+
+              {preflightLoading ? (
+                <div className="bg-gray-50 border rounded-lg p-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span>Running checks...</span>
+                  </div>
+                </div>
+              ) : preflightChecks.length > 0 ? (
+                <div
+                  className={`border rounded-lg p-3 ${
+                    preflightPassed ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                  }`}
+                >
+                  <div className="space-y-2">
+                    {preflightChecks.map((check, idx) => (
+                      <div key={idx} className="flex items-start gap-2">
+                        {check.status === 'passed' && (
+                          <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        )}
+                        {check.status === 'warning' && (
+                          <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                        )}
+                        {check.status === 'failed' && (
+                          <XCircle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        )}
+                        {check.status === 'pending' && (
+                          <Loader2 className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0 animate-spin" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{check.name}</span>
+                          </div>
+                          <p className="text-xs text-gray-600">{check.message}</p>
+                          {check.status === 'failed' && check.fix && (
+                            <p className="text-xs text-red-600 mt-1">Fix: {check.fix}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-gray-50 border rounded-lg p-3">
+                  <p className="text-sm text-gray-500">Pre-flight checks will run automatically</p>
+                </div>
+              )}
+            </div>
+
             {/* Deployment Name */}
             <FloatingInput
               id="deploymentName"
@@ -619,12 +747,22 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
             </Button>
             <Button
               onClick={handleCreateDeployment}
-              disabled={createMutation.isPending || hasEnvErrors}
+              disabled={
+                createMutation.isPending ||
+                hasEnvErrors ||
+                preflightLoading ||
+                preflightPassed === false
+              }
             >
               {createMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Deploying...
+                </>
+              ) : preflightLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Checking...
                 </>
               ) : (
                 <>
