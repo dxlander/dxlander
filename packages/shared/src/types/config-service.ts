@@ -584,7 +584,7 @@ export function buildConnectionString(
     .replace('{password}', encodeURIComponent(credentials.password))
     .replace('{host}', credentials.host)
     .replace('{port}', String(credentials.port))
-    .replace('{database}', credentials.database || 'app');
+    .replace('{database}', encodeURIComponent(credentials.database || 'app'));
 }
 
 /**

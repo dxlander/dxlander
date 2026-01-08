@@ -74,6 +74,23 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     return name;
   }
 
+  /**
+   * Validate workDir to prevent path traversal attacks.
+   * Ensures the path is absolute and doesn't contain traversal sequences.
+   */
+  private validateWorkDir(workDir: string): void {
+    if (!path.isAbsolute(workDir)) {
+      throw new Error('Working directory must be an absolute path');
+    }
+    const normalized = path.normalize(workDir);
+    if (normalized !== workDir || workDir.includes('..')) {
+      throw new Error('Invalid working directory path');
+    }
+    if (!fs.existsSync(workDir) || !fs.statSync(workDir).isDirectory()) {
+      throw new Error('Working directory does not exist');
+    }
+  }
+
   // ============================================================
   // IDeploymentExecutor Interface Implementation
   // ============================================================
@@ -98,6 +115,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
 
   async deploy(options: DeployOptions): Promise<DeployResult> {
     const { workDir, projectName, envVars, onProgress } = options;
+    this.validateWorkDir(workDir);
     this.validateProjectName(projectName);
     let logs = '';
 
@@ -157,6 +175,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" start`;
       await execAsync(cmd, { cwd: workDir, timeout: 60000 });
@@ -171,6 +190,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" stop`;
       await execAsync(cmd, { cwd: workDir, timeout: 60000 });
@@ -185,6 +205,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     projectName: string
   ): Promise<{ success: boolean; errorMessage?: string }> {
     try {
+      this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" restart`;
       await execAsync(cmd, { cwd: workDir, timeout: 60000 });
@@ -195,6 +216,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
   }
 
   async delete(workDir: string, projectName: string, options?: DeleteOptions): Promise<void> {
+    this.validateWorkDir(workDir);
     this.validateProjectName(projectName);
     let cmd = `docker compose -p "${projectName}"`;
     cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
@@ -210,6 +232,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
 
   async getLogs(workDir: string, projectName: string, options?: LogOptions): Promise<string> {
     try {
+      this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       let cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" logs`;
       if (options?.tail) cmd += ` --tail ${Math.floor(Number(options.tail)) || 100}`;
@@ -235,6 +258,7 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     services: Array<{ name: string; status: string; ports?: string[] }>;
   }> {
     try {
+      this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       const cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" ps --format json`;
       const { stdout } = await execAsync(cmd, { cwd: workDir, timeout: 30000 });
