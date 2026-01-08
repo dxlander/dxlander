@@ -91,6 +91,21 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     }
   }
 
+  /**
+   * Validate Docker image name to prevent command injection.
+   * Docker image names: [registry/][namespace/]name[:tag][@digest]
+   * Valid characters: lowercase letters, digits, ., -, _, /, :, @
+   */
+  private validateImageName(image: string): boolean {
+    if (!image || image.length > 256) {
+      return false;
+    }
+    // Docker image name pattern: allows registry, namespace, name, tag, and digest
+    // Rejects shell metacharacters: ; & | $ ` \ " ' ( ) { } < > ! # *
+    const validImagePattern = /^[a-zA-Z0-9][a-zA-Z0-9._\-/:@]*$/;
+    return validImagePattern.test(image);
+  }
+
   // ============================================================
   // IDeploymentExecutor Interface Implementation
   // ============================================================
@@ -124,6 +139,12 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
 
       if (envVars && Object.keys(envVars).length > 0) {
         const envPath = path.join(workDir, '.env');
+        // Backup existing .env file if it exists
+        if (fs.existsSync(envPath)) {
+          const backupPath = path.join(workDir, `.env.backup.${Date.now()}`);
+          fs.copyFileSync(envPath, backupPath);
+          onProgress?.({ type: 'info', message: 'Existing .env file backed up' });
+        }
         this.writeEnvFile(envVars, envPath);
         onProgress?.({ type: 'info', message: 'Environment variables written to .env file' });
       }
@@ -235,7 +256,10 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
       this.validateWorkDir(workDir);
       this.validateProjectName(projectName);
       let cmd = `docker compose -p "${projectName}" -f "${path.join(workDir, 'docker-compose.yml')}" logs`;
-      if (options?.tail) cmd += ` --tail ${Math.floor(Number(options.tail)) || 100}`;
+      if (options?.tail) {
+        const tailValue = Math.max(1, Math.floor(Number(options.tail)) || 100);
+        cmd += ` --tail ${tailValue}`;
+      }
       if (options?.service) cmd += ` ${this.validateServiceName(options.service)}`;
 
       const { stdout, stderr } = await execAsync(cmd, {
@@ -560,8 +584,11 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
   }
 
   private async checkImageExists(image: string): Promise<boolean> {
+    if (!this.validateImageName(image)) {
+      return false;
+    }
     try {
-      await execAsync(`docker manifest inspect ${image}`, { timeout: 15000 });
+      await execAsync(`docker manifest inspect "${image}"`, { timeout: 15000 });
       return true;
     } catch {
       return false;
