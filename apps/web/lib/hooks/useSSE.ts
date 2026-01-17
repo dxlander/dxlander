@@ -205,3 +205,50 @@ export function useDeploymentProgress(deploymentId: string | null, enabled = tru
     enabled: enabled && !!deploymentId,
   });
 }
+
+/**
+ * Session progress event data
+ */
+export interface SessionProgressData {
+  type: 'connected' | 'progress' | 'done' | 'error';
+  id: string;
+  deploymentId: string;
+  status: string;
+  attemptNumber: number;
+  maxAttempts: number;
+  customInstructions?: string;
+  agentState?: string;
+  fileChanges?: Array<{
+    file: string;
+    before: string | null;
+    after: string;
+    reason: string;
+    timestamp: string;
+  }>;
+  summary?: string;
+  activityLog?: Array<{
+    id: string;
+    type: string;
+    action: string;
+    input?: string;
+    output?: string;
+    timestamp?: string;
+  }>;
+  buildLogs?: string;
+  error?: string;
+}
+
+/**
+ * Hook specifically for deployment session progress
+ *
+ * Streams real-time AI session progress including:
+ * - Session status (active, completed, failed, cancelled)
+ * - AI tool calls and results
+ * - File modifications
+ * - Build logs
+ */
+export function useDeploymentSessionProgress(sessionId: string | null, enabled = true) {
+  return useSSE<SessionProgressData>(`/sse/session/${sessionId}`, {
+    enabled: enabled && !!sessionId,
+  });
+}

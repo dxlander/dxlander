@@ -110,7 +110,7 @@ export const deploymentsRouter = router({
     }),
 
   /**
-   * Create and start a new deployment
+   * Create and start a new deployment (AI-only)
    */
   create: protectedProcedure.input(CreateDeploymentSchema).mutation(async ({ input, ctx }) => {
     const { userId } = ctx;
@@ -123,6 +123,8 @@ export const deploymentsRouter = router({
       name: input.name,
       environment: input.environment,
       notes: input.notes,
+      customInstructions: input.customInstructions,
+      maxAttempts: input.maxAttempts,
     });
 
     return {

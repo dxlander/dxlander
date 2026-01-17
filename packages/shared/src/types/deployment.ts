@@ -149,7 +149,7 @@ export interface SerializedDeploymentActivityLog {
 }
 
 /**
- * Input schema for creating deployments
+ * Input schema for creating deployments (AI-only mode)
  */
 export const CreateDeploymentSchema = z.object({
   projectId: z.string().min(1),
@@ -174,6 +174,8 @@ export const CreateDeploymentSchema = z.object({
   integrationIds: z.array(z.string()).optional(),
   overrides: z.record(z.string()).optional(),
   notes: z.string().optional(),
+  customInstructions: z.string().optional(),
+  maxAttempts: z.number().min(1).max(5).default(3),
 });
 export type CreateDeploymentInput = z.infer<typeof CreateDeploymentSchema>;
 

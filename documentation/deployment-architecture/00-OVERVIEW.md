@@ -1,15 +1,34 @@
 # Deployment Architecture Overview
 
-This document describes the extensible deployment architecture in DXLander.
+This document describes the AI-powered deployment architecture in DXLander.
 
 ## Core Principles
 
-1. **Pluggable Executors**: Each deployment platform (Docker, Railway, Vercel) has its own executor
-2. **Trust AI-Generated Configs**: For 'provision' mode, keep AI-generated service configs as-is
-3. **Pre-flight Validation**: Run checks BEFORE deployment to catch issues early
-4. **Universal Project Support**: Works with any project - no hardcoded service lists
+1. **AI-Only Deployment**: All deployments are handled by an AI agent that can read files, deploy, and fix issues
+2. **Real-time Activity Logging**: Every AI action is logged and displayed to the user
+3. **Health Verification**: AI verifies deployment health before marking complete
+4. **Pluggable Executors**: Each deployment platform (Docker, Railway, Vercel) has its own executor
+5. **Universal Project Support**: Works with any project structure or framework
 
 ## Architecture Components
+
+### AI Deployment Agent
+
+The AI agent orchestrates the entire deployment process using tools:
+
+```
+AI Agent
+    │
+    ├── readDeploymentFile    → Read project files
+    ├── writeDeploymentFile   → Modify configs
+    ├── listDeploymentFiles   → Browse project
+    ├── runPreFlightChecks    → Validate environment
+    ├── deployProject         → docker-compose up
+    ├── checkServiceHealth    → Container status
+    ├── checkEndpointHealth   → HTTP health check
+    ├── getContainerLogs      → Live container logs
+    └── completeSession       → Mark done
+```
 
 ### Executor Interface (`IDeploymentExecutor`)
 
@@ -27,11 +46,7 @@ interface IDeploymentExecutor {
   delete(workDir: string, projectName: string, options?: DeleteOptions): Promise<void>;
   getLogs(workDir: string, projectName: string, options?: LogOptions): Promise<string>;
   getStatus(workDir: string, projectName: string): Promise<StatusResult>;
-  getDeployUrls(
-    workDir: string,
-    projectName: string,
-    envVars?: Record<string, string>
-  ): Promise<UrlResult[]>;
+  getDeployUrls(workDir, projectName, envVars?): Promise<UrlResult[]>;
 }
 ```
 
@@ -45,25 +60,106 @@ const executor = registry.get('docker'); // or 'railway', 'vercel'
 await executor.deploy(options);
 ```
 
-### Pre-flight Checks
+## Deployment Flow
 
-Checks run BEFORE the user clicks deploy:
+```
+┌─────────────────────────────────────────────────────────────────┐
+│  User clicks "Deploy to Docker"                                 │
+└──────────────────────────┬──────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  Create deployment record and session in DB                     │
+└──────────────────────────┬──────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  AI Agent starts with system prompt and tools                   │
+│  - Reads project files (Dockerfile, docker-compose.yml)         │
+│  - Runs pre-flight checks                                       │
+│  - Executes docker-compose up                                   │
+│  - Verifies container health                                    │
+│  - Makes HTTP health check to endpoint                          │
+│  - Marks session complete or handles errors                     │
+└──────────────────────────┬──────────────────────────────────────┘
+                           ↓
+┌─────────────────────────────────────────────────────────────────┐
+│  SSE streams real-time progress to frontend                     │
+│  - Activity log updates                                         │
+│  - Build logs streaming                                         │
+│  - Status changes                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+## Activity Logging
+
+Every AI tool call is logged to the `sessionActivity` table:
+
+| Field       | Description                       |
+| ----------- | --------------------------------- |
+| `sessionId` | Links to deployment session       |
+| `type`      | tool_call, ai_response, error     |
+| `action`    | Tool name (e.g., "deployProject") |
+| `input`     | Tool input as JSON                |
+| `output`    | Tool output as JSON               |
+| `timestamp` | When the action occurred          |
+
+Users can view activity logs in two places:
+
+1. **Real-time**: On the deploy page during active deployment
+2. **Historical**: In the DeploymentTab logs dialog after deployment
+
+## Health Verification
+
+The AI uses two tools to verify deployments:
+
+### checkServiceHealth
+
+Checks Docker container status:
+
+- Container running state
+- Restart count
+- Exit codes
+
+### checkEndpointHealth
+
+Makes HTTP requests to verify the service responds:
+
+- Configurable URL
+- Expected status code
+- Timeout handling
+- Response time measurement
+
+## Pre-flight Checks
+
+Checks run before deployment starts:
 
 1. **Docker Installed** - Verifies Docker CLI is available
 2. **Docker Daemon Running** - Pings Docker daemon
 3. **Docker Compose** - Verifies Compose plugin is installed
 4. **Compose File** - Checks docker-compose.yml exists
 5. **Compose Validation** - Validates YAML syntax
-6. **Docker Images** - Validates images exist in registry (only for 'provision' mode services)
+6. **Docker Images** - Validates images exist in registry
 7. **Disk Space** - Ensures sufficient disk space
 
-## Service Mode Behavior
+## Frontend Components
 
-| Mode        | Action on Deploy                                                  |
-| ----------- | ----------------------------------------------------------------- |
-| `provision` | Keep AI-generated service in docker-compose.yml                   |
-| `external`  | Remove service from docker-compose.yml (user provides connection) |
-| `none`      | Remove service from docker-compose.yml                            |
+### Dedicated Deploy Page
+
+- Platform selection (Docker, Railway, Vercel)
+- Custom instructions input
+- Deployment summary
+- Real-time AI activity log
+- Build logs terminal
+- Status card with controls
+
+### DeploymentTab (in Config view)
+
+- Deployment history list
+- Status badges
+- Start/Stop/Restart controls
+- Logs dialog with:
+  - AI Activity section
+  - Build Logs section
+  - Runtime Logs section
 
 ## Adding a New Platform
 
@@ -71,38 +167,33 @@ To add a new deployment platform (e.g., Railway):
 
 1. Create `apps/api/src/services/executors/railway.executor.ts`
 2. Implement `IDeploymentExecutor` interface
-3. Register in `apps/api/src/services/executors/index.ts`:
-
-```typescript
-export function initializeExecutors(): void {
-  const registry = getExecutorRegistry();
-  registry.register(new DockerDeploymentExecutor());
-  registry.register(new RailwayDeploymentExecutor()); // Add new executor
-}
-```
-
-4. Each platform can have its own pre-flight checks specific to that platform
+3. Register in `apps/api/src/services/executors/index.ts`
+4. Add platform-specific tools to `deployment-agent.service.ts`
+5. Add platform card to `DeploymentTargetSelector.tsx`
 
 ## File Structure
 
 ```
-apps/api/src/services/executors/
-├── types.ts              # IDeploymentExecutor interface and types
-├── registry.ts           # ExecutorRegistry class
-├── docker.executor.ts    # Docker Compose executor
-└── index.ts              # Exports and initialization
+apps/api/src/services/
+├── deployment-agent.service.ts    # AI agent
+├── deployment-executor.service.ts # Orchestration
+├── sse.service.ts                 # Real-time updates
+└── executors/
+    ├── types.ts                   # Interface definitions
+    ├── registry.ts                # ExecutorRegistry
+    ├── docker.executor.ts         # Docker Compose
+    └── index.ts                   # Initialization
+
+apps/web/
+├── app/project/[id]/configs/[configId]/deploy/
+│   └── page.tsx                   # Deploy page
+└── components/
+    ├── deployment/
+    │   ├── AIActivityLog.tsx      # Activity display
+    │   ├── BuildLogsPanel.tsx     # Build terminal
+    │   ├── DeploymentStatusCard.tsx
+    │   ├── DeploymentSummary.tsx
+    │   └── DeploymentTargetSelector.tsx
+    └── configuration/
+        └── DeploymentTab.tsx      # Deployment list
 ```
-
-## Future Features (Documented for Later)
-
-### "Fix with AI" Button
-
-When deployment fails, show a "Fix with AI" button that:
-
-1. Collects error logs and pre-flight results
-2. Sends to AI for analysis
-3. AI suggests fixes (e.g., correct image tag)
-4. User reviews and approves fix
-5. Retry deployment
-
-This feature is NOT implemented yet but documented for future development.

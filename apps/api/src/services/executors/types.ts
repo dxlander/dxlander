@@ -1,4 +1,4 @@
-import type { DeploymentPlatform } from '@dxlander/shared';
+import type { DeploymentPlatform, ErrorAnalysis, DeploymentErrorStage } from '@dxlander/shared';
 
 /**
  * Pre-flight check result for a single check
@@ -36,6 +36,8 @@ export interface DeployProgressEvent {
   type: 'info' | 'warning' | 'error' | 'success';
   message: string;
   details?: unknown;
+  /** Set to true for real-time log output lines */
+  isLog?: boolean;
 }
 
 /**
@@ -156,4 +158,12 @@ export interface IDeploymentExecutor {
     projectName: string,
     envVars?: Record<string, string>
   ): Promise<Array<{ service: string; url: string }>>;
+
+  /**
+   * Analyze an error and provide structured analysis with fix suggestions
+   *
+   * This method parses raw error output from deployment failures
+   * and returns actionable information for AI-assisted recovery.
+   */
+  analyzeError(rawError: string, stage: DeploymentErrorStage, deploymentId: string): ErrorAnalysis;
 }

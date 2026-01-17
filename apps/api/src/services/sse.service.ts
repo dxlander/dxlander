@@ -484,4 +484,154 @@ export class SSEService {
       console.error('Failed to send heartbeat:', error);
     }
   }
+
+  /**
+   * Create SSE connection and stream recovery session progress
+   */
+  static async streamSessionProgress(
+    c: Context,
+    sessionId: string,
+    userId: string
+  ): Promise<Response> {
+    const encoder = new TextEncoder();
+    let intervalId: NodeJS.Timeout | null = null;
+    let closed = false;
+
+    // Verify ownership before starting stream
+    const sessionCheck = await db.query.deploymentSessions.findFirst({
+      where: eq(schema.deploymentSessions.id, sessionId),
+    });
+
+    if (!sessionCheck) {
+      return new Response(JSON.stringify({ error: 'Session not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (sessionCheck.userId !== userId) {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized: You do not have access to this session' }),
+        { status: 403, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        // Send initial connection message
+        const message = `data: ${JSON.stringify({ type: 'connected', sessionId })}\n\n`;
+        controller.enqueue(encoder.encode(message));
+
+        // Function to send progress updates
+        const sendUpdate = async () => {
+          if (closed) return;
+
+          try {
+            // Get latest session status
+            const session = await db.query.deploymentSessions.findFirst({
+              where: eq(schema.deploymentSessions.id, sessionId),
+            });
+
+            if (!session) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: 'error', error: 'Session not found' })}\n\n`
+                )
+              );
+              controller.close();
+              return;
+            }
+
+            // Get activity logs
+            const logs = await db.query.sessionActivity.findMany({
+              where: eq(schema.sessionActivity.sessionId, sessionId),
+              orderBy: [desc(schema.sessionActivity.timestamp)],
+              limit: 50,
+            });
+
+            const activityLog = logs
+              .map((log) => ({
+                id: log.id,
+                type: log.type,
+                action: log.action,
+                input: safeJsonParse(log.input),
+                output: safeJsonParse(log.output),
+                durationMs: log.durationMs,
+                timestamp: log.timestamp?.toISOString(),
+              }))
+              .reverse(); // Oldest first
+
+            // Also get the deployment's build logs for real-time log streaming
+            let buildLogs: string | undefined;
+            if (session.deploymentId) {
+              const deployment = await db.query.deployments.findFirst({
+                where: eq(schema.deployments.id, session.deploymentId),
+              });
+              buildLogs = deployment?.buildLogs || undefined;
+            }
+
+            const progressData = {
+              type: 'progress',
+              id: session.id,
+              deploymentId: session.deploymentId,
+              status: session.status,
+              attemptNumber: session.attemptNumber,
+              maxAttempts: session.maxAttempts,
+              customInstructions: session.customInstructions,
+              agentState: session.agentState,
+              fileChanges: safeJsonParse(session.fileChanges) || [],
+              summary: session.summary,
+              activityLog,
+              buildLogs,
+              error: session.errorMessage,
+            };
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(progressData)}\n\n`));
+
+            // Stop streaming if session reaches terminal state
+            const terminalStates = ['completed', 'failed', 'cancelled'];
+            if (terminalStates.includes(session.status)) {
+              controller.enqueue(
+                encoder.encode(
+                  `data: ${JSON.stringify({ type: 'done', status: session.status, summary: session.summary })}\n\n`
+                )
+              );
+              if (intervalId) clearInterval(intervalId);
+              controller.close();
+              closed = true;
+            }
+          } catch (error) {
+            console.error('Error sending SSE session update:', error);
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({ type: 'error', error: 'Failed to fetch session progress' })}\n\n`
+              )
+            );
+          }
+        };
+
+        // Send initial update immediately
+        await sendUpdate();
+
+        // Send updates every 500ms
+        intervalId = setInterval(sendUpdate, 500);
+      },
+
+      cancel() {
+        closed = true;
+        if (intervalId) {
+          clearInterval(intervalId);
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        Connection: 'keep-alive',
+        'X-Accel-Buffering': 'no', // Disable nginx buffering
+      },
+    });
+  }
 }

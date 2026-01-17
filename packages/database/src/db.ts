@@ -424,6 +424,43 @@ async function createTables() {
       );
     `);
 
+    // Create deployment_sessions table (AI-only, no mode field)
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS deployment_sessions (
+        id TEXT PRIMARY KEY,
+        deployment_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'active',
+        custom_instructions TEXT,
+        attempt_number INTEGER DEFAULT 1,
+        max_attempts INTEGER DEFAULT 3,
+        agent_state TEXT,
+        agent_context TEXT,
+        agent_messages TEXT,
+        file_changes TEXT,
+        summary TEXT,
+        error_message TEXT,
+        started_at INTEGER,
+        completed_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `);
+
+    // Create session_activity table
+    sqlite.exec(`
+      CREATE TABLE IF NOT EXISTS session_activity (
+        id TEXT PRIMARY KEY,
+        session_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        action TEXT NOT NULL,
+        input TEXT,
+        output TEXT,
+        duration_ms INTEGER,
+        timestamp INTEGER NOT NULL
+      );
+    `);
+
     // Create audit_logs table
     sqlite.exec(`
       CREATE TABLE IF NOT EXISTS audit_logs (
@@ -537,6 +574,8 @@ export async function resetSetupState(): Promise<void> {
     // Clear runtime tables first to avoid foreign key issues
     await db.delete(schema.auditLogs);
     await db.delete(schema.deploymentCredentials);
+    await db.delete(schema.sessionActivity);
+    await db.delete(schema.deploymentSessions);
     await db.delete(schema.deploymentActivityLogs);
     await db.delete(schema.deployments);
     await db.delete(schema.buildRuns);
@@ -590,6 +629,8 @@ const VALID_TABLE_NAMES = new Set([
   'build_runs',
   'deployments',
   'deployment_activity_logs',
+  'deployment_sessions',
+  'session_activity',
   'config_services',
   'settings',
   'encryption_keys',

@@ -139,4 +139,29 @@ sseApp.get('/deployment/:deploymentId', sseAuthMiddleware, async (c) => {
   return SSEService.streamDeploymentProgress(c, deploymentId, user.id);
 });
 
+/**
+ * Stream recovery session progress in real-time
+ * GET /sse/session/:sessionId?token=xxx
+ *
+ * Events emitted:
+ * - connected: Initial connection established
+ * - progress: Session progress events (tool calls, AI messages, file changes)
+ * - done: Session completed (success or failure)
+ * - error: Error occurred during streaming
+ */
+sseApp.get('/session/:sessionId', sseAuthMiddleware, async (c) => {
+  const sessionId = c.req.param('sessionId');
+  const user = c.get('user');
+
+  if (!sessionId) {
+    return c.json({ error: 'Session ID is required' }, 400);
+  }
+
+  if (!user?.id) {
+    return c.json({ error: 'User not authenticated' }, 401);
+  }
+
+  return SSEService.streamSessionProgress(c, sessionId, user.id);
+});
+
 export { sseApp };
