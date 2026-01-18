@@ -601,6 +601,79 @@ export const deploymentCredentials = sqliteTable(
   })
 );
 
+// Deployment Sessions - AI-only deployment sessions
+export const deploymentSessions = sqliteTable(
+  'deployment_sessions',
+  {
+    id: text('id').primaryKey(),
+    deploymentId: text('deployment_id').notNull(),
+    userId: text('user_id').notNull(),
+
+    // Session status (always AI mode now)
+    status: text('status').notNull().default('active'), // 'active' | 'completed' | 'failed' | 'cancelled'
+
+    // User-provided instructions for AI
+    customInstructions: text('custom_instructions'),
+
+    // Attempt tracking
+    attemptNumber: integer('attempt_number').default(1),
+    maxAttempts: integer('max_attempts').default(3),
+
+    // AI Agent state
+    agentState: text('agent_state'), // Current state in the agent workflow
+    agentContext: text('agent_context'), // JSON: accumulated context for AI
+    agentMessages: text('agent_messages'), // JSON: conversation history
+
+    // File modifications made during session
+    fileChanges: text('file_changes'), // JSON: array of { file, before, after, reason }
+
+    // Results
+    summary: text('summary'),
+    errorMessage: text('error_message'),
+
+    // Timing
+    startedAt: integer('started_at', { mode: 'timestamp' }),
+    completedAt: integer('completed_at', { mode: 'timestamp' }),
+
+    createdAt: integer('created_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+    updatedAt: integer('updated_at', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    deploymentIdIdx: index('deployment_sessions_deployment_id_idx').on(table.deploymentId),
+    userIdIdx: index('deployment_sessions_user_id_idx').on(table.userId),
+    statusIdx: index('deployment_sessions_status_idx').on(table.status),
+  })
+);
+
+// Session Activity - Track individual actions within a deployment session
+export const sessionActivity = sqliteTable(
+  'session_activity',
+  {
+    id: text('id').primaryKey(),
+    sessionId: text('session_id').notNull(),
+
+    // Activity details
+    type: text('type').notNull(), // 'tool_call' | 'ai_response' | 'user_action' | 'error'
+    action: text('action').notNull(), // Tool name or action description
+    input: text('input'), // JSON: tool input or action context
+    output: text('output'), // JSON: tool output or result
+    durationMs: integer('duration_ms'),
+
+    timestamp: integer('timestamp', { mode: 'timestamp' })
+      .notNull()
+      .$defaultFn(() => new Date()),
+  },
+  (table) => ({
+    sessionIdIdx: index('session_activity_session_id_idx').on(table.sessionId),
+    timestampIdx: index('session_activity_timestamp_idx').on(table.timestamp),
+    typeIdx: index('session_activity_type_idx').on(table.type),
+  })
+);
+
 // Audit Logs - Track all credential access and modifications for security
 export const auditLogs = sqliteTable(
   'audit_logs',
@@ -646,6 +719,8 @@ export const schema = {
   buildRuns,
   deployments,
   deploymentActivityLogs,
+  deploymentSessions,
+  sessionActivity,
   configServices,
   settings,
   aiProviders,

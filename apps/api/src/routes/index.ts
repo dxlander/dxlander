@@ -9,6 +9,7 @@ import { setupRouter } from './setup';
 import { settingsRouter } from './settings';
 import { configsRouter } from './configs';
 import { aiProvidersRouter } from './ai-providers';
+import { sessionsRouter } from './sessions';
 
 export const appRouter = router({
   setup: setupRouter,
@@ -21,6 +22,7 @@ export const appRouter = router({
   settings: settingsRouter,
   configs: configsRouter,
   aiProviders: aiProvidersRouter,
+  sessions: sessionsRouter,
 });
 
 export type AppRouter = typeof appRouter;

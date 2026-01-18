@@ -4,24 +4,24 @@ import { randomUUID } from 'crypto';
 import * as path from 'path';
 import * as fs from 'fs';
 import { homedir } from 'os';
-import * as yaml from 'yaml';
 import { getExecutorRegistry, initializeExecutors } from './executors';
 import { ConfigServiceService } from './config-service.service';
 import {
-  validateDockerComposeImpl,
   type DeploymentPlatform,
   type DeploymentStatus,
   type Deployment,
   type DeploymentActivityLog,
-  type PreFlightCheck,
+  type ErrorAnalysis,
+  type SerializedErrorAnalysis,
 } from '@dxlander/shared';
 import type { PreFlightResult } from './executors/types';
+import { DeploymentAgentService } from './deployment-agent.service';
 
 // Initialize executors on module load
 initializeExecutors();
 
 /**
- * Deployment creation options
+ * Deployment creation options (AI-only mode)
  */
 export interface CreateDeploymentOptions {
   userId: string;
@@ -31,6 +31,8 @@ export interface CreateDeploymentOptions {
   name?: string;
   environment?: string;
   notes?: string;
+  customInstructions?: string;
+  maxAttempts?: number;
   onProgress?: (event: DeploymentProgressEvent) => void;
 }
 
@@ -48,12 +50,18 @@ export interface DeploymentProgressEvent {
 /**
  * Deployment Executor Service
  *
- * Orchestrates deployment operations across different platforms.
- * Uses the executor registry to support multiple deployment targets.
+ * Orchestrates AI-powered deployment operations.
+ * All deployments use AI agents for intelligent error handling and auto-recovery.
  */
 export class DeploymentExecutorService {
   /**
-   * Create and execute a deployment using the appropriate executor
+   * Create and execute a deployment using AI agent
+   *
+   * The AI agent will:
+   * 1. Analyze the configuration
+   * 2. Run pre-flight checks
+   * 3. Handle any errors automatically
+   * 4. Attempt deployment with auto-recovery
    */
   async createDeployment(options: CreateDeploymentOptions): Promise<Deployment> {
     const {
@@ -64,12 +72,10 @@ export class DeploymentExecutorService {
       name,
       environment = 'development',
       notes,
+      customInstructions,
+      maxAttempts = 3,
       onProgress,
     } = options;
-
-    // Get the executor for the requested platform
-    const registry = getExecutorRegistry();
-    const executor = registry.get(platform);
 
     // Validate config exists and belongs to user
     const config = await db.query.configSets.findFirst({
@@ -111,7 +117,7 @@ export class DeploymentExecutorService {
       throw new Error('docker-compose.yml not found in config');
     }
 
-    // Create deployment record
+    // Create deployment record with 'pending' status
     const deploymentId = randomUUID();
     const now = new Date();
     const deploymentName = name || `${project.name}-${Date.now()}`;
@@ -132,22 +138,22 @@ export class DeploymentExecutorService {
       metadata: JSON.stringify({
         composeProjectName,
         buildDir,
+        customInstructions,
+        maxAttempts,
       }),
       createdAt: now,
       updatedAt: now,
     });
 
-    await this.logActivity(deploymentId, 'deployment_started', 'Starting deployment');
+    await this.logActivity(deploymentId, 'deployment_started', 'Starting AI-assisted deployment');
 
     onProgress?.({
       phase: 'pre_flight',
       status: 'pre_flight',
-      message: 'Starting deployment...',
+      message: 'Starting AI-assisted deployment...',
     });
 
     try {
-      await this.updateDeploymentStatus(deploymentId, 'pre_flight');
-
       // Create build directory and copy files
       fs.mkdirSync(buildDir, { recursive: true });
       this.copyDirectorySync(filesDir, buildDir);
@@ -159,260 +165,118 @@ export class DeploymentExecutorService {
         fs.copyFileSync(dockerignorePath, path.join(buildDir, '.dockerignore'));
       }
 
-      // Get config services to determine which services to keep/remove
-      const configServices = await ConfigServiceService.getConfigServices(userId, configSetId);
-      const provisionServiceNames = configServices
-        .filter((s) => s.sourceMode === 'provision')
-        .map((s) => s.composeServiceName)
-        .filter(Boolean) as string[];
-
-      // Run pre-flight checks
-      const preFlightResult = await executor.runPreFlightChecks({
-        configPath: buildDir,
-        userId,
-        configSetId,
-        provisionServiceNames,
-      });
-
-      await this.logActivity(
-        deploymentId,
-        'pre_flight_complete',
-        preFlightResult.passed ? 'Pre-flight checks passed' : 'Pre-flight checks failed',
-        { checks: preFlightResult.checks }
-      );
-
-      if (!preFlightResult.passed) {
-        const failedChecks = preFlightResult.checks.filter(
-          (c: PreFlightCheck) => c.status === 'failed'
-        );
-        const errorMessage = failedChecks.map((c: PreFlightCheck) => c.message).join('; ');
-
-        await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
-
-        onProgress?.({
-          phase: 'error',
-          status: 'failed',
-          message: 'Pre-flight checks failed',
-          details: { checks: preFlightResult.checks },
-        });
-
-        return await this.getDeployment(deploymentId);
-      }
-
-      onProgress?.({
-        phase: 'pre_flight',
-        status: 'pre_flight',
-        message: 'Pre-flight checks passed',
-        details: { checks: preFlightResult.checks },
-      });
-
-      // Process docker-compose.yml based on config service modes
-      // Simplified: keep AI-generated services for 'provision' mode, remove for 'external'/'none'
-      const composePath = path.join(buildDir, 'docker-compose.yml');
-      const composeContent = fs.readFileSync(composePath, 'utf-8');
-      const composeDoc = yaml.parse(composeContent);
-
-      if (!composeDoc.services) {
-        composeDoc.services = {};
-      }
-      if (!composeDoc.volumes) {
-        composeDoc.volumes = {};
-      }
-
-      // Find the main app service (has build context)
-      let appServiceName = 'app';
-      if (!composeDoc.services['app']) {
-        appServiceName =
-          Object.keys(composeDoc.services).find(
-            (name) => composeDoc.services[name]?.build !== undefined
-          ) ||
-          Object.keys(composeDoc.services)[0] ||
-          'app';
-      }
-      const appService = composeDoc.services[appServiceName];
-
-      const removedServices: string[] = [];
-
-      for (const configService of configServices) {
-        const composeServiceName = configService.composeServiceName;
-
-        if (configService.sourceMode === 'external' || configService.sourceMode === 'none') {
-          // Remove the service - user provides external connection or skips
-          if (
-            composeServiceName &&
-            composeDoc.services[composeServiceName] &&
-            composeServiceName !== appServiceName
-          ) {
-            delete composeDoc.services[composeServiceName];
-
-            // Remove from depends_on
-            if (appService?.depends_on) {
-              if (Array.isArray(appService.depends_on)) {
-                appService.depends_on = appService.depends_on.filter(
-                  (dep: string) => dep !== composeServiceName
-                );
-              } else if (typeof appService.depends_on === 'object') {
-                delete appService.depends_on[composeServiceName];
-              }
-            }
-
-            removedServices.push(composeServiceName);
-          }
-        }
-        // For 'provision' mode: keep the AI-generated service as-is
-      }
-
-      // Clean up empty depends_on
-      if (appService?.depends_on) {
-        if (Array.isArray(appService.depends_on) && appService.depends_on.length === 0) {
-          delete appService.depends_on;
-        } else if (
-          typeof appService.depends_on === 'object' &&
-          Object.keys(appService.depends_on).length === 0
-        ) {
-          delete appService.depends_on;
-        }
-      }
-
-      // Clean up unused volumes
-      const usedVolumes = new Set<string>();
-      for (const [, serviceConfig] of Object.entries(composeDoc.services)) {
-        const svc = serviceConfig as any;
-        if (Array.isArray(svc.volumes)) {
-          for (const vol of svc.volumes) {
-            if (typeof vol === 'string' && vol.includes(':')) {
-              usedVolumes.add(vol.split(':')[0]);
-            }
-          }
-        }
-      }
-      for (const volumeName of Object.keys(composeDoc.volumes || {})) {
-        if (!usedVolumes.has(volumeName)) {
-          delete composeDoc.volumes[volumeName];
-        }
-      }
-
-      // Write updated docker-compose.yml
-      const updatedComposeContent = yaml.stringify(composeDoc, { lineWidth: 0 });
-      fs.writeFileSync(composePath, updatedComposeContent, 'utf-8');
-
-      if (removedServices.length > 0) {
+      // Prepare environment variables from config's _summary.json
+      const envVars = this.extractEnvironmentVariables(config.localPath);
+      if (Object.keys(envVars).length > 0) {
+        const envPath = path.join(buildDir, '.env');
+        this.writeEnvFile(envVars, envPath);
         await this.logActivity(
           deploymentId,
-          'compose_updated',
-          `Docker-compose updated: ${removedServices.length} service(s) removed (using external)`,
-          { removed: removedServices }
+          'env_prepared',
+          `Wrote ${Object.keys(envVars).length} environment variables to .env`
         );
-
-        // Validate modified compose file
-        const validationResult = await validateDockerComposeImpl({ projectPath: buildDir });
-
-        if (!validationResult.valid) {
-          const errorMessage = `Docker-compose validation failed: ${validationResult.message}`;
-          await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
-
-          onProgress?.({
-            phase: 'error',
-            status: 'failed',
-            message: errorMessage,
-          });
-
-          return await this.getDeployment(deploymentId);
-        }
       }
 
-      // Get resolved environment variables
-      const envVars = await ConfigServiceService.getResolvedEnvVars(userId, configSetId);
-
-      // Validate env var names
-      const envValidationErrors = this.validateEnvVarNames(envVars);
-      if (envValidationErrors.length > 0) {
-        const errorMessage = `Invalid environment variable names:\n${envValidationErrors.join('\n')}`;
-        await this.updateDeploymentStatus(deploymentId, 'failed', errorMessage);
-
-        onProgress?.({
-          phase: 'error',
-          status: 'failed',
-          message: errorMessage,
-        });
-
-        return await this.getDeployment(deploymentId);
-      }
-
-      // Deploy
-      await this.updateDeploymentStatus(deploymentId, 'building');
-
-      onProgress?.({
-        phase: 'build',
-        status: 'building',
-        message: 'Building and starting services...',
-      });
-
-      const deployResult = await executor.deploy({
-        workDir: buildDir,
-        projectName: composeProjectName,
-        envVars,
-        onProgress: (event) => {
-          onProgress?.({
-            phase: event.type === 'error' ? 'error' : 'build',
-            status: event.type === 'error' ? 'failed' : 'building',
-            message: event.message,
-          });
-        },
-      });
-
-      await this.logActivity(
-        deploymentId,
-        'deploy_complete',
-        deployResult.success ? 'Deployment successful' : 'Deployment failed',
-        { services: deployResult.services, success: deployResult.success }
-      );
-
-      if (!deployResult.success) {
-        await this.updateDeploymentStatus(
-          deploymentId,
-          'failed',
-          deployResult.errorMessage,
-          deployResult.logs
-        );
-
-        onProgress?.({
-          phase: 'error',
-          status: 'failed',
-          message: 'Deployment failed',
-          details: { error: deployResult.errorMessage },
-        });
-
-        return await this.getDeployment(deploymentId);
-      }
-
-      // Success
+      // Update deployment with build directory
       await db
         .update(schema.deployments)
         .set({
-          status: 'running',
-          buildLogs: deployResult.logs,
-          deployUrl: deployResult.deployUrl,
-          serviceUrls: deployResult.serviceUrls ? JSON.stringify(deployResult.serviceUrls) : null,
-          completedAt: new Date(),
-          updatedAt: new Date(),
           metadata: JSON.stringify({
             composeProjectName,
             buildDir,
-            services: deployResult.services,
+            customInstructions,
+            maxAttempts,
           }),
+          updatedAt: new Date(),
         })
         .where(eq(schema.deployments.id, deploymentId));
 
-      onProgress?.({
-        phase: 'complete',
-        status: 'running',
-        message: 'Deployment successful',
-        details: {
-          deployUrl: deployResult.deployUrl,
-          serviceUrls: deployResult.serviceUrls,
+      // Create AI agent service and start session
+      const agentService = new DeploymentAgentService();
+
+      const sessionId = await agentService.startAIDeploymentSession({
+        deploymentId,
+        userId,
+        configSetId,
+        maxAttempts,
+        customInstructions,
+        onProgress: (event) => {
+          // Convert session events to deployment events
+          if (event.type === 'session_started') {
+            onProgress?.({
+              phase: 'build',
+              status: 'building',
+              message: 'AI agent started',
+            });
+          } else if (event.type === 'ai_message') {
+            onProgress?.({
+              phase: 'build',
+              status: 'building',
+              message: event.content,
+            });
+          } else if (event.type === 'deploy_started') {
+            onProgress?.({
+              phase: 'deploy',
+              status: 'deploying',
+              message: 'Deploying...',
+            });
+          } else if (event.type === 'deploy_result') {
+            if (event.success) {
+              onProgress?.({
+                phase: 'complete',
+                status: 'running',
+                message: 'AI deployment successful',
+                details: { deployUrl: event.deployUrl },
+              });
+            } else {
+              onProgress?.({
+                phase: 'error',
+                status: 'failed',
+                message: event.error || 'Deployment failed',
+              });
+            }
+          } else if (event.type === 'session_completed') {
+            onProgress?.({
+              phase: 'complete',
+              status: 'running',
+              message: event.summary || 'AI deployment completed',
+              details: { deployUrl: event.deployUrl },
+            });
+          } else if (event.type === 'session_failed') {
+            onProgress?.({
+              phase: 'error',
+              status: 'failed',
+              message: event.error,
+              details: { suggestions: event.suggestions },
+            });
+          }
         },
       });
+
+      // Run the agent loop in background (don't await - SSE will track progress)
+      agentService.runAgentLoop().catch((error) => {
+        console.error('[AI Deployment] Agent loop error:', error);
+      });
+
+      // Return the deployment with session ID in metadata
+      const deployment = await this.getDeployment(deploymentId);
+
+      // Update metadata to include session ID
+      const existingMetadata =
+        typeof deployment.metadata === 'string'
+          ? JSON.parse(deployment.metadata || '{}')
+          : deployment.metadata || {};
+
+      await db
+        .update(schema.deployments)
+        .set({
+          metadata: JSON.stringify({
+            ...existingMetadata,
+            sessionId,
+          }),
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.deployments.id, deploymentId));
 
       return await this.getDeployment(deploymentId);
     } catch (error: any) {
@@ -648,23 +512,66 @@ export class DeploymentExecutorService {
 
   /**
    * Get activity logs for a deployment
+   * Fetches from sessionActivity table using the sessionId stored in deployment metadata
    */
   async getActivityLogs(userId: string, deploymentId: string): Promise<DeploymentActivityLog[]> {
-    await this.getDeploymentWithAuth(userId, deploymentId);
+    const deployment = await this.getDeploymentWithAuth(userId, deploymentId);
 
-    const logs = await db.query.deploymentActivityLogs.findMany({
-      where: eq(schema.deploymentActivityLogs.deploymentId, deploymentId),
-      orderBy: (dal, { asc }) => [asc(dal.timestamp)],
+    // Get sessionId from deployment metadata
+    let sessionId: string | null = null;
+    if (deployment.metadata) {
+      try {
+        const metadata =
+          typeof deployment.metadata === 'string'
+            ? JSON.parse(deployment.metadata)
+            : deployment.metadata;
+        sessionId = metadata?.sessionId || null;
+      } catch {
+        // Ignore parse errors
+      }
+    }
+
+    if (!sessionId) {
+      return [];
+    }
+
+    // Query sessionActivity table instead of deploymentActivityLogs
+    const logs = await db.query.sessionActivity.findMany({
+      where: eq(schema.sessionActivity.sessionId, sessionId),
+      orderBy: (sa, { asc }) => [asc(sa.timestamp)],
     });
 
     return logs.map((log) => ({
       id: log.id,
-      deploymentId: log.deploymentId,
+      deploymentId: deploymentId,
       action: log.action,
-      result: log.result,
-      details: log.details ? JSON.parse(log.details) : null,
+      result: log.output ? this.extractResultFromOutput(log.output) : null,
+      details: log.input ? [log.input] : null,
       timestamp: log.timestamp,
     }));
+  }
+
+  /**
+   * Extract a readable result from tool output
+   */
+  private extractResultFromOutput(outputStr: string): string | null {
+    try {
+      const output = JSON.parse(outputStr);
+      if (typeof output === 'object' && output !== null) {
+        if ('message' in output && typeof output.message === 'string') {
+          return output.message;
+        }
+        if ('success' in output) {
+          return output.success ? 'Completed successfully' : 'Failed';
+        }
+        if ('status' in output && typeof output.status === 'string') {
+          return output.status;
+        }
+      }
+      return null;
+    } catch {
+      return outputStr.slice(0, 100);
+    }
   }
 
   /**
@@ -860,6 +767,23 @@ export class DeploymentExecutorService {
   }
 
   /**
+   * Serialize error analysis for storage/transport
+   * Converts Date objects to ISO strings
+   */
+  private serializeErrorAnalysis(analysis: ErrorAnalysis): SerializedErrorAnalysis {
+    return {
+      error: {
+        ...analysis.error,
+        timestamp: analysis.error.timestamp.toISOString(),
+      },
+      possibleCauses: analysis.possibleCauses,
+      suggestedFixes: analysis.suggestedFixes,
+      relatedErrors: analysis.relatedErrors,
+      aiAnalysisAvailable: analysis.aiAnalysisAvailable,
+    };
+  }
+
+  /**
    * Format deployment from database
    */
   private formatDeployment(deployment: any): Deployment {
@@ -893,5 +817,67 @@ export class DeploymentExecutorService {
       createdAt: deployment.createdAt,
       updatedAt: deployment.updatedAt,
     };
+  }
+
+  /**
+   * Extract environment variables from config's _summary.json file
+   * Parses the environmentVariables section and returns key-value pairs
+   */
+  private extractEnvironmentVariables(configLocalPath: string | null): Record<string, string> {
+    if (!configLocalPath) return {};
+
+    try {
+      const summaryPath = path.join(configLocalPath, '_summary.json');
+      if (!fs.existsSync(summaryPath)) return {};
+
+      const summaryContent = fs.readFileSync(summaryPath, 'utf-8');
+      const summary = JSON.parse(summaryContent);
+      const envVars: Record<string, string> = {};
+
+      if (summary.environmentVariables) {
+        const { required = [], optional = [] } = summary.environmentVariables;
+
+        for (const envVar of [...required, ...optional]) {
+          if (envVar.key) {
+            const value = envVar.value || '';
+            if (value && this.isValidEnvVarName(envVar.key)) {
+              envVars[envVar.key] = value;
+            }
+          }
+        }
+      }
+
+      return envVars;
+    } catch {
+      return {};
+    }
+  }
+
+  /**
+   * Validate environment variable name
+   */
+  private isValidEnvVarName(name: string): boolean {
+    return /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(name);
+  }
+
+  /**
+   * Write environment variables to .env file
+   */
+  private writeEnvFile(envVars: Record<string, string>, outputPath: string): void {
+    const content = Object.entries(envVars)
+      .map(([key, value]) => {
+        let escapedValue = value
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r');
+        if (/[\s"'#$]/.test(value) || value.includes('\n') || value.includes('\r')) {
+          escapedValue = `"${escapedValue}"`;
+        }
+        return `${key}=${escapedValue}`;
+      })
+      .join('\n');
+
+    fs.writeFileSync(outputPath, content, 'utf-8');
   }
 }

@@ -2,12 +2,14 @@ import Docker from 'dockerode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as yaml from 'yaml';
-import { exec } from 'child_process';
+import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import {
   validateDockerComposeImpl,
   type PreFlightCheck,
   type DeploymentPlatform,
+  type ErrorAnalysis,
+  type DeploymentErrorStage,
 } from '@dxlander/shared';
 import type {
   IDeploymentExecutor,
@@ -18,6 +20,7 @@ import type {
   DeleteOptions,
   LogOptions,
 } from './types';
+import { ErrorParserService } from '../error-parser.service';
 
 const execAsync = promisify(exec);
 
@@ -173,20 +176,33 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
         onProgress?.({ type: 'info', message: 'Environment variables written to .env file' });
       }
 
-      let cmd = `docker compose -p "${projectName}"`;
-      cmd += ` -f "${path.join(workDir, 'docker-compose.yml')}"`;
-      cmd += ' up --build -d';
-
       onProgress?.({ type: 'info', message: 'Building and starting services...' });
 
-      const { stdout, stderr } = await execAsync(cmd, {
-        cwd: workDir,
-        maxBuffer: 50 * 1024 * 1024,
-        timeout: 30 * 60 * 1000, // 30 minute timeout for builds
-        env: { ...process.env, ...validEnvVars },
-      });
+      // Use spawn for real-time log streaming
+      const result = await this.runDockerComposeWithStreaming(
+        workDir,
+        projectName,
+        validEnvVars,
+        (chunk, type) => {
+          logs += chunk;
+          // Stream each log line to the progress callback
+          onProgress?.({
+            type: type === 'stderr' ? 'warning' : 'info',
+            message: chunk.trim(),
+            isLog: true,
+          });
+        }
+      );
 
-      logs = stdout + (stderr ? `\n${stderr}` : '');
+      if (!result.success) {
+        onProgress?.({ type: 'error', message: 'Docker Compose deployment failed' });
+        return {
+          success: false,
+          services: [],
+          errorMessage: result.error || 'Build failed',
+          logs,
+        };
+      }
 
       const services = await this.getComposeServices(workDir, projectName);
       const serviceUrls = await this.getDeployUrls(workDir, projectName, validEnvVars);
@@ -213,6 +229,65 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
         logs,
       };
     }
+  }
+
+  /**
+   * Run docker compose with real-time log streaming
+   */
+  private runDockerComposeWithStreaming(
+    workDir: string,
+    projectName: string,
+    envVars: Record<string, string>,
+    onLog: (chunk: string, type: 'stdout' | 'stderr') => void
+  ): Promise<{ success: boolean; error?: string }> {
+    return new Promise((resolve) => {
+      const composePath = path.join(workDir, 'docker-compose.yml');
+
+      const dockerProcess = spawn(
+        'docker',
+        ['compose', '-p', projectName, '-f', composePath, 'up', '--build', '-d'],
+        {
+          cwd: workDir,
+          env: { ...process.env, ...envVars },
+        }
+      );
+
+      let errorOutput = '';
+
+      dockerProcess.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        onLog(chunk, 'stdout');
+      });
+
+      dockerProcess.stderr.on('data', (data) => {
+        const chunk = data.toString();
+        errorOutput += chunk;
+        onLog(chunk, 'stderr');
+      });
+
+      // Set a 30-minute timeout
+      const timeout = setTimeout(
+        () => {
+          dockerProcess.kill('SIGTERM');
+          resolve({ success: false, error: 'Build timed out after 30 minutes' });
+        },
+        30 * 60 * 1000
+      );
+
+      dockerProcess.on('close', (code) => {
+        clearTimeout(timeout);
+        if (code === 0) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: errorOutput || `Process exited with code ${code}` });
+        }
+      });
+
+      dockerProcess.on('error', (err) => {
+        clearTimeout(timeout);
+        resolve({ success: false, error: err.message });
+      });
+    });
   }
 
   async start(
@@ -400,6 +475,17 @@ export class DockerDeploymentExecutor implements IDeploymentExecutor {
     }
 
     return serviceUrls;
+  }
+
+  /**
+   * Analyze a deployment error and return structured analysis with fix suggestions.
+   *
+   * This method parses raw error output from Docker/build failures
+   * and returns actionable information that can be used by the UI
+   * and AI-assisted recovery.
+   */
+  analyzeError(rawError: string, stage: DeploymentErrorStage, deploymentId: string): ErrorAnalysis {
+    return ErrorParserService.analyzeError(rawError, stage, deploymentId);
   }
 
   // ============================================================

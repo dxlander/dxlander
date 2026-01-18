@@ -198,3 +198,6 @@ export * from './serialized';
 
 // Config Service types (detected third-party services)
 export * from './config-service';
+
+// Deployment Error types (for AI-assisted recovery)
+export * from './deployment-errors';
