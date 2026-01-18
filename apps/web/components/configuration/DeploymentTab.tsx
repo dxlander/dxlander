@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -54,43 +54,6 @@ interface DeploymentTabProps {
   configSetId: string;
   projectId: string;
 }
-
-interface EnvironmentVariable {
-  key: string;
-  description: string;
-  value?: string;
-  example?: string;
-  integration?: string;
-}
-
-interface EnvironmentVariables {
-  required?: EnvironmentVariable[];
-  optional?: EnvironmentVariable[];
-}
-
-/**
- * Validate environment variable name
- * Returns error message if invalid, null if valid
- */
-const validateEnvVarName = (name: string): string | null => {
-  if (!name) return 'Empty variable name';
-
-  const validNameRegex = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-
-  if (!validNameRegex.test(name)) {
-    if (name.includes('*')) {
-      return `Wildcard (*) is not allowed`;
-    } else if (name.includes(' ')) {
-      return `Spaces are not allowed`;
-    } else if (/^[0-9]/.test(name)) {
-      return `Cannot start with a number`;
-    } else {
-      return `Contains invalid characters`;
-    }
-  }
-
-  return null;
-};
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -153,12 +116,6 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
     { enabled: !!configSetId }
   );
 
-  // Get config to show environment variables summary
-  const { data: configSet } = trpc.configs.get.useQuery(
-    { id: configSetId },
-    { enabled: !!configSetId }
-  );
-
   const { data: logsData, refetch: refetchLogs } = trpc.deployments.getLogs.useQuery(
     { deploymentId: selectedDeploymentId || '', type: 'all', tail: 100 },
     { enabled: !!selectedDeploymentId }
@@ -169,38 +126,6 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
       { deploymentId: selectedDeploymentId || '' },
       { enabled: !!selectedDeploymentId }
     );
-
-  // Parse environment variables from config metadata
-  let environmentVariables: EnvironmentVariables | undefined;
-  if (configSet?.metadata) {
-    try {
-      const summary =
-        typeof configSet.metadata === 'string'
-          ? JSON.parse(configSet.metadata)
-          : configSet.metadata;
-      environmentVariables = summary?.environmentVariables;
-    } catch {
-      // Ignore parse errors
-    }
-  }
-
-  // Extract port-related variables for display
-  const allEnvVars = [
-    ...(environmentVariables?.required || []),
-    ...(environmentVariables?.optional || []),
-  ];
-  const _portVars = allEnvVars.filter((v) => v.key.toUpperCase().includes('PORT'));
-  const _otherVars = allEnvVars.filter((v) => !v.key.toUpperCase().includes('PORT'));
-
-  // Validate all environment variable names
-  const envValidationErrors = allEnvVars
-    .map((v) => {
-      const error = validateEnvVarName(v.key);
-      return error ? { key: v.key, error } : null;
-    })
-    .filter((e): e is { key: string; error: string } => e !== null);
-
-  const _hasEnvErrors = envValidationErrors.length > 0;
 
   // Mutations
   const startMutation = trpc.deployments.start.useMutation({
@@ -246,16 +171,17 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
   // SSE for deployment progress
   const { data: deploymentProgress } = useDeploymentProgress(deployingId, !!deployingId);
 
-  // Clear deploying state when complete
-  if (
-    deploymentProgress?.status &&
-    ['running', 'failed', 'stopped'].includes(deploymentProgress.status)
-  ) {
-    if (deployingId) {
+  // Clear deploying state when deployment completes
+  useEffect(() => {
+    if (
+      deploymentProgress?.status &&
+      ['running', 'failed', 'stopped'].includes(deploymentProgress.status) &&
+      deployingId
+    ) {
       setDeployingId(null);
       refetchDeployments();
     }
-  }
+  }, [deploymentProgress?.status, deployingId, refetchDeployments]);
 
   const toggleErrorExpanded = (deploymentId: string) => {
     setExpandedErrors((prev) => {

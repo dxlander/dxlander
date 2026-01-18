@@ -175,7 +175,7 @@ export const CreateDeploymentSchema = z.object({
   overrides: z.record(z.string()).optional(),
   notes: z.string().optional(),
   customInstructions: z.string().optional(),
-  maxAttempts: z.number().min(1).max(5).default(3),
+  maxAttempts: z.number().int().min(1).max(5).default(3),
 });
 export type CreateDeploymentInput = z.infer<typeof CreateDeploymentSchema>;
 

@@ -66,11 +66,15 @@ function EnvVarRow({ envVar, index }: { envVar: EnvironmentVariable; index: numb
   const hasValue = !!value;
   const displayValue = showValue || !isSensitive ? value : maskValue(value);
 
-  const handleCopy = () => {
+  const handleCopy = async () => {
     if (value) {
-      navigator.clipboard.writeText(value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1500);
+      try {
+        await navigator.clipboard.writeText(value);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      } catch {
+        // Clipboard API may fail in non-secure contexts
+      }
     }
   };
 

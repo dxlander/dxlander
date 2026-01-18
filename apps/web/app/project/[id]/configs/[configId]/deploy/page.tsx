@@ -196,7 +196,7 @@ export default function DeployPage({ params }: PageProps) {
     createMutation.mutate({
       projectId: resolvedParams.id,
       configSetId: resolvedParams.configId,
-      platform: selectedPlatform === 'docker' ? 'docker' : 'docker',
+      platform: selectedPlatform,
       customInstructions: customInstructions || undefined,
       maxAttempts: 3,
     });

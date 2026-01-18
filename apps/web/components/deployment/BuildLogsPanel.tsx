@@ -58,9 +58,13 @@ export function BuildLogsPanel({ logs, isStreaming, className }: BuildLogsPanelP
   }, [logs, isStreaming]);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(cleanLogs);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(cleanLogs);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard API may fail in non-secure contexts
+    }
   };
 
   const handleDownload = () => {

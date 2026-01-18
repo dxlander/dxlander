@@ -304,7 +304,7 @@ export const StartRecoverySessionSchema = z.object({
   deploymentId: z.string().min(1),
   errorContext: z.string().optional(),
   autoApplyFixes: z.boolean().default(false),
-  maxAttempts: z.number().min(1).max(5).default(3),
+  maxAttempts: z.number().int().min(1).max(5).default(3),
 });
 export type StartRecoverySessionInput = z.infer<typeof StartRecoverySessionSchema>;
 
