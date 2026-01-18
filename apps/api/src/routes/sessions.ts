@@ -4,6 +4,14 @@ import { DeploymentAgentService } from '../services/deployment-agent.service';
 import { db, schema } from '@dxlander/database';
 import { eq, and } from 'drizzle-orm';
 
+function safeJsonParse(str: string): unknown {
+  try {
+    return JSON.parse(str);
+  } catch {
+    return str;
+  }
+}
+
 /**
  * Sessions Router
  *
@@ -62,6 +70,14 @@ export const sessionsRouter = router({
     // The client will track progress via SSE
     agentService.runAgentLoop().catch((error) => {
       console.error('Agent loop error:', error);
+      db.update(schema.deploymentSessions)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : 'Unknown error',
+          updatedAt: new Date(),
+        })
+        .where(eq(schema.deploymentSessions.id, sessionId))
+        .catch(console.error);
     });
 
     return {
@@ -89,10 +105,12 @@ export const sessionsRouter = router({
         throw new Error('Session not found or access denied');
       }
 
-      // Parse JSON fields
-      const fileChanges = session.fileChanges ? JSON.parse(session.fileChanges) : [];
-      const agentContext = session.agentContext ? JSON.parse(session.agentContext) : undefined;
-      const agentMessages = session.agentMessages ? JSON.parse(session.agentMessages) : undefined;
+      // Parse JSON fields safely
+      const fileChanges = session.fileChanges ? safeJsonParse(session.fileChanges) : [];
+      const agentContext = session.agentContext ? safeJsonParse(session.agentContext) : undefined;
+      const agentMessages = session.agentMessages
+        ? safeJsonParse(session.agentMessages)
+        : undefined;
 
       return {
         ...session,
@@ -123,7 +141,7 @@ export const sessionsRouter = router({
 
       return sessions.map((session) => ({
         ...session,
-        fileChanges: session.fileChanges ? JSON.parse(session.fileChanges) : [],
+        fileChanges: session.fileChanges ? safeJsonParse(session.fileChanges) : [],
         startedAt: session.startedAt?.toISOString(),
         completedAt: session.completedAt?.toISOString(),
         createdAt: session.createdAt?.toISOString(),
@@ -155,8 +173,8 @@ export const sessionsRouter = router({
 
       return activity.map((log) => ({
         ...log,
-        input: log.input ? JSON.parse(log.input) : undefined,
-        output: log.output ? JSON.parse(log.output) : undefined,
+        input: log.input ? safeJsonParse(log.input) : undefined,
+        output: log.output ? safeJsonParse(log.output) : undefined,
         timestamp: log.timestamp?.toISOString(),
       }));
     }),

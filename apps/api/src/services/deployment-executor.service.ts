@@ -839,7 +839,7 @@ export class DeploymentExecutorService {
 
         for (const envVar of [...required, ...optional]) {
           if (envVar.key) {
-            const value = envVar.value || envVar.example || '';
+            const value = envVar.value || '';
             if (value && this.isValidEnvVarName(envVar.key)) {
               envVars[envVar.key] = value;
             }
@@ -866,10 +866,14 @@ export class DeploymentExecutorService {
   private writeEnvFile(envVars: Record<string, string>, outputPath: string): void {
     const content = Object.entries(envVars)
       .map(([key, value]) => {
-        const escapedValue =
-          value.includes(' ') || value.includes('"') || value.includes("'")
-            ? `"${value.replace(/"/g, '\\"')}"`
-            : value;
+        let escapedValue = value
+          .replace(/\\/g, '\\\\')
+          .replace(/"/g, '\\"')
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r');
+        if (/[\s"'#$]/.test(value) || value.includes('\n') || value.includes('\r')) {
+          escapedValue = `"${escapedValue}"`;
+        }
         return `${key}=${escapedValue}`;
       })
       .join('\n');

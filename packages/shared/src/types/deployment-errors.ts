@@ -191,6 +191,32 @@ export type RecoverySessionStatus =
   | 'cancelled'; // User cancelled
 
 /**
+ * Message in recovery session (AI or system)
+ */
+export interface RecoveryMessage {
+  id: string;
+  role: 'system' | 'assistant' | 'tool';
+  content: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolOutput?: unknown;
+  timestamp: Date;
+}
+
+/**
+ * Serialized message in recovery session for API responses
+ */
+export interface SerializedRecoveryMessage {
+  id: string;
+  role: 'system' | 'assistant' | 'tool';
+  content: string;
+  toolName?: string;
+  toolInput?: unknown;
+  toolOutput?: unknown;
+  timestamp: string;
+}
+
+/**
  * AI recovery session
  */
 export interface RecoverySession {
@@ -221,24 +247,11 @@ export interface SerializedRecoverySession {
   maxAttempts: number;
   errorAnalysis?: SerializedErrorAnalysis;
   fixesApplied: FixResult[];
-  aiMessages: RecoveryMessage[];
+  aiMessages: SerializedRecoveryMessage[];
   startedAt: string;
   completedAt?: string;
   createdAt: string;
   updatedAt: string;
-}
-
-/**
- * Message in recovery session (AI or system)
- */
-export interface RecoveryMessage {
-  id: string;
-  role: 'system' | 'assistant' | 'tool';
-  content: string;
-  toolName?: string;
-  toolInput?: unknown;
-  toolOutput?: unknown;
-  timestamp: Date;
 }
 
 /**

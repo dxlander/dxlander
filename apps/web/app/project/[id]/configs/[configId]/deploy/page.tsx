@@ -420,11 +420,10 @@ export default function DeployPage({ params }: PageProps) {
                 <DeploymentSummary
                   projectName={project?.name || 'Project'}
                   projectFramework={configSet?.framework}
-                  projectLanguage={project?.language}
                   configName={configSet?.name || 'Config'}
                   configVersion={configSet?.version || 1}
                   metadata={configMetadata}
-                  platform={selectedPlatform === 'docker' ? 'docker' : 'docker'}
+                  platform={selectedPlatform as 'docker' | 'vercel' | 'railway'}
                 />
               </div>
             </div>

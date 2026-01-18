@@ -27,7 +27,6 @@ interface ConfigMetadata {
 interface DeploymentSummaryProps {
   projectName: string;
   projectFramework?: string | null;
-  projectLanguage?: string | null;
   configName: string;
   configVersion: number;
   metadata?: ConfigMetadata;

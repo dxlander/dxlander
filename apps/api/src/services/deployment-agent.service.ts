@@ -92,12 +92,17 @@ export class DeploymentAgentService {
     }
 
     // Get work directory from metadata
-    const metadata = deployment.metadata ? JSON.parse(deployment.metadata) : {};
-    this.workDir = metadata.buildDir;
-
-    if (!this.workDir || !fs.existsSync(this.workDir)) {
+    let metadata: Record<string, unknown> = {};
+    try {
+      metadata = deployment.metadata ? JSON.parse(deployment.metadata) : {};
+    } catch {
+      throw new Error('Invalid deployment metadata format');
+    }
+    const buildDir = metadata.buildDir;
+    if (typeof buildDir !== 'string' || !fs.existsSync(buildDir)) {
       throw new Error('Deployment work directory not found');
     }
+    this.workDir = buildDir;
 
     // Create session record
     this.sessionId = randomUUID();
@@ -155,12 +160,17 @@ export class DeploymentAgentService {
     }
 
     // Get work directory from metadata
-    const metadata = deployment.metadata ? JSON.parse(deployment.metadata) : {};
-    this.workDir = metadata.buildDir;
-
-    if (!this.workDir || !fs.existsSync(this.workDir)) {
+    let metadata: Record<string, unknown> = {};
+    try {
+      metadata = deployment.metadata ? JSON.parse(deployment.metadata) : {};
+    } catch {
+      throw new Error('Invalid deployment metadata format');
+    }
+    const buildDir = metadata.buildDir;
+    if (typeof buildDir !== 'string' || !fs.existsSync(buildDir)) {
       throw new Error('Deployment work directory not found');
     }
+    this.workDir = buildDir;
 
     // Create session record
     this.sessionId = randomUUID();
