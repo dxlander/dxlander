@@ -7,6 +7,7 @@ import {
   ensureDir,
   getDirSize,
   countFiles,
+  getRelativeProjectPath,
 } from './file-storage';
 
 /**
@@ -80,7 +81,7 @@ export async function extractZipFile(
     files,
     filesCount,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path for portability
   };
 }
 

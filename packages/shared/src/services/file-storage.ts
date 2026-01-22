@@ -46,12 +46,42 @@ export function getProjectConfigsDir(projectId: string): string {
   return path.join(getProjectDir(projectId), 'configs');
 }
 
-/**
- * Get specific config directory
- * Structure: ~/.dxlander/projects/{projectId}/configs/{configId}/
- */
 export function getConfigDir(projectId: string, configId: string): string {
   return path.join(getProjectConfigsDir(projectId), configId);
+}
+
+/**
+ * Convert absolute path to relative path from DXLANDER_HOME
+ * Example: /home/user/.dxlander/projects/abc123 -> projects/abc123
+ * This enables portable storage that works when .dxlander folder is moved
+ */
+export function getRelativeProjectPath(absolutePath: string): string {
+  const dxlanderHome = getDXLanderHome();
+  const resolvedPath = path.resolve(absolutePath);
+  const resolvedHome = path.resolve(dxlanderHome);
+
+  if (resolvedPath.startsWith(resolvedHome)) {
+    return path.relative(resolvedHome, resolvedPath);
+  }
+  // If not in DXLANDER_HOME, return as-is
+  return absolutePath;
+}
+
+/**
+ * Resolve relative (or absolute) path to absolute path based on DXLANDER_HOME
+ * Example: projects/abc123 -> /home/user/.dxlander/projects/abc123
+ * Handles both relative paths (new format) and absolute paths (legacy format)
+ */
+export function resolveProjectPath(pathStr: string | null | undefined): string | null {
+  if (!pathStr) return null;
+
+  // If already absolute, return as-is (backward compatibility)
+  if (path.isAbsolute(pathStr)) {
+    return pathStr;
+  }
+
+  // Resolve relative path against DXLANDER_HOME
+  return path.join(getDXLanderHome(), pathStr);
 }
 
 /**
@@ -196,7 +226,7 @@ export function saveProjectFiles(projectId: string, files: Map<string, string>):
   return {
     filesCount: filesWritten,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path for portability
   };
 }
 
@@ -237,7 +267,7 @@ export function persistTempProjectDirectory(
   return {
     filesCount,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path for portability
   };
 }
 
