@@ -5,6 +5,7 @@ import * as path from 'path';
 import {
   persistTempProjectDirectory,
   getProjectDir,
+  getRelativeProjectPath,
 } from '../../../../packages/shared/src/services/file-storage';
 
 const PROJECT_ID = 'test-project';
@@ -41,7 +42,8 @@ describe('persistTempProjectDirectory', () => {
     const result = persistTempProjectDirectory(PROJECT_ID, extractPath);
 
     const projectRoot = getProjectDir(PROJECT_ID);
-    expect(result.localPath).toBe(projectRoot);
+    // localPath is now returned as RELATIVE path for portability
+    expect(result.localPath).toBe(getRelativeProjectPath(projectRoot));
     expect(result.filesCount).toBe(files.length);
 
     const expectedSize = files.reduce((total, file) => total + Buffer.byteLength(file.contents), 0);

@@ -15,6 +15,8 @@ import {
   getConfigDir,
   getProjectConfigsDir,
   isPathSafe,
+  getRelativeProjectPath,
+  resolveProjectPath,
 } from '@dxlander/shared';
 import { randomUUID } from 'crypto';
 import { and, desc, eq } from 'drizzle-orm';
@@ -87,7 +89,7 @@ export class ConfigGenerationService {
         userId,
         name: configName,
         version: newVersion,
-        localPath: configPath,
+        localPath: getRelativeProjectPath(configPath), // Store RELATIVE path
         generatedBy: aiProvider.provider,
         status: 'generating',
         startedAt: new Date(),
@@ -129,6 +131,12 @@ export class ConfigGenerationService {
         throw new Error('Config set or localPath not found');
       }
 
+      // Resolve relative path to absolute for file operations
+      const resolvedConfigPath = resolveProjectPath(configSet.localPath);
+      if (!resolvedConfigPath) {
+        throw new Error('Could not resolve config path');
+      }
+
       await this.logConfigActivity(
         configSetId,
         'start_generation',
@@ -141,7 +149,7 @@ export class ConfigGenerationService {
         analysisResult: analysisResults,
         projectContext: {
           files: [],
-          projectPath: configSet.localPath,
+          projectPath: resolvedConfigPath, // Use RESOLVED absolute path
           readme: analysisResults.projectStructure.documentationFiles[0],
           onProgress: async (event) => {
             await this.logConfigActivity(
@@ -212,7 +220,7 @@ export class ConfigGenerationService {
           const fileExtension = fileName.split('.').pop() || 'txt';
           const fileType = fileExtension || 'text';
 
-          if (!isPathSafe(configSet.localPath, fileName)) {
+          if (!isPathSafe(resolvedConfigPath, fileName)) {
             await this.logConfigActivity(
               configSetId,
               'read_file',
@@ -223,7 +231,7 @@ export class ConfigGenerationService {
             continue;
           }
 
-          const filePath = path.join(configSet.localPath, fileName);
+          const filePath = path.join(resolvedConfigPath, fileName);
           let content = '';
 
           try {
@@ -252,7 +260,7 @@ export class ConfigGenerationService {
         }
       }
 
-      const summaryPath = path.join(configSet.localPath, '_summary.json');
+      const summaryPath = path.join(resolvedConfigPath, '_summary.json');
       try {
         await fs.access(summaryPath);
       } catch {
@@ -345,9 +353,13 @@ export class ConfigGenerationService {
       try {
         const fs = await import('fs/promises');
         const path = await import('path');
-        const summaryPath = path.join(configSet.localPath, '_summary.json');
-        const summaryContent = await fs.readFile(summaryPath, 'utf-8');
-        metadata = JSON.parse(summaryContent);
+        const { resolveProjectPath } = await import('@dxlander/shared');
+        const resolvedPath = resolveProjectPath(configSet.localPath);
+        if (resolvedPath) {
+          const summaryPath = path.join(resolvedPath, '_summary.json');
+          const summaryContent = await fs.readFile(summaryPath, 'utf-8');
+          metadata = JSON.parse(summaryContent);
+        }
       } catch {
         // File doesn't exist or couldn't be read
       }
