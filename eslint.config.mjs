@@ -124,22 +124,29 @@ export default [
     // Path Resolution Enforcement for API
     // Prevents direct usage of .localPath in path.join() without resolveProjectPath()
     // localPath stores RELATIVE paths - must be resolved to absolute before file operations
+    // NOTE: This block overrides no-restricted-syntax from apps/**, so we must include domain-type guardrail here too
     {
         files: ['apps/api/**/*.{ts,tsx}'],
         rules: {
             'no-restricted-syntax': [
                 'error',
+                // Domain type guardrail (inherited from apps/** - must be duplicated here since this overrides)
+                {
+                    selector: 'TSInterfaceDeclaration[id.name=/^(Project|Deployment|User|Integration|DeploymentCredential|ConfigSet|ProviderTestResult|ProviderTestConfig|ProjectFile)$/]',
+                    message: '❌ Do not redefine domain types as interfaces. Import from @dxlander/shared instead.',
+                },
+                // Path resolution guardrails (API-specific)
                 {
                     selector: 'CallExpression[callee.property.name="join"][arguments.0.property.name="localPath"]',
                     message: '❌ Do not use .localPath directly in path.join(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first to get absolute path.',
                 },
                 {
                     selector: 'CallExpression[callee.property.name="existsSync"][arguments.0.property.name="localPath"]',
-                    message: '❌ Do not use .localPath directly in fs.existsSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first',
+                    message: '❌ Do not use .localPath directly in fs.existsSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first.',
                 },
                 {
                     selector: 'CallExpression[callee.property.name="readFileSync"][arguments.0.property.name="localPath"]',
-                    message: '❌ Do not use .localPath directly in fs.readFileSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first',
+                    message: '❌ Do not use .localPath directly in fs.readFileSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first.',
                 },
             ],
         },
