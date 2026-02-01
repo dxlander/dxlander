@@ -60,10 +60,23 @@ export function getRelativeProjectPath(absolutePath: string): string {
   const resolvedPath = path.resolve(absolutePath);
   const resolvedHome = path.resolve(dxlanderHome);
 
-  if (resolvedPath.startsWith(resolvedHome)) {
+  // On Windows, drive letters can differ in case (C: vs c:) but represent the same path
+  // Use case-insensitive comparison on Windows
+  const isWindows = process.platform === 'win32';
+  const normalizedPath = isWindows ? resolvedPath.toLowerCase() : resolvedPath;
+  const normalizedHome = isWindows ? resolvedHome.toLowerCase() : resolvedHome;
+  const homeWithSep = normalizedHome + path.sep;
+
+  if (normalizedPath === normalizedHome || normalizedPath.startsWith(homeWithSep)) {
     return path.relative(resolvedHome, resolvedPath);
   }
-  // If not in DXLANDER_HOME, return as-is
+
+  // Path is outside DXLANDER_HOME - this shouldn't happen in normal usage
+  // Log warning and return as-is for backward compatibility
+  console.warn(
+    `[Path Warning] Path "${absolutePath}" is outside DXLANDER_HOME. ` +
+      `This may cause portability issues. Ensure all project paths are within ${dxlanderHome}`
+  );
   return absolutePath;
 }
 
