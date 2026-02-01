@@ -26,9 +26,9 @@ interface AnalysisResultsProps {
 }
 
 const InfoRow: React.FC<{ label: string; value: React.ReactNode }> = ({ label, value }) => (
-  <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-0">
-    <span className="text-sm text-gray-600">{label}</span>
-    <span className="text-sm font-medium text-gray-900 text-right">{value}</span>
+  <div className="flex justify-between items-start py-2 border-b border-border last:border-0">
+    <span className="text-sm text-muted-foreground">{label}</span>
+    <span className="text-sm font-medium text-foreground text-right">{value}</span>
   </div>
 );
 
@@ -66,13 +66,13 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
         <Card variant="interactive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-ocean-50 text-ocean-600">
+              <div className="p-3 rounded-xl bg-ocean-50 dark:bg-ocean-950 text-ocean-600 dark:text-ocean-400">
                 <Server className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Framework</p>
-                <p className="text-lg font-semibold text-gray-900">{results.framework.name}</p>
-                <p className="text-xs text-gray-500">{results.framework.version}</p>
+                <p className="text-sm text-muted-foreground">Framework</p>
+                <p className="text-lg font-semibold text-foreground">{results.framework.name}</p>
+                <p className="text-xs text-muted-foreground">{results.framework.version}</p>
               </div>
             </div>
           </CardContent>
@@ -81,13 +81,13 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
         <Card variant="interactive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-purple-50 text-purple-600">
+              <div className="p-3 rounded-xl bg-purple-50 dark:bg-purple-950 text-purple-600 dark:text-purple-400">
                 <Code className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Language</p>
-                <p className="text-lg font-semibold text-gray-900">{results.language.primary}</p>
-                <p className="text-xs text-gray-500">
+                <p className="text-sm text-muted-foreground">Language</p>
+                <p className="text-lg font-semibold text-foreground">{results.language.primary}</p>
+                <p className="text-xs text-muted-foreground">
                   {results.language.breakdown[results.language.primary]}%
                 </p>
               </div>
@@ -98,15 +98,15 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
         <Card variant="interactive">
           <CardContent className="pt-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-green-50 text-green-600">
+              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400">
                 <Package className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Dependencies</p>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Dependencies</p>
+                <p className="text-lg font-semibold text-foreground">
                   {results.dependencies.totalCount}
                 </p>
-                <p className="text-xs text-gray-500">{results.dependencies.totalSize}</p>
+                <p className="text-xs text-muted-foreground">{results.dependencies.totalSize}</p>
               </div>
             </div>
           </CardContent>
@@ -119,20 +119,20 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 className={cn(
                   'p-3 rounded-xl',
                   totalVulnerabilities === 0
-                    ? 'bg-green-50 text-green-600'
+                    ? 'bg-green-50 dark:bg-green-950 text-green-600 dark:text-green-400'
                     : totalVulnerabilities < 3
-                      ? 'bg-yellow-50 text-yellow-600'
-                      : 'bg-red-50 text-red-600'
+                      ? 'bg-yellow-50 dark:bg-yellow-950 text-yellow-600 dark:text-yellow-400'
+                      : 'bg-red-50 dark:bg-red-950 text-red-600 dark:text-red-400'
                 )}
               >
                 <Lock className="h-6 w-6" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Security</p>
-                <p className="text-lg font-semibold text-gray-900">
+                <p className="text-sm text-muted-foreground">Security</p>
+                <p className="text-lg font-semibold text-foreground">
                   {totalVulnerabilities === 0 ? 'Secure' : `${totalVulnerabilities} Issues`}
                 </p>
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {totalVulnerabilities === 0 ? 'No vulnerabilities' : 'View details below'}
                 </p>
               </div>
@@ -172,7 +172,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                   />
                 )}
                 <div className="pt-2">
-                  <p className="text-xs text-gray-500 mb-2">Detected from:</p>
+                  <p className="text-xs text-muted-foreground mb-2">Detected from:</p>
                   <div className="flex flex-wrap gap-1">
                     {results.framework.detectedFrom.map((source, idx) => (
                       <Badge key={idx} variant="secondary" className="text-xs">
@@ -189,8 +189,8 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 {Object.entries(results.language.breakdown).map(([lang, percentage]) => (
                   <div key={lang}>
                     <div className="flex justify-between text-sm mb-1">
-                      <span className="text-gray-600">{lang}</span>
-                      <span className="font-medium text-gray-900">{percentage}%</span>
+                      <span className="text-muted-foreground">{lang}</span>
+                      <span className="font-medium text-foreground">{percentage}%</span>
                     </div>
                     <Progress value={percentage} className="h-1.5" />
                   </div>
@@ -201,11 +201,11 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
             <SectionCard title="Runtime & Package Manager" icon={<Zap className="h-5 w-5" />}>
               <div className="space-y-2">
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">Runtime</p>
+                  <p className="text-xs text-muted-foreground mb-1">Runtime</p>
                   <InfoRow label={results.runtime.name} value={results.runtime.version} />
                 </div>
                 <div className="pt-2">
-                  <p className="text-xs text-gray-500 mb-1">Package Manager</p>
+                  <p className="text-xs text-muted-foreground mb-1">Package Manager</p>
                   <InfoRow
                     label={results.packageManager.name}
                     value={results.packageManager.version || 'Latest'}
@@ -219,7 +219,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 <InfoRow
                   label="Build Command"
                   value={
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    <code className="text-xs bg-muted px-2 py-1 rounded">
                       {results.buildConfig.buildCommand}
                     </code>
                   }
@@ -227,7 +227,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 <InfoRow
                   label="Start Command"
                   value={
-                    <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                    <code className="text-xs bg-muted px-2 py-1 rounded">
                       {results.buildConfig.startCommand}
                     </code>
                   }
@@ -250,14 +250,16 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 {results.dependencies.production.map((dep, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors"
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{dep.name}</p>
-                      <p className="text-xs text-gray-500">{dep.version}</p>
+                      <p className="text-sm font-medium text-foreground">{dep.name}</p>
+                      <p className="text-xs text-muted-foreground">{dep.version}</p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {dep.size && <span className="text-xs text-gray-500">{dep.size}</span>}
+                      {dep.size && (
+                        <span className="text-xs text-muted-foreground">{dep.size}</span>
+                      )}
                       {dep.risk && (
                         <Badge
                           variant={
@@ -291,13 +293,13 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                 {results.dependencies.development.map((dep, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-between p-2 rounded-lg hover:bg-muted transition-colors"
                   >
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{dep.name}</p>
-                      <p className="text-xs text-gray-500">{dep.version}</p>
+                      <p className="text-sm font-medium text-foreground">{dep.name}</p>
+                      <p className="text-xs text-muted-foreground">{dep.version}</p>
                     </div>
-                    {dep.size && <span className="text-xs text-gray-500">{dep.size}</span>}
+                    {dep.size && <span className="text-xs text-muted-foreground">{dep.size}</span>}
                   </div>
                 ))}
               </div>
@@ -315,7 +317,7 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               {results.environmentVariables.map((envVar, idx) => (
                 <div
                   key={idx}
-                  className="p-4 rounded-xl border border-gray-200 hover:border-ocean-200 hover:bg-ocean-50/20 transition-all"
+                  className="p-4 rounded-xl border border-border hover:border-ocean-200 dark:hover:border-ocean-800 hover:bg-ocean-50/20 dark:hover:bg-ocean-950/20 transition-all"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <code className="text-sm font-semibold text-ocean-600">{envVar.key}</code>
@@ -330,12 +332,12 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                       </Badge>
                     </div>
                   </div>
-                  <p className="text-sm text-gray-700 mb-2">{envVar.description}</p>
-                  <div className="bg-gray-50 p-2 rounded-lg mb-2">
-                    <code className="text-xs text-gray-600">{envVar.example}</code>
+                  <p className="text-sm text-foreground/90 mb-2">{envVar.description}</p>
+                  <div className="bg-muted p-2 rounded-lg mb-2">
+                    <code className="text-xs text-muted-foreground">{envVar.example}</code>
                   </div>
                   <div className="flex flex-wrap gap-1 mb-1">
-                    <span className="text-xs text-gray-500">Detected in:</span>
+                    <span className="text-xs text-muted-foreground">Detected in:</span>
                     {envVar.detectedIn.map((file, i) => (
                       <Badge key={i} variant="secondary" className="text-xs">
                         {file}
@@ -366,39 +368,39 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
             }
           >
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-              <div className="text-center p-3 rounded-xl bg-red-50">
-                <p className="text-2xl font-bold text-red-600">
+              <div className="text-center p-3 rounded-xl bg-red-50 dark:bg-red-950">
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">
                   {results.security.vulnerabilities.critical}
                 </p>
-                <p className="text-xs text-red-700">Critical</p>
+                <p className="text-xs text-red-700 dark:text-red-300">Critical</p>
               </div>
-              <div className="text-center p-3 rounded-xl bg-orange-50">
-                <p className="text-2xl font-bold text-orange-600">
+              <div className="text-center p-3 rounded-xl bg-orange-50 dark:bg-orange-950">
+                <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">
                   {results.security.vulnerabilities.high}
                 </p>
-                <p className="text-xs text-orange-700">High</p>
+                <p className="text-xs text-orange-700 dark:text-orange-300">High</p>
               </div>
-              <div className="text-center p-3 rounded-xl bg-yellow-50">
-                <p className="text-2xl font-bold text-yellow-600">
+              <div className="text-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-950">
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
                   {results.security.vulnerabilities.moderate}
                 </p>
-                <p className="text-xs text-yellow-700">Moderate</p>
+                <p className="text-xs text-yellow-700 dark:text-yellow-300">Moderate</p>
               </div>
-              <div className="text-center p-3 rounded-xl bg-green-50">
-                <p className="text-2xl font-bold text-green-600">
+              <div className="text-center p-3 rounded-xl bg-green-50 dark:bg-green-950">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
                   {results.security.vulnerabilities.low}
                 </p>
-                <p className="text-xs text-green-700">Low</p>
+                <p className="text-xs text-green-700 dark:text-green-300">Low</p>
               </div>
             </div>
 
             {results.security.notices.length > 0 && (
               <div className="space-y-3">
-                <h5 className="text-sm font-semibold text-gray-900">Security Notices</h5>
+                <h5 className="text-sm font-semibold text-foreground">Security Notices</h5>
                 {results.security.notices.map((notice, idx) => (
                   <div
                     key={idx}
-                    className="p-4 rounded-xl border-2 border-orange-200 bg-orange-50/50"
+                    className="p-4 rounded-xl border-2 border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/50"
                   >
                     <div className="flex items-start gap-3">
                       <AlertTriangle className="h-5 w-5 text-orange-600 flex-shrink-0 mt-0.5" />
@@ -408,13 +410,15 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                             {notice.severity}
                           </Badge>
                           {notice.cvss && (
-                            <span className="text-xs text-gray-600">CVSS: {notice.cvss}</span>
+                            <span className="text-xs text-muted-foreground">
+                              CVSS: {notice.cvss}
+                            </span>
                           )}
                         </div>
-                        <p className="text-sm font-medium text-gray-900 mb-1">
+                        <p className="text-sm font-medium text-foreground mb-1">
                           {notice.package} {notice.version}
                         </p>
-                        <p className="text-sm text-gray-700 mb-2">{notice.issue}</p>
+                        <p className="text-sm text-foreground/90 mb-2">{notice.issue}</p>
                         <p className="text-sm text-green-700 font-medium">
                           → {notice.recommendation}
                         </p>
@@ -437,12 +441,15 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
               >
                 <div className="space-y-3">
                   {results.recommendations.excellent.map((rec, idx) => (
-                    <div key={idx} className="p-3 rounded-xl bg-green-50 border border-green-200">
+                    <div
+                      key={idx}
+                      className="p-3 rounded-xl bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800"
+                    >
                       <div className="flex items-start gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                         <div>
-                          <p className="text-sm font-medium text-gray-900">{rec.title}</p>
-                          <p className="text-sm text-gray-600 mt-1">{rec.description}</p>
+                          <p className="text-sm font-medium text-foreground">{rec.title}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{rec.description}</p>
                           <Badge variant="success" className="mt-2 text-xs capitalize">
                             {rec.impact} impact
                           </Badge>
@@ -464,10 +471,10 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                   {results.recommendations.improvements.map((rec, idx) => (
                     <div
                       key={idx}
-                      className="p-4 rounded-xl bg-ocean-50/50 border border-ocean-200"
+                      className="p-4 rounded-xl bg-ocean-50/50 dark:bg-ocean-950/50 border border-ocean-200 dark:border-ocean-800"
                     >
                       <div className="flex items-start justify-between mb-2">
-                        <p className="text-sm font-medium text-gray-900">{rec.title}</p>
+                        <p className="text-sm font-medium text-foreground">{rec.title}</p>
                         <div className="flex gap-2">
                           {rec.difficulty && (
                             <Badge variant="secondary" className="text-xs capitalize">
@@ -481,12 +488,12 @@ export const AnalysisResults: React.FC<AnalysisResultsProps> = ({ results, class
                           )}
                         </div>
                       </div>
-                      <p className="text-sm text-gray-600 mb-2">{rec.description}</p>
+                      <p className="text-sm text-muted-foreground mb-2">{rec.description}</p>
                       <Badge variant="default" className="text-xs capitalize mb-2">
                         {rec.impact} impact
                       </Badge>
                       {rec.code && (
-                        <pre className="bg-gray-900 text-gray-100 p-3 rounded-lg text-xs overflow-x-auto mt-3">
+                        <pre className="bg-muted text-foreground p-3 rounded-lg text-xs overflow-x-auto mt-3 border border-border">
                           <code>{rec.code}</code>
                         </pre>
                       )}

@@ -101,7 +101,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading...</p>
+              <p className="text-muted-foreground">Loading...</p>
             </div>
           </div>
         </Section>
@@ -116,8 +116,8 @@ export default function NewConfigurationPage({ params }: PageProps) {
           <Card className="border-red-200">
             <CardContent className="p-16 text-center">
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
-              <p className="text-gray-600 mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-2">Project Not Found</h3>
+              <p className="text-muted-foreground mb-8">
                 The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
                 to it.
               </p>
@@ -189,7 +189,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             AI Provider: {aiProviderStatus.provider?.name}
                           </p>
                           <Badge variant="secondary" className="bg-ocean-100 text-ocean-700">
@@ -202,7 +202,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600">
+                        <p className="text-xs text-muted-foreground">
                           This provider will be used for project analysis
                         </p>
                       </div>
@@ -223,10 +223,10 @@ export default function NewConfigurationPage({ params }: PageProps) {
                         <XCircle className="h-6 w-6 text-red-600" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-2">
+                        <h3 className="font-semibold text-foreground mb-2">
                           No AI Provider Configured
                         </h3>
-                        <p className="text-sm text-gray-700 mb-4">
+                        <p className="text-sm text-foreground mb-4">
                           To generate configuration files, you need to configure an AI provider
                           first. This will enable automatic project analysis and intelligent
                           configuration generation.
@@ -270,7 +270,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 <Card variant="elevated">
                   <CardContent className="p-8 text-center">
                     <Loader2 className="h-8 w-8 animate-spin text-ocean-600 mx-auto mb-4" />
-                    <p className="text-gray-600">Initializing analysis...</p>
+                    <p className="text-muted-foreground">Initializing analysis...</p>
                   </CardContent>
                 </Card>
               )}
@@ -287,10 +287,10 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 <div className="flex items-center gap-3 p-4">
                   <Loader2 className="h-6 w-6 text-ocean-600 animate-spin" />
                   <div>
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-foreground">
                       Creating Docker + docker-compose.yml...
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-sm text-muted-foreground mt-1">
                       AI is generating optimized deployment configurations
                     </p>
                   </div>
@@ -311,32 +311,34 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
-                <p className="text-gray-600">
+                <p className="text-muted-foreground">
                   Generate production-ready Docker configuration files for your project. The AI will
                   analyze your project and create optimized configurations.
                 </p>
 
                 <div className="p-4 rounded-lg bg-ocean-50/30 border border-ocean-200">
-                  <h4 className="font-medium text-gray-900 mb-3">Files that will be generated:</h4>
+                  <h4 className="font-medium text-foreground mb-3">
+                    Files that will be generated:
+                  </h4>
                   <div className="flex flex-wrap gap-2">
-                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                    <span className="text-sm bg-white border border-ocean-200 text-foreground px-3 py-1.5 rounded font-mono">
                       Dockerfile
                     </span>
-                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                    <span className="text-sm bg-white border border-ocean-200 text-foreground px-3 py-1.5 rounded font-mono">
                       docker-compose.yml
                     </span>
-                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                    <span className="text-sm bg-white border border-ocean-200 text-foreground px-3 py-1.5 rounded font-mono">
                       .dockerignore
                     </span>
-                    <span className="text-sm bg-white border border-ocean-200 text-gray-700 px-3 py-1.5 rounded font-mono">
+                    <span className="text-sm bg-white border border-ocean-200 text-foreground px-3 py-1.5 rounded font-mono">
                       .env.example
                     </span>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-lg bg-gray-50 border">
-                  <h4 className="font-medium text-gray-900 mb-2">What the AI will do:</h4>
-                  <ul className="text-sm text-gray-600 space-y-1.5">
+                <div className="p-4 rounded-lg bg-muted/50 border">
+                  <h4 className="font-medium text-foreground mb-2">What the AI will do:</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1.5">
                     <li className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       Analyze your project structure and dependencies
@@ -361,7 +363,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 </div>
 
                 <div className="flex items-center justify-between pt-4 border-t">
-                  <p className="text-sm text-gray-500">Ready to generate configuration</p>
+                  <p className="text-sm text-muted-foreground">Ready to generate configuration</p>
                   <div className="flex items-center gap-3">
                     <Link href={`/project/${resolvedParams.id}/configs`}>
                       <Button variant="outline">Cancel</Button>

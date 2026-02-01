@@ -16,16 +16,16 @@ interface AIActivityLogProps {
 
 const ActivityLogItem: React.FC<{ entry: ActivityLogEntry }> = ({ entry }) => {
   return (
-    <div className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50/50 transition-colors">
+    <div className="p-3 rounded-lg border border-border hover:bg-muted/50 transition-colors">
       <div className="flex items-start justify-between gap-2 mb-1">
-        <p className="text-sm font-medium text-gray-900">{entry.action}</p>
-        <span className="text-xs text-gray-400">
+        <p className="text-sm font-medium text-foreground">{entry.action}</p>
+        <span className="text-xs text-muted-foreground">
           {new Date(entry.timestamp).toLocaleTimeString()}
         </span>
       </div>
-      {entry.result && <p className="text-sm text-gray-600">{entry.result}</p>}
+      {entry.result && <p className="text-sm text-muted-foreground">{entry.result}</p>}
       {entry.details && entry.details.length > 0 && (
-        <ul className="text-xs text-gray-500 space-y-0.5 ml-4 list-disc mt-1">
+        <ul className="text-xs text-muted-foreground space-y-0.5 ml-4 list-disc mt-1">
           {entry.details.map((detail, i) => (
             <li key={i}>{detail}</li>
           ))}
@@ -57,7 +57,7 @@ export function AIActivityLog({
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-xl mb-1">AI Activity</CardTitle>
-            <p className="text-sm text-gray-600">{currentActivity}</p>
+            <p className="text-sm text-muted-foreground">{currentActivity}</p>
           </div>
           {status === 'active' && (
             <Badge className="bg-ocean-100 text-ocean-700 border-ocean-300">Active</Badge>
@@ -72,7 +72,7 @@ export function AIActivityLog({
           className="space-y-2 max-h-[400px] overflow-y-auto scroll-smooth"
         >
           {activityLog.length === 0 ? (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-muted-foreground">
               <p className="text-sm">Waiting for AI activity...</p>
             </div>
           ) : (

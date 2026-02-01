@@ -119,8 +119,8 @@ function BackupContent() {
                     <CheckCircle2 className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Last Backup</p>
-                    <p className="text-lg font-bold text-gray-900">2 hours ago</p>
+                    <p className="text-xs text-muted-foreground mb-1">Last Backup</p>
+                    <p className="text-lg font-bold text-foreground">2 hours ago</p>
                   </div>
                 </div>
               </CardContent>
@@ -133,8 +133,8 @@ function BackupContent() {
                     <HardDrive className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Total Backups</p>
-                    <p className="text-lg font-bold text-gray-900">5 backups</p>
+                    <p className="text-xs text-muted-foreground mb-1">Total Backups</p>
+                    <p className="text-lg font-bold text-foreground">5 backups</p>
                   </div>
                 </div>
               </CardContent>
@@ -147,8 +147,8 @@ function BackupContent() {
                     <Database className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Storage Used</p>
-                    <p className="text-lg font-bold text-gray-900">12.0 MB</p>
+                    <p className="text-xs text-muted-foreground mb-1">Storage Used</p>
+                    <p className="text-lg font-bold text-foreground">12.0 MB</p>
                   </div>
                 </div>
               </CardContent>
@@ -164,19 +164,21 @@ function BackupContent() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+              <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                 <div className="flex items-center gap-3">
-                  <Clock className="h-5 w-5 text-gray-600" />
+                  <Clock className="h-5 w-5 text-muted-foreground" />
                   <div>
-                    <p className="font-medium text-gray-900">Enable Automatic Backups</p>
-                    <p className="text-sm text-gray-600">Create backups on a recurring schedule</p>
+                    <p className="font-medium text-foreground">Enable Automatic Backups</p>
+                    <p className="text-sm text-muted-foreground">
+                      Create backups on a recurring schedule
+                    </p>
                   </div>
                 </div>
                 <input
                   type="checkbox"
                   checked={autoBackupEnabled}
                   onChange={(e) => setAutoBackupEnabled(e.target.checked)}
-                  className="h-5 w-5 rounded border-gray-300 text-ocean-600 focus:ring-ocean-500"
+                  className="h-5 w-5 rounded border-border text-ocean-600 focus:ring-ocean-500"
                 />
               </div>
 
@@ -248,7 +250,7 @@ function BackupContent() {
                 {backups.map((backup) => (
                   <div
                     key={backup.id}
-                    className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:border-ocean-300 transition-colors"
+                    className="flex items-center justify-between p-4 border border-border rounded-lg hover:border-ocean-300 transition-colors"
                   >
                     <div className="flex items-center gap-4">
                       <div
@@ -260,7 +262,7 @@ function BackupContent() {
                       </div>
                       <div>
                         <div className="flex items-center gap-2 mb-1">
-                          <p className="font-medium text-gray-900">{backup.name}</p>
+                          <p className="font-medium text-foreground">{backup.name}</p>
                           <Badge
                             variant="secondary"
                             className={
@@ -272,7 +274,7 @@ function BackupContent() {
                             {backup.type === 'manual' ? 'Manual' : 'Auto'}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {backup.date}
@@ -328,12 +330,12 @@ function BackupContent() {
                 />
               </div>
 
-              <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <div className="p-4 bg-muted/50 border border-border rounded-lg">
                 <div className="flex items-start gap-3">
-                  <Shield className="h-5 w-5 text-gray-600 mt-0.5" />
+                  <Shield className="h-5 w-5 text-muted-foreground mt-0.5" />
                   <div>
-                    <h4 className="font-medium text-gray-900 mb-1">Backup Security</h4>
-                    <p className="text-sm text-gray-700">
+                    <h4 className="font-medium text-foreground mb-1">Backup Security</h4>
+                    <p className="text-sm text-foreground">
                       Backups are encrypted using your master encryption key. Keep your key safe to
                       ensure you can restore from backups.
                     </p>
@@ -360,8 +362,8 @@ function BackupContent() {
               <div className="flex items-start gap-3">
                 <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Warning</h4>
-                  <ul className="text-sm text-gray-700 space-y-1">
+                  <h4 className="font-medium text-foreground mb-1">Warning</h4>
+                  <ul className="text-sm text-foreground space-y-1">
                     <li>• Current database will be replaced</li>
                     <li>• All data after backup date will be lost</li>
                     <li>• A backup of current state will be created first</li>
@@ -372,12 +374,12 @@ function BackupContent() {
             </div>
 
             {selectedBackup && (
-              <div className="p-4 border border-gray-200 rounded-lg">
-                <p className="text-sm text-gray-600 mb-2">Restoring from:</p>
-                <p className="font-medium text-gray-900">
+              <div className="p-4 border border-border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-2">Restoring from:</p>
+                <p className="font-medium text-foreground">
                   {backups.find((b) => b.id === selectedBackup)?.name}
                 </p>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Created {backups.find((b) => b.id === selectedBackup)?.date}
                 </p>
               </div>

@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { trpc } from '@/lib/trpc';
 import type { SerializedProject } from '@dxlander/shared';
 import { formatDistanceToNow } from 'date-fns';
@@ -70,19 +71,19 @@ export default function Dashboard() {
         icon: <FolderOpen className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Imported',
-        color: 'text-blue-600 bg-blue-100',
+        color: 'text-ocean-600 dark:text-ocean-400 bg-ocean-100 dark:bg-ocean-900/50',
       },
       configured: {
         icon: <FileText className="h-4 w-4" />,
         variant: 'secondary' as const,
         label: 'Configured',
-        color: 'text-purple-600 bg-purple-100',
+        color: 'text-ocean-700 dark:text-ocean-300 bg-ocean-100 dark:bg-ocean-900/50',
       },
       deployed: {
         icon: <Rocket className="h-4 w-4" />,
         variant: 'default' as const,
         label: 'Deployed',
-        color: 'text-indigo-600 bg-indigo-100',
+        color: 'text-ocean-700 dark:text-ocean-300 bg-ocean-100 dark:bg-ocean-900/50',
       },
     };
     return configs[status as keyof typeof configs] || configs.imported;
@@ -123,6 +124,7 @@ export default function Dashboard() {
           Settings
         </Button>
       </Link>
+      <ThemeToggle />
     </div>
   );
 
@@ -147,7 +149,7 @@ export default function Dashboard() {
               </Link>
 
               <div className="relative w-96">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Search projects by name or framework..."
                   value={searchQuery}
@@ -163,7 +165,10 @@ export default function Dashboard() {
                 <TabsTrigger value="all" className="relative">
                   All Projects
                   {stats.all > 0 && (
-                    <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
+                    <Badge
+                      variant="secondary"
+                      className="ml-2 bg-secondary text-secondary-foreground"
+                    >
                       {stats.all}
                     </Badge>
                   )}
@@ -236,10 +241,10 @@ export default function Dashboard() {
                       <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
                         <FolderOpen className="h-12 w-12" />
                       </IconWrapper>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      <h3 className="text-xl font-semibold text-foreground mb-2">
                         {searchQuery ? 'No projects found' : 'No projects yet'}
                       </h3>
-                      <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                      <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                         {searchQuery
                           ? 'Try adjusting your search or import a new project'
                           : 'Import your first project. AI will analyze it and generate deployment configurations automatically.'}
@@ -275,7 +280,7 @@ export default function Dashboard() {
                                   <div className="flex-1 min-w-0 space-y-3">
                                     {/* Title & Status */}
                                     <div className="flex items-center gap-3 flex-wrap">
-                                      <h4 className="font-semibold text-gray-900 text-lg">
+                                      <h4 className="font-semibold text-foreground text-lg">
                                         {project.name}
                                       </h4>
                                       <Badge
@@ -288,7 +293,7 @@ export default function Dashboard() {
                                     </div>
 
                                     {/* Framework & Source */}
-                                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                       <span className="flex items-center gap-1.5">
                                         <Code className="h-3.5 w-3.5" />
                                         {project.language || 'Unknown'}
@@ -308,7 +313,7 @@ export default function Dashboard() {
                                             project.sourceType.slice(1)}
                                         </span>
                                       )}
-                                      <span className="text-gray-400">•</span>
+                                      <span className="text-muted-foreground/50">•</span>
                                       <span>
                                         {formatDistanceToNow(
                                           new Date(project.updatedAt || project.createdAt),
@@ -322,14 +327,14 @@ export default function Dashboard() {
                                       <div className="flex items-center gap-2 text-sm">
                                         {project.sourceType === 'zip' ? (
                                           <>
-                                            <Archive className="h-3.5 w-3.5 text-gray-400" />
-                                            <span className="text-gray-600 truncate">
+                                            <Archive className="h-3.5 w-3.5 text-muted-foreground" />
+                                            <span className="text-muted-foreground truncate">
                                               {project.sourceUrl}
                                             </span>
                                           </>
                                         ) : (
                                           <>
-                                            <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
+                                            <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                                             <span
                                               className="text-ocean-600 hover:text-ocean-700 hover:underline truncate cursor-pointer"
                                               onClick={(e) => {
@@ -353,8 +358,8 @@ export default function Dashboard() {
 
                                     {/* Deploy URL */}
                                     {project.deployUrl && (
-                                      <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
-                                        <ExternalLink className="h-3.5 w-3.5 text-gray-400" />
+                                      <div className="flex items-center gap-2 pt-2 border-t border-border">
+                                        <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
                                         <span
                                           className="text-sm text-ocean-600 hover:text-ocean-700 hover:underline flex-1 truncate cursor-pointer"
                                           onClick={(e) => {
@@ -388,7 +393,7 @@ export default function Dashboard() {
                                       </Button>
                                       <Button
                                         size="sm"
-                                        className="bg-purple-600 hover:bg-purple-700"
+                                        className="bg-gradient-to-r from-ocean-600 to-ocean-500 hover:from-ocean-700 hover:to-ocean-600"
                                       >
                                         <Rocket className="h-4 w-4 mr-1.5" />
                                         Deploy

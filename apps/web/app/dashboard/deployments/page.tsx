@@ -227,8 +227,10 @@ export default function DeploymentsPage() {
                   <ShieldCheck className="h-6 w-6 text-ocean-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-2">Secure Credential Management</h3>
-                  <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-700">
+                  <h3 className="font-semibold text-foreground mb-2">
+                    Secure Credential Management
+                  </h3>
+                  <div className="grid md:grid-cols-3 gap-4 text-sm text-foreground">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <span>AES-256-GCM Encryption</span>
@@ -258,7 +260,7 @@ export default function DeploymentsPage() {
                   <TabsTrigger key={cat.id} value={cat.id} className="relative">
                     {cat.label}
                     {cat.count > 0 && (
-                      <Badge variant="secondary" className="ml-2 bg-gray-200 text-gray-700">
+                      <Badge variant="secondary" className="ml-2 bg-muted text-foreground">
                         {cat.count}
                       </Badge>
                     )}
@@ -268,7 +270,7 @@ export default function DeploymentsPage() {
             </Tabs>
 
             <div className="relative w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
                 placeholder="Search deployment targets..."
                 value={searchQuery}
@@ -285,10 +287,10 @@ export default function DeploymentsPage() {
                 <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
                   <Server className="h-12 w-12" />
                 </IconWrapper>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   {searchQuery ? 'No deployment targets found' : 'No deployment targets yet'}
                 </h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   {searchQuery
                     ? 'Try adjusting your search or add a new deployment target'
                     : 'Add your first deployment target to enable automatic deployments. Connect Vercel, Railway, AWS, and more.'}
@@ -316,7 +318,7 @@ export default function DeploymentsPage() {
                           </IconWrapper>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-gray-900 truncate">
+                              <h4 className="font-semibold text-foreground truncate">
                                 {target.name}
                               </h4>
                               {target.isDefault && (
@@ -341,7 +343,7 @@ export default function DeploymentsPage() {
                                 </Badge>
                               )}
                             </div>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-muted-foreground">
                               {getPlatformName(target.platform)}
                             </p>
                           </div>
@@ -387,12 +389,14 @@ export default function DeploymentsPage() {
 
                       {/* Settings */}
                       {target.settings && Object.keys(target.settings).length > 0 && (
-                        <div className="p-3 bg-gray-50 rounded-lg">
+                        <div className="p-3 bg-muted/50 rounded-lg">
                           <div className="grid grid-cols-2 gap-2 text-sm">
                             {Object.entries(target.settings).map(([key, value]) => (
                               <div key={key}>
-                                <span className="text-gray-500">{key}:</span>{' '}
-                                <span className="font-medium text-gray-900">{value as string}</span>
+                                <span className="text-muted-foreground">{key}:</span>{' '}
+                                <span className="font-medium text-foreground">
+                                  {value as string}
+                                </span>
                               </div>
                             ))}
                           </div>
@@ -400,25 +404,27 @@ export default function DeploymentsPage() {
                       )}
 
                       {/* Stats */}
-                      <div className="flex items-center gap-6 pt-3 border-t border-gray-200 text-sm">
+                      <div className="flex items-center gap-6 pt-3 border-t border-border text-sm">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Encryption</p>
+                          <p className="text-xs text-muted-foreground mb-1">Encryption</p>
                           <div className="flex items-center gap-1">
                             <Lock className="h-3 w-3 text-ocean-600" />
-                            <span className="font-medium text-gray-900">{target.encryption}</span>
+                            <span className="font-medium text-foreground">{target.encryption}</span>
                           </div>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Used</p>
-                          <p className="font-semibold text-gray-900">{target.usageCount} times</p>
+                          <p className="text-xs text-muted-foreground mb-1">Used</p>
+                          <p className="font-semibold text-foreground">{target.usageCount} times</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Created</p>
-                          <p className="text-sm font-semibold text-gray-900">{target.createdAt}</p>
+                          <p className="text-xs text-muted-foreground mb-1">Created</p>
+                          <p className="text-sm font-semibold text-foreground">
+                            {target.createdAt}
+                          </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Last Used</p>
-                          <p className="text-sm font-semibold text-gray-900">{target.lastUsed}</p>
+                          <p className="text-xs text-muted-foreground mb-1">Last Used</p>
+                          <p className="text-sm font-semibold text-foreground">{target.lastUsed}</p>
                         </div>
                       </div>
                     </div>
@@ -463,7 +469,7 @@ export default function DeploymentsPage() {
                     <SelectValue placeholder="Select deployment platform" />
                   </SelectTrigger>
                   <SelectContent>
-                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
                       Platform as a Service
                     </div>
                     {platforms
@@ -476,7 +482,7 @@ export default function DeploymentsPage() {
                           </div>
                         </SelectItem>
                       ))}
-                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 border-t mt-1">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
                       Cloud Providers
                     </div>
                     {platforms
@@ -489,7 +495,7 @@ export default function DeploymentsPage() {
                           </div>
                         </SelectItem>
                       ))}
-                    <div className="px-2 py-1.5 text-xs font-semibold text-gray-500 border-t mt-1">
+                    <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground border-t mt-1">
                       Container Registries
                     </div>
                     {platforms
@@ -509,8 +515,8 @@ export default function DeploymentsPage() {
 
             {/* Platform-specific fields */}
             {showConfigFields && selectedPlatform && (
-              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 className="font-medium text-gray-900">Platform Configuration</h4>
+              <div className="space-y-4 p-4 bg-muted/50 rounded-lg border border-border">
+                <h4 className="font-medium text-foreground">Platform Configuration</h4>
 
                 {/* Vercel */}
                 {selectedPlatform === 'vercel' && (
@@ -581,8 +587,8 @@ export default function DeploymentsPage() {
               <div className="flex items-start gap-3">
                 <Lock className="h-5 w-5 text-ocean-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Automatic Encryption</h4>
-                  <p className="text-sm text-gray-700">
+                  <h4 className="font-medium text-foreground mb-1">Automatic Encryption</h4>
+                  <p className="text-sm text-foreground">
                     All credentials are encrypted using AES-256-GCM with your master encryption key.
                     They&apos;re securely stored and never exposed in plain text.
                   </p>

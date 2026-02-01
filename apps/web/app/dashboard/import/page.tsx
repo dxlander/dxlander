@@ -278,10 +278,10 @@ export default function ImportPage() {
             {/* Left Sidebar */}
             <div className="space-y-4">
               <div className="space-y-3">
-                <h2 className="text-lg font-semibold text-gray-900">Import Source</h2>
+                <h2 className="text-lg font-semibold text-foreground">Import Source</h2>
 
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     placeholder="Search import methods..."
                     value={searchQuery}
@@ -301,20 +301,20 @@ export default function ImportPage() {
                       disabled={isDisabled}
                       className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                         isDisabled
-                          ? 'border-gray-200 bg-gray-50 opacity-60 cursor-not-allowed'
+                          ? 'border-border bg-muted/50 opacity-60 cursor-not-allowed'
                           : selectedMethod === method.id
                             ? 'border-ocean-500 bg-ocean-50 shadow-md cursor-pointer'
-                            : 'border-gray-200 hover:border-ocean-300 hover:bg-gray-50 cursor-pointer'
+                            : 'border-border hover:border-ocean-300 hover:bg-muted/50 cursor-pointer'
                       }`}
                     >
                       <div className="flex items-start gap-3">
                         <div
                           className={`p-2 rounded-lg ${
                             isDisabled
-                              ? 'bg-gray-100 text-gray-400'
+                              ? 'bg-muted text-muted-foreground'
                               : selectedMethod === method.id
                                 ? 'bg-ocean-100 text-ocean-600'
-                                : 'bg-gray-100 text-gray-600'
+                                : 'bg-muted text-muted-foreground'
                           }`}
                         >
                           {method.icon}
@@ -322,7 +322,7 @@ export default function ImportPage() {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
                             <h3
-                              className={`font-semibold ${isDisabled ? 'text-gray-500' : 'text-gray-900'}`}
+                              className={`font-semibold ${isDisabled ? 'text-muted-foreground' : 'text-foreground'}`}
                             >
                               {method.name}
                             </h3>
@@ -337,7 +337,7 @@ export default function ImportPage() {
                             )}
                           </div>
                           <p
-                            className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}
+                            className={`text-sm ${isDisabled ? 'text-muted-foreground' : 'text-muted-foreground'}`}
                           >
                             {method.description}
                           </p>
@@ -352,9 +352,9 @@ export default function ImportPage() {
                 <CardContent className="p-4 space-y-3">
                   <div className="flex items-center gap-2">
                     <Shield className="h-5 w-5 text-ocean-600" />
-                    <h4 className="font-semibold text-gray-900 text-sm">Enterprise Security</h4>
+                    <h4 className="font-semibold text-foreground text-sm">Enterprise Security</h4>
                   </div>
-                  <div className="space-y-2 text-xs text-gray-700">
+                  <div className="space-y-2 text-xs text-foreground">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
                       <span>End-to-end encryption</span>
@@ -617,21 +617,23 @@ export default function ImportPage() {
                         <div>
                           {selectedFile ? (
                             <>
-                              <p className="text-lg font-semibold text-gray-900 mb-1">
+                              <p className="text-lg font-semibold text-foreground mb-1">
                                 {selectedFile.name}
                               </p>
-                              <p className="text-sm text-gray-600">
+                              <p className="text-sm text-muted-foreground">
                                 {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                               </p>
                               <p className="text-xs text-ocean-600 mt-2">Click to change file</p>
                             </>
                           ) : (
                             <>
-                              <p className="text-lg font-semibold text-gray-900 mb-1">
+                              <p className="text-lg font-semibold text-foreground mb-1">
                                 <span className="text-ocean-600">Click to upload</span> or drag and
                                 drop
                               </p>
-                              <p className="text-sm text-gray-600">ZIP archive up to 500MB</p>
+                              <p className="text-sm text-muted-foreground">
+                                ZIP archive up to 500MB
+                              </p>
                             </>
                           )}
                         </div>
@@ -642,7 +644,7 @@ export default function ImportPage() {
 
                 {/* Import Actions */}
                 <div className="flex items-center justify-between pt-6 border-t">
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Shield className="h-4 w-4 text-green-600" />
                     <span>All imports are encrypted and secure</span>
                   </div>

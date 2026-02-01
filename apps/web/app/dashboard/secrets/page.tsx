@@ -290,8 +290,8 @@ export default function SecretsPage() {
                   <ShieldCheck className="h-6 w-6 text-ocean-600" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900 mb-2">Enterprise-Grade Security</h3>
-                  <div className="grid md:grid-cols-2 gap-4 text-sm text-gray-700">
+                  <h3 className="font-semibold text-foreground mb-2">Enterprise-Grade Security</h3>
+                  <div className="grid md:grid-cols-2 gap-4 text-sm text-foreground">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <span>AES-256-GCM Encryption</span>
@@ -308,7 +308,7 @@ export default function SecretsPage() {
 
           {/* Search */}
           <div className="relative w-full md:w-96">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search secrets..."
               value={searchQuery}
@@ -322,7 +322,7 @@ export default function SecretsPage() {
             <Card>
               <CardContent className="p-16 text-center">
                 <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-                <p className="text-gray-600">Loading secrets...</p>
+                <p className="text-muted-foreground">Loading secrets...</p>
               </CardContent>
             </Card>
           )}
@@ -334,10 +334,10 @@ export default function SecretsPage() {
                 <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
                   <Key className="h-12 w-12" />
                 </IconWrapper>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   {searchQuery ? 'No secrets found' : 'No secrets yet'}
                 </h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   {searchQuery
                     ? 'Try adjusting your search or add a new secret'
                     : 'Add your first secret to securely store credentials for any third-party service. Define custom fields for maximum flexibility.'}
@@ -368,14 +368,14 @@ export default function SecretsPage() {
                           </IconWrapper>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-semibold text-gray-900 truncate">
+                              <h4 className="font-semibold text-foreground truncate">
                                 {secret.name}
                               </h4>
                               <Badge variant="secondary" className="flex-shrink-0">
                                 {secret.service}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
                               <Lock className="h-3.5 w-3.5" />
                               <span>AES-256-GCM Encrypted</span>
                             </div>
@@ -414,24 +414,24 @@ export default function SecretsPage() {
                       )}
 
                       {/* Stats */}
-                      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                      <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Used</p>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-xs text-muted-foreground mb-1">Used</p>
+                          <p className="text-sm font-semibold text-foreground">
                             {secret.usageCount}x
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Created</p>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-xs text-muted-foreground mb-1">Created</p>
+                          <p className="text-sm font-semibold text-foreground">
                             {formatDistanceToNow(new Date(secret.createdAt), {
                               addSuffix: true,
                             })}
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500 mb-1">Last Used</p>
-                          <p className="text-sm font-semibold text-gray-900">
+                          <p className="text-xs text-muted-foreground mb-1">Last Used</p>
+                          <p className="text-sm font-semibold text-foreground">
                             {secret.lastUsed
                               ? formatDistanceToNow(new Date(secret.lastUsed), {
                                   addSuffix: true,
@@ -469,14 +469,14 @@ export default function SecretsPage() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 leftIcon={<Key className="h-4 w-4" />}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 A friendly name to identify this secret (e.g., "Production Supabase", "Stripe Live")
               </p>
             </div>
 
             {/* Service Type Dropdown */}
             <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-900">Service Type</label>
+              <label className="text-sm font-medium text-foreground">Service Type</label>
               <Select
                 value={formData.service}
                 onValueChange={(value) => setFormData({ ...formData, service: value })}
@@ -490,10 +490,10 @@ export default function SecretsPage() {
                     return (
                       <SelectItem key={type.value} value={type.value}>
                         <div className="flex items-center gap-2">
-                          <Icon className="h-4 w-4 text-gray-500" />
+                          <Icon className="h-4 w-4 text-muted-foreground" />
                           <div>
                             <div className="font-medium">{type.label}</div>
-                            <div className="text-xs text-gray-500">{type.description}</div>
+                            <div className="text-xs text-muted-foreground">{type.description}</div>
                           </div>
                         </div>
                       </SelectItem>
@@ -501,7 +501,7 @@ export default function SecretsPage() {
                   })}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Choose the category that best describes this secret
               </p>
             </div>
@@ -510,8 +510,8 @@ export default function SecretsPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="text-sm font-medium text-gray-900">Credential Fields</label>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <label className="text-sm font-medium text-foreground">Credential Fields</label>
+                  <p className="text-xs text-muted-foreground mt-1">
                     Define custom fields for API keys, tokens, URLs, and other credentials
                   </p>
                 </div>
@@ -555,8 +555,8 @@ export default function SecretsPage() {
               <div className="flex items-start gap-3">
                 <Lock className="h-5 w-5 text-ocean-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Automatic Encryption</h4>
-                  <p className="text-sm text-gray-700">
+                  <h4 className="font-medium text-foreground mb-1">Automatic Encryption</h4>
+                  <p className="text-sm text-foreground">
                     All field values will be encrypted using AES-256-GCM before storage.
                   </p>
                 </div>
@@ -611,7 +611,7 @@ export default function SecretsPage() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-900">
+                <label className="text-sm font-medium text-foreground">
                   Update Credentials (optional)
                 </label>
                 <Button type="button" variant="outline" size="sm" onClick={addField}>
@@ -648,7 +648,7 @@ export default function SecretsPage() {
                   </Button>
                 </div>
               ))}
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 Leave fields empty to keep existing credentials
               </p>
             </div>

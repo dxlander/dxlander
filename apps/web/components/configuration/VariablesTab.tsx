@@ -263,11 +263,11 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
             <CardTitle>Environment Variables</CardTitle>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-sm text-gray-500">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>{totalCount} total</span>
-              <span className="text-gray-300">|</span>
+              <span className="text-border">|</span>
               <span className="text-red-600">{requiredCount} required</span>
-              <span className="text-gray-300">|</span>
+              <span className="text-border">|</span>
               <span className="text-blue-600">{optionalCount} optional</span>
             </div>
             <Button
@@ -285,7 +285,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
       <CardContent className="p-0">
         {/* Add New Variable Form */}
         {isAddingNew && (
-          <div className="border-b border-gray-200 bg-ocean-50/50 p-4">
+          <div className="border-b border-border bg-ocean-50/50 p-4">
             <div className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="flex-1">
@@ -367,7 +367,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
 
         {/* Variables List */}
         {variables.length > 0 ? (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-border">
             {variables.map((variable) => {
               const varId = `${variable.isRequired ? 'req' : 'opt'}-${variable.key}`;
               const isExpanded = expandedId === varId;
@@ -381,8 +381,8 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                 <div key={varId} className="group">
                   {/* Collapsed Row */}
                   <div
-                    className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                      isExpanded ? 'bg-gray-50' : ''
+                    className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors ${
+                      isExpanded ? 'bg-muted/50' : ''
                     } ${isManaged ? 'bg-ocean-50/30' : ''}`}
                     onClick={() => handleRowClick(variable)}
                   >
@@ -390,7 +390,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                     <div className="flex-shrink-0">
                       <div
                         className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          isManaged ? 'bg-ocean-100' : 'bg-gray-100'
+                          isManaged ? 'bg-ocean-100' : 'bg-muted'
                         }`}
                       >
                         {isManaged ? (
@@ -400,7 +400,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                             <Lock className="h-4 w-4 text-ocean-600" />
                           )
                         ) : (
-                          <Code className="h-4 w-4 text-gray-500" />
+                          <Code className="h-4 w-4 text-muted-foreground" />
                         )}
                       </div>
                     </div>
@@ -408,7 +408,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                     {/* Name & Description */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <code className="text-sm font-semibold font-mono text-gray-900">
+                        <code className="text-sm font-semibold font-mono text-foreground">
                           {variable.key}
                         </code>
                         {isManaged && (
@@ -429,7 +429,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500 truncate mt-0.5">
+                      <p className="text-sm text-muted-foreground truncate mt-0.5">
                         {isManaged
                           ? `Managed by ${managedInfo.serviceName} (${managedInfo.sourceMode})`
                           : variable.description || 'No description'}
@@ -444,22 +444,22 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                             e.stopPropagation();
                             toggleValueVisibility(variable.key);
                           }}
-                          className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                          className="p-1.5 rounded hover:bg-muted transition-colors"
                         >
                           {isValueVisible ? (
-                            <EyeOff className="h-4 w-4 text-gray-400" />
+                            <EyeOff className="h-4 w-4 text-muted-foreground" />
                           ) : (
-                            <Eye className="h-4 w-4 text-gray-400" />
+                            <Eye className="h-4 w-4 text-muted-foreground" />
                           )}
                         </button>
                       )}
                       {hasActualValue && (
-                        <code className="text-sm font-mono text-gray-600 max-w-[200px] truncate">
+                        <code className="text-sm font-mono text-muted-foreground max-w-[200px] truncate">
                           {isValueVisible ? displayValue : '••••••••••••'}
                         </code>
                       )}
                       {!hasActualValue && variable.example && (
-                        <span className="text-sm text-gray-400 italic">
+                        <span className="text-sm text-muted-foreground italic">
                           Example: {variable.example.substring(0, 20)}
                           {variable.example.length > 20 ? '...' : ''}
                         </span>
@@ -474,8 +474,8 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                       variant={variable.isRequired ? 'destructive' : 'secondary'}
                       className={`text-xs ${
                         variable.isRequired
-                          ? 'bg-red-100 text-red-700 hover:bg-red-100'
-                          : 'bg-blue-100 text-blue-700 hover:bg-blue-100'
+                          ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900'
+                          : 'bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300 hover:bg-ocean-100 dark:hover:bg-ocean-900'
                       }`}
                     >
                       {variable.isRequired ? 'Required' : 'Optional'}
@@ -489,20 +489,20 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                             e.stopPropagation();
                             handleCopyValue(displayValue, variable.key);
                           }}
-                          className="p-1.5 rounded hover:bg-gray-200 transition-colors"
+                          className="p-1.5 rounded hover:bg-muted transition-colors"
                         >
                           {copiedKey === variable.key ? (
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <CheckCircle2 className="h-4 w-4 text-ocean-600 dark:text-ocean-400" />
                           ) : (
-                            <Copy className="h-4 w-4 text-gray-400" />
+                            <Copy className="h-4 w-4 text-muted-foreground" />
                           )}
                         </button>
                       )}
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                          <button className="p-1.5 rounded hover:bg-gray-200 transition-colors">
-                            <MoreHorizontal className="h-4 w-4 text-gray-400" />
+                          <button className="p-1.5 rounded hover:bg-muted transition-colors">
+                            <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -519,7 +519,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                       </DropdownMenu>
 
                       {/* Expand Indicator */}
-                      <div className="text-gray-400">
+                      <div className="text-muted-foreground">
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4" />
                         ) : (
@@ -532,7 +532,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                   {/* Expanded Edit Form */}
                   {isExpanded && editingVariable && (
                     <div
-                      className={`px-6 pb-6 border-t border-gray-100 ${isManaged ? 'bg-ocean-50/50' : 'bg-gray-50'}`}
+                      className={`px-6 pb-6 border-t border-border ${isManaged ? 'bg-ocean-50/50' : 'bg-muted/50'}`}
                     >
                       <div className="pt-4 space-y-4">
                         {/* Managed Variable Warning */}
@@ -557,7 +557,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
 
                         {/* Name Field */}
                         <div>
-                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                          <label className="text-sm font-medium text-foreground mb-1.5 block">
                             Name
                           </label>
                           <FloatingInput
@@ -570,13 +570,13 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                               })
                             }
                             disabled={isManaged}
-                            className={`font-mono ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                            className={`font-mono ${isManaged ? 'bg-muted cursor-not-allowed' : 'bg-background'}`}
                           />
                         </div>
 
                         {/* Value Field */}
                         <div>
-                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                          <label className="text-sm font-medium text-foreground mb-1.5 block">
                             Value
                           </label>
                           <Textarea
@@ -591,12 +591,12 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                             }
                             rows={3}
                             disabled={isManaged}
-                            className={`text-sm font-mono resize-none ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                            className={`text-sm font-mono resize-none ${isManaged ? 'bg-muted cursor-not-allowed' : 'bg-background'}`}
                           />
                           {!isManaged && editingVariable.example && !editingVariable.value && (
-                            <p className="text-xs text-gray-500 mt-1">
+                            <p className="text-xs text-muted-foreground mt-1">
                               Example:{' '}
-                              <code className="bg-gray-100 px-1 rounded">
+                              <code className="bg-muted px-1 rounded">
                                 {editingVariable.example}
                               </code>
                             </p>
@@ -605,7 +605,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
 
                         {/* Description Field */}
                         <div>
-                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                          <label className="text-sm font-medium text-foreground mb-1.5 block">
                             Description
                           </label>
                           <FloatingInput
@@ -618,13 +618,13 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                               })
                             }
                             disabled={isManaged}
-                            className={isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}
+                            className={isManaged ? 'bg-muted cursor-not-allowed' : 'bg-background'}
                           />
                         </div>
 
                         {/* Type Selection */}
                         <div>
-                          <label className="text-sm font-medium text-gray-700 mb-1.5 block">
+                          <label className="text-sm font-medium text-foreground mb-1.5 block">
                             Type
                           </label>
                           <Select
@@ -638,7 +638,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                             disabled={isManaged}
                           >
                             <SelectTrigger
-                              className={`w-full ${isManaged ? 'bg-gray-100 cursor-not-allowed' : 'bg-white'}`}
+                              className={`w-full ${isManaged ? 'bg-muted cursor-not-allowed' : 'bg-background'}`}
                             >
                               <SelectValue />
                             </SelectTrigger>
@@ -658,7 +658,7 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
                               variant="ghost"
                               size="sm"
                               onClick={() => handleDeleteVariable(variable)}
-                              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="text-red-600 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950"
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
                               Delete
@@ -689,9 +689,11 @@ export function VariablesTab({ environmentVariables, onSave, configSetId }: Vari
           </div>
         ) : (
           <div className="text-center py-16">
-            <Key className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg font-medium mb-2">No environment variables</p>
-            <p className="text-gray-500 text-sm mb-4">
+            <Key className="h-16 w-16 text-border mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg font-medium mb-2">
+              No environment variables
+            </p>
+            <p className="text-muted-foreground text-sm mb-4">
               Add environment variables to configure your deployment
             </p>
             <Button

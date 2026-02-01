@@ -41,7 +41,7 @@ function highlightLogLine(line: string): { className: string; prefix?: string } 
     return { className: 'text-ocean-400', prefix: '' };
   }
 
-  return { className: 'text-gray-300', prefix: '' };
+  return { className: 'text-muted-foreground', prefix: '' };
 }
 
 export function BuildLogsPanel({ logs, isStreaming, className }: BuildLogsPanelProps) {
@@ -115,7 +115,7 @@ export function BuildLogsPanel({ logs, isStreaming, className }: BuildLogsPanelP
         <div className="h-[300px] overflow-auto" ref={scrollRef}>
           <div className="p-4 font-mono text-sm leading-relaxed">
             {lines.length === 0 ? (
-              <div className="flex items-center justify-center h-32 text-gray-500">
+              <div className="flex items-center justify-center h-32 text-muted-foreground">
                 <p>Waiting for build output...</p>
               </div>
             ) : (
@@ -123,7 +123,7 @@ export function BuildLogsPanel({ logs, isStreaming, className }: BuildLogsPanelP
                 const { className: lineClass } = highlightLogLine(line);
                 return (
                   <div key={index} className={cn('whitespace-pre-wrap break-all', lineClass)}>
-                    <span className="text-gray-600 select-none mr-3">
+                    <span className="text-muted-foreground select-none mr-3">
                       {String(index + 1).padStart(3, ' ')}
                     </span>
                     {line}
@@ -132,7 +132,7 @@ export function BuildLogsPanel({ logs, isStreaming, className }: BuildLogsPanelP
               })
             )}
             {isStreaming && (
-              <div className="flex items-center gap-2 text-gray-500 mt-2">
+              <div className="flex items-center gap-2 text-muted-foreground mt-2">
                 <span className="animate-pulse">_</span>
               </div>
             )}

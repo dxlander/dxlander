@@ -81,18 +81,18 @@ function EnvVarRow({ envVar, index }: { envVar: EnvironmentVariable; index: numb
     <div
       className={cn(
         'flex items-center justify-between py-2 px-3 rounded-lg',
-        index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+        index % 2 === 0 ? 'bg-muted/50' : 'bg-background'
       )}
     >
       <div className="flex items-center gap-3 min-w-0 flex-1">
-        <code className="text-sm font-semibold text-gray-900 truncate">{envVar.key}</code>
+        <code className="text-sm font-semibold text-foreground truncate">{envVar.key}</code>
         {!hasValue && (
           <Badge variant="outline" className="text-xs text-amber-600 border-amber-300 bg-amber-50">
             Not set
           </Badge>
         )}
         {isSensitive && hasValue && (
-          <Badge variant="outline" className="text-xs text-gray-500">
+          <Badge variant="outline" className="text-xs text-muted-foreground">
             Sensitive
           </Badge>
         )}
@@ -100,7 +100,7 @@ function EnvVarRow({ envVar, index }: { envVar: EnvironmentVariable; index: numb
       <div className="flex items-center gap-2 ml-4">
         {hasValue ? (
           <>
-            <code className="text-sm text-gray-600 font-mono max-w-[200px] truncate">
+            <code className="text-sm text-muted-foreground font-mono max-w-[200px] truncate">
               {displayValue}
             </code>
             {isSensitive && (
@@ -118,7 +118,7 @@ function EnvVarRow({ envVar, index }: { envVar: EnvironmentVariable; index: numb
             </Button>
           </>
         ) : (
-          <span className="text-sm text-gray-400 italic">—</span>
+          <span className="text-sm text-muted-foreground italic">—</span>
         )}
       </div>
     </div>
@@ -136,13 +136,13 @@ function PortMappingRow({
     <div
       className={cn(
         'flex items-center justify-between py-2 px-3 rounded-lg',
-        index % 2 === 0 ? 'bg-gray-50' : 'bg-white'
+        index % 2 === 0 ? 'bg-muted/50' : 'bg-background'
       )}
     >
       <span className="text-sm">
         <span className="font-mono font-medium text-ocean-700">{port.host}</span>
-        <span className="text-gray-400 mx-2">→</span>
-        <span className="font-mono text-gray-600">{port.container}</span>
+        <span className="text-muted-foreground mx-2">→</span>
+        <span className="font-mono text-muted-foreground">{port.container}</span>
       </span>
       {port.service && (
         <Badge variant="secondary" className="text-xs">
@@ -175,7 +175,11 @@ export function DeploymentSummary({
   const getPlatformBadge = () => {
     switch (platform) {
       case 'docker':
-        return <Badge className="bg-blue-100 text-blue-700 border-blue-300">Docker</Badge>;
+        return (
+          <Badge className="bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300 border-ocean-300 dark:border-ocean-700">
+            Docker
+          </Badge>
+        );
       case 'vercel':
         return <Badge className="bg-black text-white">Vercel</Badge>;
       case 'railway':
@@ -201,20 +205,30 @@ export function DeploymentSummary({
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Project</p>
-              <p className="text-sm font-semibold text-gray-900">{projectName}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Project
+              </p>
+              <p className="text-sm font-semibold text-foreground">{projectName}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Framework</p>
-              <p className="text-sm font-semibold text-gray-900">{projectFramework || 'Unknown'}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Framework
+              </p>
+              <p className="text-sm font-semibold text-foreground">
+                {projectFramework || 'Unknown'}
+              </p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Config</p>
-              <p className="text-sm font-semibold text-gray-900">{configName}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Config
+              </p>
+              <p className="text-sm font-semibold text-foreground">{configName}</p>
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Version</p>
-              <p className="text-sm font-semibold text-gray-900">v{configVersion}</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Version
+              </p>
+              <p className="text-sm font-semibold text-foreground">v{configVersion}</p>
             </div>
           </div>
 
@@ -253,7 +267,7 @@ export function DeploymentSummary({
             <div className="space-y-1">
               {requiredEnvVars.length > 0 && (
                 <div className="mb-3">
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                     Required
                   </p>
                   <div className="space-y-1 rounded-lg overflow-hidden">
@@ -265,7 +279,7 @@ export function DeploymentSummary({
               )}
               {optionalEnvVars.length > 0 && (
                 <div>
-                  <p className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-2">
                     Optional
                   </p>
                   <div className="space-y-1 rounded-lg overflow-hidden">
@@ -297,7 +311,7 @@ export function DeploymentSummary({
                   <PortMappingRow key={index} port={port} index={index} />
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-2">
+              <p className="text-xs text-muted-foreground mt-2">
                 Access your app at http://localhost:{ports[0]?.host}
               </p>
             </CardContent>
@@ -318,9 +332,9 @@ export function DeploymentSummary({
                 {services.map((service, index) => (
                   <div
                     key={index}
-                    className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between py-2 px-3 bg-muted/50 rounded-lg"
                   >
-                    <span className="text-sm font-medium text-gray-900">{service.name}</span>
+                    <span className="text-sm font-medium text-foreground">{service.name}</span>
                     {service.build ? (
                       <Badge variant="outline" className="text-xs">
                         Build
@@ -341,7 +355,7 @@ export function DeploymentSummary({
         {ports.length === 0 && services.length === 0 && (
           <Card className="md:col-span-2">
             <CardContent className="py-8">
-              <p className="text-center text-sm text-gray-500">
+              <p className="text-center text-sm text-muted-foreground">
                 Port and service information will be detected during deployment
               </p>
             </CardContent>

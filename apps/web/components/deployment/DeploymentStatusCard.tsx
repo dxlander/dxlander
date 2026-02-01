@@ -32,16 +32,16 @@ function getStatusConfig(status: DeploymentStatus) {
     case 'pending':
       return {
         label: 'Pending',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-100',
-        borderColor: 'border-gray-200',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted',
+        borderColor: 'border-border',
       };
     case 'pre_flight':
       return {
         label: 'Running Pre-flight Checks',
-        color: 'text-blue-500',
-        bgColor: 'bg-blue-50',
-        borderColor: 'border-blue-200',
+        color: 'text-ocean-500',
+        bgColor: 'bg-ocean-50 dark:bg-ocean-950',
+        borderColor: 'border-ocean-200 dark:border-ocean-800',
       };
     case 'building':
       return {
@@ -67,9 +67,9 @@ function getStatusConfig(status: DeploymentStatus) {
     case 'stopped':
       return {
         label: 'Stopped',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-200',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted/50',
+        borderColor: 'border-border',
       };
     case 'failed':
       return {
@@ -88,9 +88,9 @@ function getStatusConfig(status: DeploymentStatus) {
     default:
       return {
         label: 'Unknown',
-        color: 'text-gray-500',
-        bgColor: 'bg-gray-50',
-        borderColor: 'border-gray-200',
+        color: 'text-muted-foreground',
+        bgColor: 'bg-muted/50',
+        borderColor: 'border-border',
       };
   }
 }
@@ -127,7 +127,7 @@ export function DeploymentStatusCard({
         </div>
 
         {deployUrl && status === 'running' && (
-          <div className="p-3 bg-white/50 rounded-lg border border-ocean-200">
+          <div className="p-3 bg-background/50 rounded-lg border border-ocean-200">
             <p className="text-sm text-muted-foreground mb-2">Application URL</p>
             <a
               href={deployUrl}
@@ -141,7 +141,7 @@ export function DeploymentStatusCard({
         )}
 
         {status === 'failed' && errorMessage && (
-          <div className="p-3 bg-white/50 rounded-lg border border-red-200">
+          <div className="p-3 bg-background/50 rounded-lg border border-red-200">
             <p className="text-sm font-medium text-red-700 mb-1">Error</p>
             <p className="text-sm text-red-600">{errorMessage}</p>
             {suggestions && suggestions.length > 0 && (

@@ -75,7 +75,7 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
       <CardContent>
         {configFiles.length > 0 ? (
           <Tabs defaultValue={configFiles[0]?.fileName || ''} className="w-full">
-            <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-gray-50">
+            <TabsList className="w-full justify-start overflow-x-auto flex-wrap h-auto bg-muted/50">
               {configFiles.map((file) => (
                 <TabsTrigger key={file.id} value={file.fileName} className="font-mono text-sm">
                   {file.fileName}
@@ -98,7 +98,7 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                     )}
 
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-mono text-sm text-gray-700">{file.fileName}</h4>
+                      <h4 className="font-mono text-sm text-foreground">{file.fileName}</h4>
                       {!isEditing ? (
                         <div className="flex gap-2">
                           <Button
@@ -116,7 +116,7 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                           >
                             {copiedFile === file.fileName ? (
                               <>
-                                <CheckCircle2 className="h-4 w-4 mr-2 text-green-600" />
+                                <CheckCircle2 className="h-4 w-4 mr-2 text-ocean-600 dark:text-ocean-400" />
                                 Copied!
                               </>
                             ) : (
@@ -156,11 +156,11 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                         <Textarea
                           value={displayContent}
                           onChange={(e) => setEditedContent(e.target.value)}
-                          className="w-full min-h-[500px] bg-gray-50 border border-gray-200 rounded-lg p-4 font-mono text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:border-transparent resize-y"
+                          className="w-full min-h-[500px] bg-muted/50 border border-border rounded-lg p-4 font-mono text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ocean-500 focus:border-transparent resize-y"
                           spellCheck={false}
                         />
                       ) : (
-                        <pre className="bg-gray-900 text-gray-100 p-6 rounded-lg overflow-x-auto max-h-[600px] border border-gray-700">
+                        <pre className="bg-muted text-foreground p-6 rounded-lg overflow-x-auto max-h-[600px] border border-border">
                           <code className="text-sm font-mono leading-relaxed">
                             {displayContent}
                           </code>
@@ -168,7 +168,7 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
                       )}
                     </div>
 
-                    <p className="text-xs text-gray-500 mt-2">
+                    <p className="text-xs text-muted-foreground mt-2">
                       {displayContent.split('\n').length} lines
                     </p>
                   </div>
@@ -178,8 +178,10 @@ export function FilesTab({ files, onSaveFile }: FilesTabProps) {
           </Tabs>
         ) : (
           <div className="text-center py-16">
-            <FileCode className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg font-medium">No configuration files available</p>
+            <FileCode className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground text-lg font-medium">
+              No configuration files available
+            </p>
           </div>
         )}
       </CardContent>

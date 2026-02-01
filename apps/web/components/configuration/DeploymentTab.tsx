@@ -90,7 +90,7 @@ const getStatusBadge = (status: string) => {
       );
     case 'terminated':
       return (
-        <Badge variant="outline" className="text-gray-500">
+        <Badge variant="outline" className="text-muted-foreground">
           <Square className="h-3 w-3 mr-1" />
           Terminated
         </Badge>
@@ -274,12 +274,12 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-medium text-gray-900">
+                          <h4 className="font-medium text-foreground">
                             {deployment.name || `Deployment ${deployment.id.slice(0, 8)}`}
                           </h4>
                           {getStatusBadge(deployment.status)}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                        <div className="flex items-center gap-4 mt-1 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
                             {formatDistanceToNow(new Date(deployment.createdAt), {
@@ -288,7 +288,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                           </span>
                           <span>Platform: {deployment.platform}</span>
                           {deployment.imageTag && (
-                            <span className="font-mono text-xs bg-gray-100 px-1 rounded">
+                            <span className="font-mono text-xs bg-muted px-1 rounded">
                               {deployment.imageTag}
                             </span>
                           )}
@@ -325,7 +325,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                         ) : null}
                         {deployment.ports && (
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-xs text-gray-500">Ports:</span>
+                            <span className="text-xs text-muted-foreground">Ports:</span>
                             {(typeof deployment.ports === 'string'
                               ? JSON.parse(deployment.ports)
                               : deployment.ports
@@ -469,16 +469,16 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
 
                           {/* Expanded Error Details */}
                           {isExpanded && errorAnalysis && (
-                            <div className="p-3 bg-white space-y-3">
+                            <div className="p-3 bg-background space-y-3">
                               {/* Possible Causes */}
                               {errorAnalysis.possibleCauses &&
                                 errorAnalysis.possibleCauses.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1.5">
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
                                       <Lightbulb className="h-3 w-3 text-amber-500" />
                                       Possible Causes
                                     </div>
-                                    <ul className="text-sm text-gray-600 space-y-1 ml-4">
+                                    <ul className="text-sm text-muted-foreground space-y-1 ml-4">
                                       {errorAnalysis.possibleCauses
                                         .slice(0, 4)
                                         .map((cause, idx) => (
@@ -494,7 +494,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                               {errorAnalysis.suggestedFixes &&
                                 errorAnalysis.suggestedFixes.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1.5">
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
                                       <Wrench className="h-3 w-3 text-ocean-500" />
                                       Suggested Fixes
                                     </div>
@@ -502,10 +502,10 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                                       {errorAnalysis.suggestedFixes.slice(0, 3).map((fix, idx) => (
                                         <div
                                           key={idx}
-                                          className="text-sm p-2 bg-gray-50 rounded border border-gray-100"
+                                          className="text-sm p-2 bg-muted/50 rounded border border-border"
                                         >
                                           <div className="flex items-start gap-2">
-                                            <span className="font-medium text-gray-700">
+                                            <span className="font-medium text-foreground">
                                               {fix.description}
                                             </span>
                                             <Badge
@@ -515,14 +515,14 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                                                   ? 'text-green-600 border-green-300'
                                                   : fix.confidence === 'medium'
                                                     ? 'text-amber-600 border-amber-300'
-                                                    : 'text-gray-500 border-gray-300'
+                                                    : 'text-muted-foreground border-gray-300'
                                               }`}
                                             >
                                               {fix.confidence}
                                             </Badge>
                                           </div>
                                           {fix.details?.instructions && (
-                                            <p className="text-xs text-gray-500 mt-1">
+                                            <p className="text-xs text-muted-foreground mt-1">
                                               {fix.details.instructions}
                                             </p>
                                           )}
@@ -536,8 +536,8 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                               {errorAnalysis.error?.context &&
                                 errorAnalysis.error.context.length > 0 && (
                                   <div>
-                                    <div className="flex items-center gap-1.5 text-xs font-medium text-gray-700 mb-1.5">
-                                      <Terminal className="h-3 w-3 text-gray-500" />
+                                    <div className="flex items-center gap-1.5 text-xs font-medium text-foreground mb-1.5">
+                                      <Terminal className="h-3 w-3 text-muted-foreground" />
                                       Error Context
                                     </div>
                                     <pre className="text-xs bg-gray-900 text-gray-100 p-2 rounded overflow-x-auto max-h-32">
@@ -554,9 +554,9 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
               ))}
             </div>
           ) : (
-            <div className="text-center py-12 text-gray-500">
+            <div className="text-center py-12 text-muted-foreground">
               <Container className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <h3 className="font-medium text-gray-900 mb-1">No deployments yet</h3>
+              <h3 className="font-medium text-foreground mb-1">No deployments yet</h3>
               <p className="text-sm">Create your first deployment to get started</p>
             </div>
           )}
@@ -596,20 +596,22 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                 {activityLogsData?.logs && activityLogsData.logs.length > 0 ? (
                   <div className="border rounded-lg divide-y">
                     {activityLogsData.logs.map((log) => (
-                      <div key={log.id} className="p-3 hover:bg-gray-50">
+                      <div key={log.id} className="p-3 hover:bg-muted/50">
                         <div className="flex items-start justify-between gap-2 mb-1">
-                          <span className="text-sm font-medium text-gray-900">{log.action}</span>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-sm font-medium text-foreground">{log.action}</span>
+                          <span className="text-xs text-muted-foreground">
                             {log.timestamp ? new Date(log.timestamp).toLocaleTimeString() : ''}
                           </span>
                         </div>
-                        {log.result && <p className="text-sm text-gray-600">{log.result}</p>}
+                        {log.result && (
+                          <p className="text-sm text-muted-foreground">{log.result}</p>
+                        )}
                         {log.details && log.details.length > 0 && (
                           <details className="mt-1">
-                            <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                            <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                               View details
                             </summary>
-                            <pre className="mt-1 text-xs bg-gray-100 text-gray-800 p-2 rounded whitespace-pre-wrap break-words max-w-full">
+                            <pre className="mt-1 text-xs bg-muted text-foreground p-2 rounded whitespace-pre-wrap break-words max-w-full">
                               {log.details.map((d: string | object, i: number) => (
                                 <div key={i}>
                                   {typeof d === 'string' ? d : JSON.stringify(d, null, 2)}
@@ -622,7 +624,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-muted-foreground">
                     <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No AI activity logs available</p>
                   </div>
@@ -638,7 +640,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                     {/* Build Logs */}
                     {logsData?.buildLogs && (
                       <div>
-                        <h4 className="text-sm font-medium mb-2 text-gray-700">Build Logs</h4>
+                        <h4 className="text-sm font-medium mb-2 text-foreground">Build Logs</h4>
                         <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap">
                           {logsData.buildLogs}
                         </pre>
@@ -648,7 +650,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                     {/* Runtime Logs */}
                     {logsData?.runtimeLogs && (
                       <div>
-                        <h4 className="text-sm font-medium mb-2 text-gray-700">Runtime Logs</h4>
+                        <h4 className="text-sm font-medium mb-2 text-foreground">Runtime Logs</h4>
                         <pre className="bg-gray-900 text-green-400 p-4 rounded-lg text-sm font-mono overflow-x-auto whitespace-pre-wrap">
                           {logsData.runtimeLogs}
                         </pre>
@@ -656,7 +658,7 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
                     )}
                   </div>
                 ) : (
-                  <div className="text-center py-12 text-gray-500">
+                  <div className="text-center py-12 text-muted-foreground">
                     <Terminal className="h-8 w-8 mx-auto mb-2 opacity-50" />
                     <p>No Docker logs available</p>
                   </div>

@@ -391,14 +391,14 @@ export default function DeployPage({ params }: PageProps) {
                           ) => (
                             <div
                               key={file.id}
-                              className={`flex items-center justify-between py-2 px-3 ${index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}`}
+                              className={`flex items-center justify-between py-2 px-3 ${index % 2 === 0 ? 'bg-muted/50' : 'bg-background'}`}
                             >
-                              <span className="text-sm font-medium text-gray-900">
+                              <span className="text-sm font-medium text-foreground">
                                 {file.fileName}
                               </span>
                               <div className="flex items-center gap-2">
                                 {file.sizeBytes && (
-                                  <span className="text-xs text-gray-400">
+                                  <span className="text-xs text-muted-foreground">
                                     {(file.sizeBytes / 1024).toFixed(1)} KB
                                   </span>
                                 )}

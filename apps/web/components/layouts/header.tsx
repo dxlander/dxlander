@@ -32,8 +32,8 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
         ref={ref}
         className={cn(
           'relative',
-          showBorder && 'border-b border-ocean-200/60',
-          transparent ? 'bg-transparent' : 'bg-white/95 backdrop-blur-sm',
+          showBorder && 'border-b border-ocean-200/60 dark:border-ocean-800/60',
+          transparent ? 'bg-transparent' : 'bg-background/95 backdrop-blur-sm',
           className
         )}
         {...props}
@@ -55,7 +55,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   {badge && (
                     <Badge
                       variant="secondary"
-                      className="text-xs bg-ocean-100 text-ocean-700 border-ocean-200 flex-shrink-0"
+                      className="text-xs bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300 border-ocean-200 dark:border-ocean-800 flex-shrink-0"
                     >
                       {badge}
                     </Badge>
@@ -64,7 +64,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
 
                 {/* Subtitle row - only on larger screens */}
                 {subtitle && (
-                  <p className="text-xs sm:text-sm text-ocean-600 mt-0.5 line-clamp-1 hidden sm:block">
+                  <p className="text-xs sm:text-sm text-ocean-600 dark:text-ocean-400 mt-0.5 line-clamp-1 hidden sm:block">
                     {subtitle}
                   </p>
                 )}

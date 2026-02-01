@@ -32,7 +32,7 @@ export default function StackDiscoveryPage({ params }: PageProps) {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading stack detection results...</p>
+              <p className="text-muted-foreground">Loading stack detection results...</p>
             </div>
           </div>
         </Section>
@@ -47,8 +47,8 @@ export default function StackDiscoveryPage({ params }: PageProps) {
           <Card className="border-red-200">
             <CardContent className="p-16 text-center">
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
-              <p className="text-gray-600 mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-2">Project Not Found</h3>
+              <p className="text-muted-foreground mb-8">
                 The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
                 to it.
               </p>

@@ -14,7 +14,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      'inline-flex h-11 items-center justify-center rounded-xl bg-ocean-50/50 border border-ocean-200/60 p-1 text-ocean-600 shadow-md backdrop-blur-sm',
+      'inline-flex h-11 items-center justify-center rounded-xl bg-muted/80 dark:bg-muted/50 border border-border p-1 text-muted-foreground shadow-sm backdrop-blur-sm',
       className
     )}
     {...props}
@@ -30,8 +30,8 @@ const TabsTrigger = React.forwardRef<
     ref={ref}
     className={cn(
       'inline-flex items-center justify-center whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ocean-500/20 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 cursor-pointer',
-      'text-ocean-600 hover:text-ocean-700 hover:bg-white/60',
-      'data-[state=active]:bg-gradient-to-r data-[state=active]:from-ocean-600 data-[state=active]:to-ocean-700 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-ocean-500/30 data-[state=active]:scale-[1.02]',
+      'text-foreground/70 hover:text-foreground hover:bg-background/60 dark:hover:bg-background/30',
+      'data-[state=active]:bg-gradient-to-r data-[state=active]:from-ocean-600 data-[state=active]:to-ocean-700 dark:data-[state=active]:from-ocean-500 dark:data-[state=active]:to-ocean-600 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-ocean-500/30 data-[state=active]:scale-[1.02]',
       className
     )}
     {...props}

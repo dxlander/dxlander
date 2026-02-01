@@ -98,8 +98,8 @@ function DatabaseContent() {
                     <Database className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Database Connected</h3>
-                    <p className="text-sm text-gray-700 mb-3">
+                    <h3 className="font-semibold text-foreground mb-1">Database Connected</h3>
+                    <p className="text-sm text-foreground mb-3">
                       SQLite •{' '}
                       <code className="bg-white/50 px-1 rounded">~/.dxlander/data/dxlander.db</code>
                     </p>
@@ -108,10 +108,10 @@ function DatabaseContent() {
                         <CheckCircle2 className="h-3 w-3 mr-1" />
                         Healthy
                       </Badge>
-                      <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                      <Badge variant="secondary" className="bg-muted text-foreground">
                         {isLoading ? 'Loading...' : fileSizeLabel}
                       </Badge>
-                      <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                      <Badge variant="secondary" className="bg-muted text-foreground">
                         {isLoading ? 'Loading...' : `${tableCount('projects')} Projects`}
                       </Badge>
                     </div>
@@ -152,8 +152,8 @@ function DatabaseContent() {
                     <HardDrive className="h-5 w-5 text-blue-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Total Size</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-xs text-muted-foreground mb-1">Total Size</p>
+                    <p className="text-2xl font-bold text-foreground">
                       {isLoading ? '—' : fileSizeLabel}
                     </p>
                   </div>
@@ -168,8 +168,8 @@ function DatabaseContent() {
                     <Database className="h-5 w-5 text-purple-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Tables</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-xs text-muted-foreground mb-1">Tables</p>
+                    <p className="text-2xl font-bold text-foreground">
                       {isLoading ? '—' : tablesCountLabel}
                     </p>
                   </div>
@@ -184,8 +184,8 @@ function DatabaseContent() {
                     <Activity className="h-5 w-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Records</p>
-                    <p className="text-2xl font-bold text-gray-900">
+                    <p className="text-xs text-muted-foreground mb-1">Records</p>
+                    <p className="text-2xl font-bold text-foreground">
                       {isLoading ? '—' : recordsLabel}
                     </p>
                   </div>
@@ -200,8 +200,8 @@ function DatabaseContent() {
                     <Clock className="h-5 w-5 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500 mb-1">Last Query</p>
-                    <p className="text-sm font-semibold text-gray-900">
+                    <p className="text-xs text-muted-foreground mb-1">Last Query</p>
+                    <p className="text-sm font-semibold text-foreground">
                       <Badge variant="secondary">Coming soon</Badge>
                     </p>
                   </div>
@@ -251,7 +251,7 @@ function DatabaseContent() {
                         readOnly
                         className="font-mono text-sm"
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         SQLite database is stored locally. Perfect for single-user installations.
                       </p>
                     </div>
@@ -260,8 +260,8 @@ function DatabaseContent() {
                       <div className="flex items-start gap-3">
                         <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5" />
                         <div>
-                          <h4 className="font-medium text-gray-900 mb-1">SQLite Benefits</h4>
-                          <ul className="text-sm text-gray-700 space-y-1">
+                          <h4 className="font-medium text-foreground mb-1">SQLite Benefits</h4>
+                          <ul className="text-sm text-foreground space-y-1">
                             <li>• Zero configuration required</li>
                             <li>• Fast and lightweight</li>
                             <li>• Perfect for self-hosted setups</li>
@@ -367,19 +367,19 @@ function DatabaseContent() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <div className={`w-3 h-3 rounded-full ${item.color}`}></div>
-                          <span className="text-sm font-medium text-gray-900">{item.label}</span>
-                          <Badge variant="secondary" className="bg-gray-100 text-gray-600">
+                          <span className="text-sm font-medium text-foreground">{item.label}</span>
+                          <Badge variant="secondary" className="bg-muted text-muted-foreground">
                             {isLoading ? '—' : `${count ?? 0} records`}
                           </Badge>
                         </div>
                         <span
-                          className="text-sm text-gray-600"
+                          className="text-sm text-muted-foreground"
                           title="Estimated size based on record distribution"
                         >
                           {isLoading ? '—' : sizeLabel}
                         </span>
                       </div>
-                      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
                         <div
                           className={`h-full ${item.color}`}
                           style={{ width: `${Math.max(0, Math.min(100, pct))}%` }}
@@ -400,9 +400,9 @@ function DatabaseContent() {
             </CardHeader>
             <CardContent>
               <div className="grid md:grid-cols-2 gap-4">
-                <div className="p-4 border border-gray-200 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Vacuum Database</h4>
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="p-4 border border-border rounded-lg">
+                  <h4 className="font-medium text-foreground mb-2">Vacuum Database</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Reclaim unused space and optimize performance
                   </p>
                   <Button variant="outline" className="w-full">
@@ -411,9 +411,9 @@ function DatabaseContent() {
                   </Button>
                 </div>
 
-                <div className="p-4 border border-gray-200 rounded-lg">
-                  <h4 className="font-medium text-gray-900 mb-2">Analyze Tables</h4>
-                  <p className="text-sm text-gray-600 mb-3">
+                <div className="p-4 border border-border rounded-lg">
+                  <h4 className="font-medium text-foreground mb-2">Analyze Tables</h4>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Update statistics for query optimization
                   </p>
                   <Button variant="outline" className="w-full">

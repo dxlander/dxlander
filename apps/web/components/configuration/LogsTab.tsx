@@ -33,9 +33,9 @@ export function LogsTab({ logs, configStatus }: LogsTabProps) {
     return (
       <Card>
         <CardContent className="p-12 text-center">
-          <Terminal className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Logs Available</h3>
-          <p className="text-gray-600">
+          <Terminal className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-foreground mb-2">No Logs Available</h3>
+          <p className="text-muted-foreground">
             {configStatus === 'generating'
               ? 'Logs will appear here as the configuration is being generated.'
               : 'No generation logs were recorded for this configuration.'}
@@ -51,7 +51,7 @@ export function LogsTab({ logs, configStatus }: LogsTabProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Generation Logs</CardTitle>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               Activity log from AI configuration generation process
             </p>
           </div>
@@ -66,34 +66,34 @@ export function LogsTab({ logs, configStatus }: LogsTabProps) {
             {logs.map((log, index) => (
               <div
                 key={log.id}
-                className="flex gap-4 p-4 rounded-lg border border-gray-200 hover:border-ocean-300 transition-colors"
+                className="flex gap-4 p-4 rounded-lg border border-border hover:border-ocean-300 transition-colors"
               >
                 {/* Timeline connector */}
                 <div className="flex flex-col items-center">
-                  <div className="p-2 rounded-full bg-gray-100">{getActionIcon(log.action)}</div>
+                  <div className="p-2 rounded-full bg-muted">{getActionIcon(log.action)}</div>
                   {index < logs.length - 1 && <div className="w-px h-full bg-gray-200 mt-2"></div>}
                 </div>
 
                 {/* Log content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-3 mb-2">
-                    <h4 className="font-semibold text-gray-900">{formatAction(log.action)}</h4>
-                    <span className="text-xs text-gray-500 whitespace-nowrap">
+                    <h4 className="font-semibold text-foreground">{formatAction(log.action)}</h4>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap">
                       {format(new Date(log.timestamp), 'HH:mm:ss')}
                     </span>
                   </div>
 
                   {log.result && (
-                    <p className="text-sm text-gray-700 mb-2 break-words">{log.result}</p>
+                    <p className="text-sm text-foreground mb-2 break-words">{log.result}</p>
                   )}
 
                   {log.details && (
-                    <div className="mt-2 p-3 bg-gray-50 rounded border border-gray-200">
+                    <div className="mt-2 p-3 bg-muted/50 rounded border border-border">
                       <details className="text-xs">
-                        <summary className="cursor-pointer text-gray-600 font-medium hover:text-gray-900">
+                        <summary className="cursor-pointer text-muted-foreground font-medium hover:text-foreground">
                           View Details
                         </summary>
-                        <pre className="mt-2 text-gray-700 whitespace-pre-wrap break-all">
+                        <pre className="mt-2 text-foreground whitespace-pre-wrap break-all">
                           {typeof log.details === 'string'
                             ? log.details
                             : JSON.stringify(log.details, null, 2)}

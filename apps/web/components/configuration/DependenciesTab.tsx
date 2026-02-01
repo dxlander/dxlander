@@ -110,7 +110,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-sm">{depObj.name || '-'}</TableCell>
                       <TableCell className="text-sm">{depObj.version || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {depObj.purpose || '-'}
                       </TableCell>
                     </TableRow>
@@ -151,7 +151,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
                     <TableRow key={idx}>
                       <TableCell className="font-mono text-sm">{depObj.name || '-'}</TableCell>
                       <TableCell className="text-sm">{depObj.version || '-'}</TableCell>
-                      <TableCell className="text-sm text-gray-600">
+                      <TableCell className="text-sm text-muted-foreground">
                         {depObj.purpose || '-'}
                       </TableCell>
                     </TableRow>
@@ -170,8 +170,8 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Total Packages</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-1">
+                  <p className="text-sm font-medium text-muted-foreground">Total Packages</p>
+                  <p className="text-3xl font-bold text-foreground mt-1">
                     {summary.dependencies.totalCount || 0}
                   </p>
                 </div>
@@ -183,7 +183,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Outdated</p>
+                  <p className="text-sm font-medium text-muted-foreground">Outdated</p>
                   <p className="text-3xl font-bold text-amber-600 mt-1">
                     {summary.dependencies.outdatedWarnings?.length || 0}
                   </p>
@@ -196,7 +196,7 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Vulnerabilities</p>
+                  <p className="text-sm font-medium text-muted-foreground">Vulnerabilities</p>
                   <p className="text-3xl font-bold text-red-600 mt-1">
                     {summary.security?.vulnerabilityWarnings?.length || 0}
                   </p>
@@ -212,9 +212,9 @@ export function DependenciesTab({ summary }: DependenciesTabProps) {
       {!summary?.dependencies && (
         <Card>
           <CardContent className="text-center py-16">
-            <PackageOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Dependency Information</h3>
-            <p className="text-sm text-gray-600">
+            <PackageOpen className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-foreground mb-2">No Dependency Information</h3>
+            <p className="text-sm text-muted-foreground">
               Dependency analysis not available for this configuration
             </p>
           </CardContent>

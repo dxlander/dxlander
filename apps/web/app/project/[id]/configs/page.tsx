@@ -62,7 +62,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading configurations...</p>
+              <p className="text-muted-foreground">Loading configurations...</p>
             </div>
           </div>
         </Section>
@@ -77,8 +77,8 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           <Card className="border-red-200">
             <CardContent className="p-16 text-center">
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
-              <p className="text-gray-600 mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-2">Project Not Found</h3>
+              <p className="text-muted-foreground mb-8">
                 The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
                 to it.
               </p>
@@ -143,11 +143,11 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
           {configSets.length === 0 ? (
             <Card className="border-dashed border-2">
               <CardContent className="p-16 text-center">
-                <FileCode className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <FileCode className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-foreground mb-2">
                   No build configurations yet
                 </h3>
-                <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                <p className="text-muted-foreground mb-8 max-w-md mx-auto">
                   Generate your first build configuration from your project discovery results.
                 </p>
                 <Link href={`/project/${resolvedParams.id}/configs/new`}>
@@ -172,7 +172,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                            <h4 className="font-semibold text-gray-900 text-lg">
+                            <h4 className="font-semibold text-foreground text-lg">
                               {config.name || `v${config.version}`}
                             </h4>
                             <Badge variant="default">
@@ -181,7 +181,7 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                             </Badge>
                           </div>
 
-                          <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                          <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                             <span>
                               Created{' '}
                               {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
@@ -189,7 +189,9 @@ export default function BuildConfigurationsPage({ params }: PageProps) {
                           </div>
 
                           {/* Files - Note: Files are now stored in a separate table, will be shown in detail view */}
-                          <p className="text-sm text-gray-500">Click to view configuration files</p>
+                          <p className="text-sm text-muted-foreground">
+                            Click to view configuration files
+                          </p>
                         </div>
                       </div>
 

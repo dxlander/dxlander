@@ -63,7 +63,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        'z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[12rem] overflow-y-auto overflow-x-hidden rounded-xl border-2 border-ocean-200/60 bg-white/95 backdrop-blur-xl p-2 text-gray-800 shadow-2xl shadow-ocean-500/20',
+        'z-50 max-h-[var(--radix-dropdown-menu-content-available-height)] min-w-[12rem] overflow-y-auto overflow-x-hidden rounded-xl border-2 border-ocean-200/60 dark:border-ocean-800/60 bg-popover/95 backdrop-blur-xl p-2 text-popover-foreground shadow-2xl shadow-ocean-500/20 dark:shadow-ocean-500/10',
         'data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 origin-[--radix-dropdown-menu-content-transform-origin]',
         className
       )}
@@ -82,7 +82,7 @@ const DropdownMenuItem = React.forwardRef<
   <DropdownMenuPrimitive.Item
     ref={ref}
     className={cn(
-      'relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-200 hover:bg-gradient-to-r hover:from-ocean-50 hover:to-ocean-100 focus:bg-gradient-to-r focus:from-ocean-100 focus:to-ocean-200 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0 font-medium',
+      'relative flex cursor-pointer select-none items-center gap-2 rounded-lg px-3 py-2.5 text-sm outline-none transition-all duration-200 hover:bg-gradient-to-r hover:from-ocean-50 hover:to-ocean-100 dark:hover:from-ocean-950 dark:hover:to-ocean-900 focus:bg-gradient-to-r focus:from-ocean-100 focus:to-ocean-200 dark:focus:from-ocean-900 dark:focus:to-ocean-800 data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&>svg]:size-4 [&>svg]:shrink-0 font-medium',
       inset && 'pl-8',
       className
     )}
@@ -156,7 +156,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn('-mx-1 my-1 h-px bg-ocean-200/40', className)}
+    className={cn('-mx-1 my-1 h-px bg-ocean-200/40 dark:bg-ocean-800/40', className)}
     {...props}
   />
 ));

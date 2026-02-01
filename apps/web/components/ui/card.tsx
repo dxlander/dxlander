@@ -3,21 +3,21 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const cardVariants = cva(
-  'rounded-2xl border-2 bg-card text-gray-900 shadow-xl transition-all duration-300 ease-out',
+  'rounded-2xl border-2 bg-card text-card-foreground shadow-xl transition-all duration-300 ease-out',
   {
     variants: {
       variant: {
         default:
-          'border-ocean-200/50 bg-white shadow-lg shadow-ocean-500/5 hover:shadow-xl hover:shadow-ocean-500/10 hover:border-ocean-300/60',
+          'border-ocean-200/50 dark:border-ocean-800/50 bg-card shadow-lg shadow-ocean-500/5 dark:shadow-ocean-500/10 hover:shadow-xl hover:shadow-ocean-500/10 dark:hover:shadow-ocean-500/20 hover:border-ocean-300/60 dark:hover:border-ocean-700/60',
         interactive:
-          'border-ocean-200/60 bg-white shadow-ocean-500/10 hover:shadow-2xl hover:shadow-ocean-500/25 hover:border-ocean-400/70 hover:scale-[1.02] cursor-pointer',
+          'border-ocean-200/60 dark:border-ocean-800/60 bg-card shadow-ocean-500/10 hover:shadow-2xl hover:shadow-ocean-500/25 dark:hover:shadow-ocean-500/15 hover:border-ocean-400/70 dark:hover:border-ocean-600/70 hover:scale-[1.02] cursor-pointer',
         elevated:
-          'border-ocean-300/50 bg-ocean-50/30 shadow-2xl shadow-ocean-500/15 hover:shadow-3xl hover:shadow-ocean-500/25 hover:border-ocean-400/60',
+          'border-ocean-300/50 dark:border-ocean-700/50 bg-ocean-50/30 dark:bg-ocean-950/30 shadow-2xl shadow-ocean-500/15 hover:shadow-3xl hover:shadow-ocean-500/25 hover:border-ocean-400/60 dark:hover:border-ocean-600/60',
         glass:
-          'border-white/25 bg-white/15 backdrop-blur-xl shadow-2xl shadow-ocean-500/10 hover:bg-white/20',
+          'border-white/25 dark:border-white/10 bg-white/15 dark:bg-black/15 backdrop-blur-xl shadow-2xl shadow-ocean-500/10 hover:bg-white/20 dark:hover:bg-black/20',
         gradient:
-          'border-ocean-300/50 bg-ocean-50/50 shadow-2xl shadow-ocean-500/15 hover:shadow-3xl hover:shadow-ocean-500/25',
-        disabled: 'border-gray-200 bg-gray-50/80 shadow-sm cursor-not-allowed opacity-60',
+          'border-ocean-300/50 dark:border-ocean-700/50 bg-ocean-50/50 dark:bg-ocean-950/50 shadow-2xl shadow-ocean-500/15 hover:shadow-3xl hover:shadow-ocean-500/25',
+        disabled: 'border-border bg-muted/80 shadow-sm cursor-not-allowed opacity-60',
       },
     },
     defaultVariants: {

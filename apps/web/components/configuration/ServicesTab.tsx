@@ -156,11 +156,11 @@ const getSourceModeLabel = (mode: ServiceSourceMode) => {
 const getSourceModeColor = (mode: ServiceSourceMode) => {
   switch (mode) {
     case 'provision':
-      return 'bg-blue-100 text-blue-700';
+      return 'bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300';
     case 'external':
       return 'bg-ocean-100 text-ocean-700';
     case 'none':
-      return 'bg-gray-100 text-gray-600';
+      return 'bg-muted text-muted-foreground';
   }
 };
 
@@ -320,9 +320,9 @@ export function ServicesTab({
               <h3 className="text-lg font-semibold">Services</h3>
             </div>
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <span>{sources.length} total</span>
-                <span className="text-gray-300">|</span>
+                <span className="text-border">|</span>
                 <span className="text-red-600">
                   {sources.filter((s) => s.isRequired).length} required
                 </span>
@@ -343,7 +343,7 @@ export function ServicesTab({
         </CardHeader>
         <CardContent className="p-0">
           {sources.length > 0 ? (
-            <div className="divide-y divide-gray-100">
+            <div className="divide-y divide-border">
               {sources.map((source) => {
                 const isExpanded = expandedId === source.id;
                 const categoryInfo = categories.find((c) => c.value === source.category);
@@ -351,8 +351,8 @@ export function ServicesTab({
                 return (
                   <div key={source.id} className="group">
                     <div
-                      className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-gray-50 transition-colors ${
-                        isExpanded ? 'bg-gray-50' : ''
+                      className={`flex items-center gap-4 px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors ${
+                        isExpanded ? 'bg-muted/50' : ''
                       }`}
                       onClick={() => handleToggleExpand(source.id)}
                     >
@@ -364,7 +364,7 @@ export function ServicesTab({
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{source.name}</span>
+                          <span className="font-medium text-foreground">{source.name}</span>
                           {source.isEdited && (
                             <Badge
                               variant="secondary"
@@ -374,7 +374,7 @@ export function ServicesTab({
                             </Badge>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {categoryInfo?.label || source.category}
                           {source.detectedFrom && ` - ${source.detectedFrom}`}
                         </p>
@@ -384,8 +384,8 @@ export function ServicesTab({
                         variant={source.isRequired ? 'destructive' : 'secondary'}
                         className={`text-xs ${
                           source.isRequired
-                            ? 'bg-red-100 text-red-700 hover:bg-red-100'
-                            : 'bg-blue-100 text-blue-700 hover:bg-blue-100'
+                            ? 'bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900'
+                            : 'bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300 hover:bg-ocean-100 dark:hover:bg-ocean-900'
                         }`}
                       >
                         {source.isRequired ? 'Required' : 'Optional'}
@@ -417,7 +417,7 @@ export function ServicesTab({
                         </DropdownMenuContent>
                       </DropdownMenu>
 
-                      <div className="text-gray-400">
+                      <div className="text-muted-foreground">
                         {isExpanded ? (
                           <ChevronUp className="h-4 w-4" />
                         ) : (
@@ -427,10 +427,10 @@ export function ServicesTab({
                     </div>
 
                     {isExpanded && (
-                      <div className="px-6 pb-6 bg-gray-50 border-t border-gray-100">
+                      <div className="px-6 pb-6 bg-muted/50 border-t border-border">
                         <div className="pt-4 space-y-4">
                           <div>
-                            <label className="text-sm font-medium text-gray-700 mb-3 block">
+                            <label className="text-sm font-medium text-foreground mb-3 block">
                               How should this service be configured?
                             </label>
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -441,16 +441,16 @@ export function ServicesTab({
                                   className={`flex flex-col items-start gap-1 p-4 rounded-lg border transition-colors text-left ${
                                     source.sourceMode === 'provision'
                                       ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
-                                      : 'border-gray-200 hover:border-blue-300 hover:bg-blue-50/50'
+                                      : 'border-border hover:border-blue-300 hover:bg-blue-50/50'
                                   }`}
                                 >
                                   <div className="flex items-center gap-2">
                                     <Container className="h-5 w-5 text-blue-600" />
-                                    <span className="font-medium text-gray-900">
+                                    <span className="font-medium text-foreground">
                                       {SOURCE_MODE_INFO.provision.label}
                                     </span>
                                   </div>
-                                  <p className="text-xs text-gray-500 ml-7">
+                                  <p className="text-xs text-muted-foreground ml-7">
                                     {SOURCE_MODE_INFO.provision.description}
                                   </p>
                                 </button>
@@ -462,16 +462,16 @@ export function ServicesTab({
                                 className={`flex flex-col items-start gap-1 p-4 rounded-lg border transition-colors text-left ${
                                   source.sourceMode === 'external'
                                     ? 'border-ocean-500 bg-ocean-50 ring-2 ring-ocean-200'
-                                    : 'border-gray-200 hover:border-ocean-300 hover:bg-ocean-50/50'
+                                    : 'border-border hover:border-ocean-300 hover:bg-ocean-50/50'
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
                                   <FileKey className="h-5 w-5 text-ocean-600" />
-                                  <span className="font-medium text-gray-900">
+                                  <span className="font-medium text-foreground">
                                     {SOURCE_MODE_INFO.external.label}
                                   </span>
                                 </div>
-                                <p className="text-xs text-gray-500 ml-7">
+                                <p className="text-xs text-muted-foreground ml-7">
                                   {SOURCE_MODE_INFO.external.description}
                                 </p>
                               </button>
@@ -481,17 +481,17 @@ export function ServicesTab({
                                 onClick={() => handleSourceModeChange(source.id, 'none')}
                                 className={`flex flex-col items-start gap-1 p-4 rounded-lg border transition-colors text-left ${
                                   source.sourceMode === 'none'
-                                    ? 'border-gray-500 bg-gray-100 ring-2 ring-gray-300'
-                                    : 'border-gray-200 hover:border-gray-400 hover:bg-gray-50'
+                                    ? 'border-gray-500 bg-muted ring-2 ring-gray-300'
+                                    : 'border-border hover:border-gray-400 hover:bg-muted/50'
                                 }`}
                               >
                                 <div className="flex items-center gap-2">
-                                  <X className="h-5 w-5 text-gray-500" />
-                                  <span className="font-medium text-gray-900">
+                                  <X className="h-5 w-5 text-muted-foreground" />
+                                  <span className="font-medium text-foreground">
                                     {SOURCE_MODE_INFO.none.label}
                                   </span>
                                 </div>
-                                <p className="text-xs text-gray-500 ml-7">
+                                <p className="text-xs text-muted-foreground ml-7">
                                   {SOURCE_MODE_INFO.none.description}
                                 </p>
                               </button>
@@ -568,7 +568,7 @@ export function ServicesTab({
                                                 [envVar.key]: e.target.value,
                                               }))
                                             }
-                                            className="flex-1 bg-white"
+                                            className="flex-1 bg-background"
                                           />
                                           <Button
                                             type="button"
@@ -600,7 +600,7 @@ export function ServicesTab({
                                           const value = customCredentials[oldKey] || '';
                                           setCustomCredentials({ [e.target.value]: value });
                                         }}
-                                        className="mb-2 bg-white"
+                                        className="mb-2 bg-background"
                                       />
                                       <FloatingInput
                                         label="Value"
@@ -611,7 +611,7 @@ export function ServicesTab({
                                             Object.keys(customCredentials)[0] || 'API_KEY';
                                           setCustomCredentials({ [key]: e.target.value });
                                         }}
-                                        className="bg-white"
+                                        className="bg-background"
                                       />
                                     </div>
                                   )}
@@ -634,8 +634,8 @@ export function ServicesTab({
                           )}
 
                           {source.sourceMode === 'none' && (
-                            <div className="p-4 bg-gray-100 rounded-lg border border-gray-200">
-                              <p className="text-sm text-gray-600">
+                            <div className="p-4 bg-muted rounded-lg border border-border">
+                              <p className="text-sm text-muted-foreground">
                                 This service will be skipped during deployment. No credentials will
                                 be injected.
                               </p>
@@ -659,8 +659,8 @@ export function ServicesTab({
           ) : (
             <div className="text-center py-16">
               <CheckCircle2 className="h-16 w-16 text-green-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg font-medium mb-2">No services detected</p>
-              <p className="text-gray-500 text-sm mb-4">
+              <p className="text-muted-foreground text-lg font-medium mb-2">No services detected</p>
+              <p className="text-muted-foreground text-sm mb-4">
                 This project doesn&apos;t require external services, or you can add them manually.
               </p>
               <Button
@@ -733,7 +733,7 @@ function AddServiceForm({
         />
       </div>
       <div>
-        <label className="text-sm font-medium text-gray-700 mb-1.5 block">Category</label>
+        <label className="text-sm font-medium text-foreground mb-1.5 block">Category</label>
         <Select value={category} onValueChange={(v) => setCategory(v as ServiceCategory)}>
           <SelectTrigger>
             <SelectValue />
@@ -845,7 +845,7 @@ function EditServiceDialog({
           </div>
 
           <div>
-            <label className="text-sm font-medium text-gray-700 mb-1.5 block">Category</label>
+            <label className="text-sm font-medium text-foreground mb-1.5 block">Category</label>
             <Select value={category} onValueChange={(v) => setCategory(v as ServiceCategory)}>
               <SelectTrigger>
                 <SelectValue />
@@ -893,7 +893,7 @@ function EditServiceDialog({
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="text-sm font-medium text-gray-700">Environment Variables</label>
+              <label className="text-sm font-medium text-foreground">Environment Variables</label>
               <Button variant="ghost" size="sm" onClick={handleAddEnvVar}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add

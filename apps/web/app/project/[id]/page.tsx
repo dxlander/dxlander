@@ -60,7 +60,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading project...</p>
+              <p className="text-muted-foreground">Loading project...</p>
             </div>
           </div>
         </Section>
@@ -75,8 +75,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
           <Card className="border-red-200">
             <CardContent className="p-16 text-center">
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Project Not Found</h3>
-              <p className="text-gray-600 mb-8">
+              <h3 className="text-xl font-semibold text-foreground mb-2">Project Not Found</h3>
+              <p className="text-muted-foreground mb-8">
                 The project you&apos;re looking for doesn&apos;t exist or you don&apos;t have access
                 to it.
               </p>
@@ -98,25 +98,29 @@ export default function ProjectDetailPage({ params }: PageProps) {
       imported: {
         icon: <FolderOpen className="h-5 w-5" />,
         label: 'Imported',
-        color: 'text-ocean-700 bg-ocean-50 border-ocean-200',
+        color:
+          'text-ocean-700 dark:text-ocean-300 bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800',
         description: 'Project files imported - ready to generate build configurations',
       },
       configured: {
         icon: <FileCode className="h-5 w-5" />,
         label: 'Configured',
-        color: 'text-purple-700 bg-purple-50 border-purple-200',
+        color:
+          'text-ocean-700 dark:text-ocean-300 bg-ocean-100 dark:bg-ocean-900 border-ocean-200 dark:border-ocean-700',
         description: 'Build configurations ready for deployment',
       },
       deployed: {
         icon: <Rocket className="h-5 w-5" />,
         label: 'Deployed',
-        color: 'text-indigo-700 bg-indigo-50 border-indigo-200',
+        color:
+          'text-ocean-700 dark:text-ocean-300 bg-ocean-100 dark:bg-ocean-900 border-ocean-300 dark:border-ocean-700',
         description: 'Live deployment active',
       },
       failed: {
         icon: <AlertCircle className="h-5 w-5" />,
         label: 'Failed',
-        color: 'text-red-700 bg-red-100 border-red-200',
+        color:
+          'text-red-700 dark:text-red-300 bg-red-100 dark:bg-red-950 border-red-200 dark:border-red-800',
         description: 'An error occurred during processing',
       },
     };
@@ -164,10 +168,10 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 {statusConfig.label}
               </Badge>
               {project.language && (
-                <span className="text-sm text-gray-600">{project.language}</span>
+                <span className="text-sm text-muted-foreground">{project.language}</span>
               )}
               {projectFramework && (
-                <span className="text-sm text-gray-600">· {projectFramework}</span>
+                <span className="text-sm text-muted-foreground">· {projectFramework}</span>
               )}
             </div>
 
@@ -226,11 +230,11 @@ export default function ProjectDetailPage({ params }: PageProps) {
                   {configSets.length === 0 ? (
                     <div className="px-6 py-12 text-center">
                       <div className="max-w-sm mx-auto">
-                        <FileCode className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                        <h3 className="text-sm font-semibold text-gray-900 mb-2">
+                        <FileCode className="h-12 w-12 mx-auto mb-4 text-border" />
+                        <h3 className="text-sm font-semibold text-foreground mb-2">
                           No build configurations yet
                         </h3>
-                        <p className="text-xs text-gray-500 mb-6">
+                        <p className="text-xs text-muted-foreground mb-6">
                           Create your first build configuration to generate Docker, Kubernetes, or
                           other deployment files for your project.
                         </p>
@@ -251,7 +255,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                         >
                           <div
                             className={`px-6 py-4 hover:bg-ocean-50/30 transition-colors cursor-pointer ${
-                              index !== 0 ? 'border-t border-gray-100' : ''
+                              index !== 0 ? 'border-t border-border' : ''
                             }`}
                           >
                             <div className="flex items-center justify-between gap-4">
@@ -260,10 +264,10 @@ export default function ProjectDetailPage({ params }: PageProps) {
                                   <FileCode className="h-4 w-4 text-ocean-600" />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-gray-900 text-sm truncate">
+                                  <p className="font-medium text-foreground text-sm truncate">
                                     {config.name || `v${config.version}`}
                                   </p>
-                                  <p className="text-xs text-gray-500">
+                                  <p className="text-xs text-muted-foreground">
                                     {format(new Date(config.createdAt), 'MMM d, yyyy')}
                                   </p>
                                 </div>
@@ -291,47 +295,32 @@ export default function ProjectDetailPage({ params }: PageProps) {
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-base flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-600" />
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
                     Recent Activity
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-5">
                   <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="p-1.5 rounded-md bg-blue-50 flex-shrink-0 mt-0.5">
-                        <FolderOpen className="h-3.5 w-3.5 text-blue-600" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-medium text-gray-900">Project imported</p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                          {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-medium text-foreground">Project imported</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(project.createdAt), { addSuffix: true })}
+                      </p>
                     </div>
                     {configSets.slice(0, 5).map((config) => (
-                      <div key={config.id} className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-md bg-purple-50 flex-shrink-0 mt-0.5">
-                          <FileCode className="h-3.5 w-3.5 text-purple-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-900">Configuration created</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
-                          </p>
-                        </div>
+                      <div key={config.id} className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-foreground">Configuration created</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(config.createdAt), { addSuffix: true })}
+                        </p>
                       </div>
                     ))}
                     {project.updatedAt && project.createdAt !== project.updatedAt && (
-                      <div className="flex items-start gap-3">
-                        <div className="p-1.5 rounded-md bg-gray-50 flex-shrink-0 mt-0.5">
-                          <RefreshCw className="h-3.5 w-3.5 text-gray-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-gray-900">Project updated</p>
-                          <p className="text-xs text-gray-500 mt-0.5">
-                            {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
-                          </p>
-                        </div>
+                      <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium text-foreground">Project updated</p>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(project.updatedAt), { addSuffix: true })}
+                        </p>
                       </div>
                     )}
                   </div>
@@ -349,7 +338,7 @@ export default function ProjectDetailPage({ params }: PageProps) {
                 <CardContent className="p-5 space-y-4 text-sm">
                   {/* Source Information */}
                   <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       {project.sourceType === 'github' && <GitBranch className="h-3.5 w-3.5" />}
                       {project.sourceType === 'zip' && <Archive className="h-3.5 w-3.5" />}
                       Source
@@ -368,12 +357,14 @@ export default function ProjectDetailPage({ params }: PageProps) {
                       )}
                       {project.sourceType === 'zip' && (
                         <div className="flex items-start gap-2">
-                          <Archive className="h-3.5 w-3.5 text-gray-400 flex-shrink-0 mt-0.5" />
-                          <p className="text-xs text-gray-600 break-all">{project.sourceUrl}</p>
+                          <Archive className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                          <p className="text-xs text-muted-foreground break-all">
+                            {project.sourceUrl}
+                          </p>
                         </div>
                       )}
                       {project.sourceBranch && (
-                        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <GitBranch className="h-3 w-3" />
                           <span>{project.sourceBranch}</span>
                         </div>
@@ -383,43 +374,43 @@ export default function ProjectDetailPage({ params }: PageProps) {
 
                   {/* Project Stats */}
                   <div className="border-t pt-4 space-y-3">
-                    <p className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                    <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                       <Files className="h-3.5 w-3.5" />
                       Project Details
                     </p>
                     <div className="grid grid-cols-2 gap-3">
                       <div className="flex items-start gap-2">
-                        <HardDrive className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                        <HardDrive className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Size</p>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-xs text-muted-foreground">Size</p>
+                          <p className="text-sm font-medium text-foreground">
                             {formatBytes(project.projectSize || 0)}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Files className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                        <Files className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Files</p>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-xs text-muted-foreground">Files</p>
+                          <p className="text-sm font-medium text-foreground">
                             {project.filesCount || 0}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <Calendar className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                        <Calendar className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Imported</p>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-xs text-muted-foreground">Imported</p>
+                          <p className="text-sm font-medium text-foreground">
                             {format(new Date(project.createdAt), 'MMM d, yyyy')}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2">
-                        <RefreshCw className="h-3.5 w-3.5 text-gray-400 mt-0.5" />
+                        <RefreshCw className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
                         <div>
-                          <p className="text-xs text-gray-500">Updated</p>
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-xs text-muted-foreground">Updated</p>
+                          <p className="text-sm font-medium text-foreground">
                             {format(new Date(project.updatedAt), 'MMM d, yyyy')}
                           </p>
                         </div>
@@ -430,11 +421,11 @@ export default function ProjectDetailPage({ params }: PageProps) {
                   {/* Local Storage Path */}
                   {project.localPath && (
                     <div className="border-t pt-4 space-y-2">
-                      <p className="flex items-center gap-2 text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      <p className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                         <HardDrive className="h-3.5 w-3.5" />
                         Storage Location
                       </p>
-                      <code className="text-xs bg-gray-50 px-2 py-1.5 rounded text-gray-700 block break-all border border-gray-200 font-mono">
+                      <code className="text-xs bg-muted/50 px-2 py-1.5 rounded text-foreground block break-all border border-border font-mono">
                         {project.localPath}
                       </code>
                     </div>
@@ -443,16 +434,16 @@ export default function ProjectDetailPage({ params }: PageProps) {
               </Card>
 
               {/* Quick Stats Card */}
-              <Card className="bg-gradient-to-br from-ocean-50 to-blue-50 border-ocean-100">
+              <Card className="bg-card border-border">
                 <CardContent className="p-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-ocean-600">{configSets.length}</div>
-                      <div className="text-xs text-gray-600 mt-1">Configurations</div>
+                      <div className="text-3xl font-bold text-primary">{configSets.length}</div>
+                      <div className="text-xs text-muted-foreground mt-1">Configurations</div>
                     </div>
-                    <div className="text-center border-l border-ocean-200">
-                      <div className="text-3xl font-bold text-gray-400">0</div>
-                      <div className="text-xs text-gray-600 mt-1">Deployments</div>
+                    <div className="text-center border-l border-border">
+                      <div className="text-3xl font-bold text-muted-foreground">0</div>
+                      <div className="text-xs text-muted-foreground mt-1">Deployments</div>
                     </div>
                   </div>
                 </CardContent>

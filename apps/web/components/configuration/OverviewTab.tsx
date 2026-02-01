@@ -120,37 +120,37 @@ export function OverviewTab({
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-500">Framework</p>
+                <p className="text-sm font-medium text-muted-foreground">Framework</p>
                 <div className="flex items-center gap-2">
                   <Package className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-foreground">
                     {summary.projectSummary.framework}
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-500">Runtime</p>
+                <p className="text-sm font-medium text-muted-foreground">Runtime</p>
                 <div className="flex items-center gap-2">
                   <Zap className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-foreground">
                     {summary.projectSummary.runtime}
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-500">Build Tool</p>
+                <p className="text-sm font-medium text-muted-foreground">Build Tool</p>
                 <div className="flex items-center gap-2">
                   <Settings className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-foreground">
                     {summary.projectSummary.buildTool}
                   </p>
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-500">Architecture</p>
+                <p className="text-sm font-medium text-muted-foreground">Architecture</p>
                 <div className="flex items-center gap-2">
                   <Server className="h-4 w-4 text-ocean-600" />
-                  <p className="text-base font-semibold text-gray-900">
+                  <p className="text-base font-semibold text-foreground">
                     {summary.projectSummary.isMultiService ? 'Multi-Service' : 'Single Service'}
                   </p>
                 </div>
@@ -161,7 +161,7 @@ export function OverviewTab({
               <>
                 <Separator className="my-6" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-3">Services</p>
+                  <p className="text-sm font-medium text-foreground mb-3">Services</p>
                   <div className="flex flex-wrap gap-2">
                     {summary.projectSummary.services.map((service: string, idx: number) => (
                       <Badge
@@ -182,14 +182,14 @@ export function OverviewTab({
               <>
                 <Separator className="my-6" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-3">Built-in Features</p>
+                  <p className="text-sm font-medium text-foreground mb-3">Built-in Features</p>
                   <div className="flex flex-wrap gap-2">
                     {summary.builtInCapabilities.map(
                       (capability: BuiltInCapability, idx: number) => (
                         <Badge
                           key={idx}
                           variant="secondary"
-                          className="flex items-center gap-1.5 py-1.5 px-3 bg-gray-100 text-gray-700"
+                          className="flex items-center gap-1.5 py-1.5 px-3 bg-muted text-foreground"
                         >
                           <Package className="h-3.5 w-3.5" />
                           {capability.name}
@@ -206,7 +206,7 @@ export function OverviewTab({
               <>
                 <Separator className="my-6" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <Code className="h-4 w-4" />
                     Language Breakdown
                   </p>
@@ -215,8 +215,8 @@ export function OverviewTab({
                       ([lang, percent]: [string, number]) => (
                         <div key={lang} className="space-y-1">
                           <div className="flex justify-between text-sm">
-                            <span className="font-medium text-gray-700">{lang}</span>
-                            <span className="text-gray-600">{percent}%</span>
+                            <span className="font-medium text-foreground">{lang}</span>
+                            <span className="text-muted-foreground">{percent}%</span>
                           </div>
                           <Progress value={percent} className="h-2" />
                         </div>
@@ -232,29 +232,29 @@ export function OverviewTab({
               <>
                 <Separator className="my-6" />
                 <div>
-                  <p className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <p className="text-sm font-medium text-foreground mb-3 flex items-center gap-2">
                     <Activity className="h-4 w-4" />
                     Project Structure
                   </p>
                   <div className="grid grid-cols-2 gap-3 text-sm">
                     {summary.projectStructure.sourceDirectory && (
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500">Source:</span>
-                        <code className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
+                        <span className="text-muted-foreground">Source:</span>
+                        <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
                           {summary.projectStructure.sourceDirectory}
                         </code>
                       </div>
                     )}
                     {summary.projectStructure.testDirectory && (
                       <div className="flex items-center gap-2">
-                        <span className="text-gray-500">Tests:</span>
-                        <code className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded">
+                        <span className="text-muted-foreground">Tests:</span>
+                        <code className="text-xs font-mono bg-muted px-2 py-0.5 rounded">
                           {summary.projectStructure.testDirectory}
                         </code>
                       </div>
                     )}
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Tests:</span>
+                      <span className="text-muted-foreground">Tests:</span>
                       {summary.projectStructure.hasTests ? (
                         <Badge variant="success" className="text-xs">
                           ✓ Yes
@@ -266,7 +266,7 @@ export function OverviewTab({
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Docs:</span>
+                      <span className="text-muted-foreground">Docs:</span>
                       {summary.projectStructure.hasDocumentation ? (
                         <Badge variant="success" className="text-xs">
                           ✓ Yes
@@ -291,8 +291,8 @@ export function OverviewTab({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Config Files</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{configFilesCount}</p>
+                <p className="text-sm font-medium text-muted-foreground">Config Files</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{configFilesCount}</p>
               </div>
               <FileCode className="h-10 w-10 text-ocean-500" />
             </div>
@@ -302,8 +302,8 @@ export function OverviewTab({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Environment Variables</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{totalEnvCount}</p>
+                <p className="text-sm font-medium text-muted-foreground">Environment Variables</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{totalEnvCount}</p>
                 {requiredEnvCount > 0 && (
                   <p className="text-xs text-amber-600 mt-1">{requiredEnvCount} required</p>
                 )}
@@ -316,8 +316,8 @@ export function OverviewTab({
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-500">Services</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{servicesCount}</p>
+                <p className="text-sm font-medium text-muted-foreground">Services</p>
+                <p className="text-3xl font-bold text-foreground mt-1">{servicesCount}</p>
                 {servicesCount > 0 && (
                   <p className="text-xs text-blue-600 mt-1">Detected third-party services</p>
                 )}

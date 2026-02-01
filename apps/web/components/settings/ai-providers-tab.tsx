@@ -100,8 +100,8 @@ const PROVIDER_INFO = {
     requiresApiKey: false,
     requiresBaseUrl: true,
     models: ['llama3', 'codellama', 'mistral'],
-    color: 'bg-gray-100 text-gray-700',
-    borderColor: 'border-gray-200',
+    color: 'bg-muted text-muted-foreground dark:bg-muted dark:text-muted-foreground',
+    borderColor: 'border-border',
     description: 'Self-hosted Ollama models',
   },
   lmstudio: {
@@ -512,12 +512,12 @@ export function AIProvidersTab() {
               <Zap className="h-6 w-6 text-ocean-600" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 mb-2">AI-Powered Analysis</h3>
-              <p className="text-sm text-gray-700 mb-3">
+              <h3 className="font-semibold text-foreground mb-2">AI-Powered Analysis</h3>
+              <p className="text-sm text-muted-foreground mb-3">
                 Configure AI providers to automatically analyze projects, detect frameworks, and
                 generate deployment configurations.
               </p>
-              <div className="flex items-center gap-4 text-sm text-gray-700">
+              <div className="flex items-center gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <span>Encrypted credentials (AES-256-GCM)</span>
@@ -549,7 +549,7 @@ export function AIProvidersTab() {
         <Card>
           <CardContent className="p-16 text-center">
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-ocean-500" />
-            <p className="text-gray-600">Loading AI providers...</p>
+            <p className="text-muted-foreground">Loading AI providers...</p>
           </CardContent>
         </Card>
       ) : providers.length === 0 ? (
@@ -558,8 +558,10 @@ export function AIProvidersTab() {
             <IconWrapper variant="default" size="xl" className="mx-auto mb-4">
               <Zap className="h-12 w-12" />
             </IconWrapper>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No AI Providers Configured</h3>
-            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+            <h3 className="text-xl font-semibold text-foreground mb-2">
+              No AI Providers Configured
+            </h3>
+            <p className="text-muted-foreground mb-8 max-w-md mx-auto">
               Add your first AI provider to enable automatic project analysis and configuration
               generation.
             </p>
@@ -594,7 +596,7 @@ export function AIProvidersTab() {
                         </IconWrapper>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <h4 className="font-semibold text-gray-900">{provider.name}</h4>
+                            <h4 className="font-semibold text-foreground">{provider.name}</h4>
                             {provider.isDefault && (
                               <Badge
                                 variant="secondary"
@@ -607,7 +609,7 @@ export function AIProvidersTab() {
                             {provider.lastTestStatus === 'success' ? (
                               <Badge
                                 variant="secondary"
-                                className="bg-green-100 text-green-700 flex-shrink-0"
+                                className="bg-ocean-100 dark:bg-ocean-900 text-ocean-700 dark:text-ocean-300 flex-shrink-0"
                               >
                                 <CheckCircle2 className="h-3 w-3 mr-1" />
                                 Connected
@@ -619,7 +621,7 @@ export function AIProvidersTab() {
                               </Badge>
                             ) : null}
                           </div>
-                          <p className="text-sm text-gray-600">{info.description}</p>
+                          <p className="text-sm text-muted-foreground">{info.description}</p>
                         </div>
                       </div>
 
@@ -661,32 +663,34 @@ export function AIProvidersTab() {
 
                     {/* Error Message */}
                     {provider.lastError && (
-                      <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                        <p className="text-sm text-red-600">{provider.lastError}</p>
+                      <div className="p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg">
+                        <p className="text-sm text-red-600 dark:text-red-400">
+                          {provider.lastError}
+                        </p>
                       </div>
                     )}
 
                     {/* Provider Details */}
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">Model</span>
+                        <span className="text-muted-foreground">Model</span>
                         <Badge variant="secondary" className={info.color}>
                           {settings.model || 'Not set'}
                         </Badge>
                       </div>
                       {settings.baseUrl && (
                         <div className="flex items-center justify-between">
-                          <span className="text-gray-600">Base URL</span>
-                          <span className="text-gray-900 font-mono text-xs">
+                          <span className="text-muted-foreground">Base URL</span>
+                          <span className="text-foreground font-mono text-xs">
                             {settings.baseUrl}
                           </span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
-                        <span className="text-gray-600">API Key</span>
+                        <span className="text-muted-foreground">API Key</span>
                         <div className="flex items-center gap-2">
-                          <Lock className="h-3.5 w-3.5 text-gray-500" />
-                          <span className="text-gray-900 font-mono text-xs">
+                          <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-foreground font-mono text-xs">
                             {info.requiresApiKey ? '••••••••' : 'Not required'}
                           </span>
                         </div>
@@ -694,22 +698,22 @@ export function AIProvidersTab() {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-3 gap-4 pt-4 border-t border-gray-100">
+                    <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border">
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Used</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-xs text-muted-foreground mb-1">Used</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {provider.usageCount || 0}x
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Status</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-xs text-muted-foreground mb-1">Status</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {provider.isActive ? 'Active' : 'Inactive'}
                         </p>
                       </div>
                       <div>
-                        <p className="text-xs text-gray-500 mb-1">Last Tested</p>
-                        <p className="text-sm font-semibold text-gray-900">
+                        <p className="text-xs text-muted-foreground mb-1">Last Tested</p>
+                        <p className="text-sm font-semibold text-foreground">
                           {provider.lastTested ? 'Just now' : 'Never'}
                         </p>
                       </div>
@@ -747,7 +751,7 @@ export function AIProvidersTab() {
                         <Badge variant="secondary" className={info.color}>
                           {info.name}
                         </Badge>
-                        <span className="text-xs text-gray-500">{info.description}</span>
+                        <span className="text-xs text-muted-foreground">{info.description}</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -763,7 +767,7 @@ export function AIProvidersTab() {
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 leftIcon={<Zap className="h-4 w-4" />}
               />
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 A friendly name to identify this provider (e.g., &quot;Production OpenAI&quot;,
                 &quot;Dev Claude&quot;)
               </p>
@@ -793,7 +797,7 @@ export function AIProvidersTab() {
                     </button>
                   }
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {formData.provider === 'openai-compatible'
                     ? 'Required for remote services (Together, Cloudflare, etc.). Leave empty for local models.'
                     : 'Your API key will be encrypted with AES-256-GCM'}
@@ -810,7 +814,7 @@ export function AIProvidersTab() {
                   onChange={(e) => setFormData({ ...formData, baseUrl: e.target.value })}
                   leftIcon={<Server className="h-4 w-4" />}
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   Server URL (e.g., http://localhost:11434 for Ollama)
                 </p>
               </div>
@@ -853,10 +857,10 @@ export function AIProvidersTab() {
                     <div
                       className={`p-2 rounded-lg border text-sm ${
                         compatibleModelsStatus === 'success'
-                          ? 'bg-green-50 border-green-200 text-green-700'
+                          ? 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300'
                           : compatibleModelsStatus === 'error'
-                            ? 'bg-amber-50 border-amber-200 text-amber-700'
-                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                            ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                            : 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300'
                       }`}
                     >
                       {compatibleModelsMessage}
@@ -895,7 +899,7 @@ export function AIProvidersTab() {
                         onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                         leftIcon={<Brain className="h-4 w-4" />}
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Enter the model name manually, or click &quot;Fetch Available Models&quot;
                         to discover models from your server
                       </p>
@@ -974,27 +978,27 @@ export function AIProvidersTab() {
                 <div
                   className={`p-3 rounded-lg border ${
                     testStatus === 'success'
-                      ? 'bg-green-50 border-green-200'
+                      ? 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800'
                       : testStatus === 'error'
-                        ? 'bg-red-50 border-red-200'
-                        : 'bg-blue-50 border-blue-200'
+                        ? 'bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800'
+                        : 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800'
                   }`}
                 >
                   <div className="flex items-start gap-2">
                     {testStatus === 'success' ? (
-                      <CheckCircle2 className="h-4 w-4 text-green-600 mt-0.5" />
+                      <CheckCircle2 className="h-4 w-4 text-ocean-600 dark:text-ocean-400 mt-0.5" />
                     ) : testStatus === 'error' ? (
-                      <AlertCircle className="h-4 w-4 text-red-600 mt-0.5" />
+                      <AlertCircle className="h-4 w-4 text-red-600 dark:text-red-400 mt-0.5" />
                     ) : (
-                      <Loader2 className="h-4 w-4 text-blue-600 mt-0.5 animate-spin" />
+                      <Loader2 className="h-4 w-4 text-ocean-600 dark:text-ocean-400 mt-0.5 animate-spin" />
                     )}
                     <p
                       className={`text-sm ${
                         testStatus === 'success'
-                          ? 'text-green-700'
+                          ? 'text-ocean-700 dark:text-ocean-300'
                           : testStatus === 'error'
-                            ? 'text-red-700'
-                            : 'text-blue-700'
+                            ? 'text-red-700 dark:text-red-300'
+                            : 'text-ocean-700 dark:text-ocean-300'
                       }`}
                     >
                       {testMessage}
@@ -1005,12 +1009,12 @@ export function AIProvidersTab() {
             </div>
 
             {/* Security Info */}
-            <div className="p-4 bg-ocean-50 border border-ocean-200 rounded-lg">
+            <div className="p-4 bg-ocean-50 dark:bg-ocean-950 border border-ocean-200 dark:border-ocean-800 rounded-lg">
               <div className="flex items-start gap-3">
-                <Lock className="h-5 w-5 text-ocean-600 mt-0.5" />
+                <Lock className="h-5 w-5 text-ocean-600 dark:text-ocean-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Secure Storage</h4>
-                  <p className="text-sm text-gray-700">
+                  <h4 className="font-medium text-foreground mb-1">Secure Storage</h4>
+                  <p className="text-sm text-muted-foreground">
                     All API keys are encrypted with your master encryption key (AES-256-GCM) before
                     storage. No credentials are ever stored in plaintext.
                   </p>
@@ -1087,7 +1091,7 @@ export function AIProvidersTab() {
                     </button>
                   }
                 />
-                <p className="text-xs text-gray-500">
+                <p className="text-xs text-muted-foreground">
                   {formData.provider === 'openai-compatible'
                     ? 'Required for remote services. Leave empty for local models or to keep existing key.'
                     : 'Leave empty to keep the existing API key'}
@@ -1144,10 +1148,10 @@ export function AIProvidersTab() {
                     <div
                       className={`p-2 rounded-lg border text-sm ${
                         compatibleModelsStatus === 'success'
-                          ? 'bg-green-50 border-green-200 text-green-700'
+                          ? 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300'
                           : compatibleModelsStatus === 'error'
-                            ? 'bg-amber-50 border-amber-200 text-amber-700'
-                            : 'bg-blue-50 border-blue-200 text-blue-700'
+                            ? 'bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300'
+                            : 'bg-ocean-50 dark:bg-ocean-950 border-ocean-200 dark:border-ocean-800 text-ocean-700 dark:text-ocean-300'
                       }`}
                     >
                       {compatibleModelsMessage}
@@ -1186,7 +1190,7 @@ export function AIProvidersTab() {
                         onChange={(e) => setFormData({ ...formData, model: e.target.value })}
                         leftIcon={<Brain className="h-4 w-4" />}
                       />
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted-foreground">
                         Enter the model name manually, or click &quot;Fetch Available Models&quot;
                         to discover models. Note: Some providers (e.g., Cloudflare Workers AI)
                         don&apos;t expose /v1/models. For Cloudflare, use format like:
@@ -1265,12 +1269,12 @@ export function AIProvidersTab() {
           </DialogHeader>
 
           <div className="py-4">
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+            <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">This action cannot be undone</h4>
-                  <p className="text-sm text-gray-700">
+                  <h4 className="font-medium text-foreground mb-1">This action cannot be undone</h4>
+                  <p className="text-sm text-muted-foreground">
                     Deleting <strong>{selectedProvider?.name}</strong> will remove all associated
                     configuration and credentials. Projects using this provider may fail analysis.
                   </p>

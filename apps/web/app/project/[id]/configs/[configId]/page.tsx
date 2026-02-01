@@ -116,7 +116,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
           <div className="flex items-center justify-center min-h-[400px]">
             <div className="text-center">
               <Loader2 className="h-12 w-12 animate-spin text-ocean-600 mx-auto mb-4" />
-              <p className="text-gray-600">Loading configuration...</p>
+              <p className="text-muted-foreground">Loading configuration...</p>
             </div>
           </div>
         </Section>
@@ -131,10 +131,10 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
           <Card className="border-red-200">
             <CardContent className="p-16 text-center">
               <AlertCircle className="h-12 w-12 text-red-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-foreground mb-2">
                 {!project ? 'Project Not Found' : 'Configuration Not Found'}
               </h3>
-              <p className="text-gray-600 mb-8">
+              <p className="text-muted-foreground mb-8">
                 {!project
                   ? "The project you're looking for doesn't exist or you don't have access to it."
                   : "This configuration doesn't exist or has been deleted."}
@@ -235,10 +235,10 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                 <div className="flex items-center gap-4">
                   <Loader2 className="h-8 w-8 animate-spin text-ocean-600" />
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-foreground mb-1">
                       Generating Configuration...
                     </h3>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       AI is analyzing your project and creating deployment files. This usually takes
                       30-60 seconds.
                     </p>
@@ -300,7 +300,7 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
                 <Terminal className="h-4 w-4" />
                 Logs
                 {configLogs?.activityLog && configLogs.activityLog.length > 0 && (
-                  <Badge variant="secondary" className="ml-1 bg-gray-100 text-gray-700">
+                  <Badge variant="secondary" className="ml-1 bg-muted text-foreground">
                     {configLogs.activityLog.length}
                   </Badge>
                 )}

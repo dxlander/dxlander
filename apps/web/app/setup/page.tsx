@@ -279,8 +279,8 @@ function SetupPageContent() {
             <div className="w-20 h-20 bg-gradient-to-br from-ocean-600 to-ocean-500 rounded-full mx-auto flex items-center justify-center shadow-lg shadow-ocean-500/30">
               <img src="/logo-white.svg" alt="DXLander Logo" className="w-10 h-10" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Welcome to DXLander!</h2>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <h2 className="text-3xl font-bold text-foreground">Welcome to DXLander!</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
               Let&apos;s get your instance set up in just a few steps. You&apos;ll configure your
               database, create an admin account, and optionally set up AI features.
             </p>
@@ -300,15 +300,15 @@ function SetupPageContent() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Database Configuration</h2>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Database Configuration</h2>
+              <p className="text-muted-foreground">
                 Choose your database type and provide connection details.
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Database Type
                 </label>
                 <div className="grid grid-cols-2 gap-3">
@@ -318,8 +318,10 @@ function SetupPageContent() {
                     onClick={() => handleChange('dbType', 'sqlite')}
                   >
                     <CardContent className="p-4">
-                      <div className="font-semibold text-gray-900">SQLite</div>
-                      <div className="text-sm text-gray-600">Recommended for most users</div>
+                      <div className="font-semibold text-foreground">SQLite</div>
+                      <div className="text-sm text-muted-foreground">
+                        Recommended for most users
+                      </div>
                     </CardContent>
                   </Card>
                   <Card
@@ -328,8 +330,10 @@ function SetupPageContent() {
                     onClick={() => handleChange('dbType', 'postgresql')}
                   >
                     <CardContent className="p-4">
-                      <div className="font-semibold text-gray-900">PostgreSQL</div>
-                      <div className="text-sm text-gray-600">For production deployments</div>
+                      <div className="font-semibold text-foreground">PostgreSQL</div>
+                      <div className="text-sm text-muted-foreground">
+                        For production deployments
+                      </div>
                     </CardContent>
                   </Card>
                 </div>
@@ -392,8 +396,10 @@ function SetupPageContent() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Admin Account</h2>
-              <p className="text-gray-600">Create your administrator account to manage DXLander.</p>
+              <h2 className="text-2xl font-bold text-foreground mb-2">Admin Account</h2>
+              <p className="text-muted-foreground">
+                Create your administrator account to manage DXLander.
+              </p>
             </div>
 
             <div className="space-y-4">
@@ -426,8 +432,8 @@ function SetupPageContent() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">AI Configuration</h2>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-bold text-foreground mb-2">AI Configuration</h2>
+              <p className="text-muted-foreground">
                 Optionally configure AI features for enhanced functionality.
               </p>
             </div>
@@ -450,7 +456,7 @@ function SetupPageContent() {
               {formData.aiEnabled && (
                 <>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-foreground mb-2">
                       AI Provider
                     </label>
                     <Select
@@ -482,7 +488,7 @@ function SetupPageContent() {
               {!formData.aiEnabled && (
                 <Card variant="default" className="bg-ocean-50/30">
                   <CardContent className="p-4">
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-muted-foreground">
                       You can skip AI configuration for now and enable it later from settings.
                     </p>
                   </CardContent>
@@ -496,8 +502,8 @@ function SetupPageContent() {
         return (
           <div className="space-y-6">
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Review & Confirm</h2>
-              <p className="text-gray-600">
+              <h2 className="text-2xl font-bold text-foreground mb-2">Review & Confirm</h2>
+              <p className="text-muted-foreground">
                 Please review your configuration before completing setup.
               </p>
             </div>
@@ -505,30 +511,30 @@ function SetupPageContent() {
             <div className="space-y-4">
               <Card variant="default">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                     <Database className="w-4 h-4 text-ocean-600" />
                     Database
                   </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Type:</span>
+                      <span className="text-muted-foreground">Type:</span>
                       <span className="font-medium">{formData.dbType.toUpperCase()}</span>
                     </div>
                     {formData.dbType === 'sqlite' ? (
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Path:</span>
+                        <span className="text-muted-foreground">Path:</span>
                         <span className="font-medium">{formData.dbPath}</span>
                       </div>
                     ) : (
                       <>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Host:</span>
+                          <span className="text-muted-foreground">Host:</span>
                           <span className="font-medium">
                             {formData.pgHost}:{formData.pgPort}
                           </span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Database:</span>
+                          <span className="text-muted-foreground">Database:</span>
                           <span className="font-medium">{formData.pgDatabase}</span>
                         </div>
                       </>
@@ -547,17 +553,17 @@ function SetupPageContent() {
 
               <Card variant="default">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                     <User className="w-4 h-4 text-ocean-600" />
                     Admin Account
                   </h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Email:</span>
+                      <span className="text-muted-foreground">Email:</span>
                       <span className="font-medium">{formData.adminEmail}</span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Password:</span>
+                      <span className="text-muted-foreground">Password:</span>
                       <span className="font-medium">••••••••</span>
                     </div>
                   </div>
@@ -574,23 +580,23 @@ function SetupPageContent() {
 
               <Card variant="default">
                 <CardContent className="p-4">
-                  <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
                     <Brain className="w-4 h-4 text-ocean-600" />
                     AI Configuration
                   </h3>
                   {formData.aiEnabled ? (
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Provider:</span>
+                        <span className="text-muted-foreground">Provider:</span>
                         <span className="font-medium capitalize">{formData.aiProvider}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">API Key:</span>
+                        <span className="text-muted-foreground">API Key:</span>
                         <span className="font-medium">••••••••</span>
                       </div>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600">AI features disabled</p>
+                    <p className="text-sm text-muted-foreground">AI features disabled</p>
                   )}
                   <Button
                     variant="ghost"
@@ -629,8 +635,8 @@ function SetupPageContent() {
             <div className="w-20 h-20 bg-ocean-100 rounded-full mx-auto flex items-center justify-center">
               <CheckCircle2 className="w-10 h-10 text-ocean-600" />
             </div>
-            <h2 className="text-3xl font-bold text-gray-900">Setup Complete!</h2>
-            <p className="text-gray-600 max-w-md mx-auto">
+            <h2 className="text-3xl font-bold text-foreground">Setup Complete!</h2>
+            <p className="text-muted-foreground max-w-md mx-auto">
               Your DXLander instance has been successfully configured and is ready to use.
             </p>
             <div className="space-y-3 pt-4">
@@ -677,7 +683,7 @@ function SetupPageContent() {
                             ? 'bg-ocean-600 text-white scale-110 shadow-lg shadow-ocean-500/30'
                             : isCompleted
                               ? 'bg-ocean-500 text-white shadow-md shadow-ocean-500/20'
-                              : 'bg-gray-200 text-gray-400'
+                              : 'bg-muted text-muted-foreground'
                         }`}
                       >
                         {isCompleted ? (
@@ -692,7 +698,7 @@ function SetupPageContent() {
                             ? 'text-ocean-600'
                             : isCompleted
                               ? 'text-ocean-500'
-                              : 'text-gray-400'
+                              : 'text-muted-foreground'
                         }`}
                       >
                         {step.title}
@@ -701,7 +707,7 @@ function SetupPageContent() {
                     {index < steps.length - 2 && (
                       <div
                         className={`flex-1 h-0.5 mx-2 transition-all ${
-                          isCompleted ? 'bg-ocean-500' : 'bg-gray-200'
+                          isCompleted ? 'bg-ocean-500' : 'bg-muted'
                         }`}
                       />
                     )}

@@ -75,8 +75,8 @@ function SecurityContent() {
                     <Shield className="h-5 w-5 text-ocean-600" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-2">AES-256-GCM Encryption</h4>
-                    <div className="grid md:grid-cols-2 gap-3 text-sm text-gray-700">
+                    <h4 className="font-semibold text-foreground mb-2">AES-256-GCM Encryption</h4>
+                    <div className="grid md:grid-cols-2 gap-3 text-sm text-foreground">
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="h-4 w-4 text-green-600" />
                         <span>All credentials encrypted at rest</span>
@@ -107,7 +107,7 @@ function SecurityContent() {
                         Custom Key Active
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                      <Badge variant="secondary" className="bg-muted text-foreground">
                         System Generated
                       </Badge>
                     )}
@@ -135,18 +135,20 @@ function SecurityContent() {
                       <Copy className="h-4 w-4" />
                     </Button>
                   </div>
-                  <p className="text-xs text-gray-500">
+                  <p className="text-xs text-muted-foreground">
                     Keep this key safe. You&apos;ll need it to decrypt your data if you migrate to
                     another instance.
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Lock className="h-5 w-5 text-gray-600" />
+                    <Lock className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium text-gray-900">Key Created</p>
-                      <p className="text-sm text-gray-600">During initial setup - 5 days ago</p>
+                      <p className="font-medium text-foreground">Key Created</p>
+                      <p className="text-sm text-muted-foreground">
+                        During initial setup - 5 days ago
+                      </p>
                     </div>
                   </div>
                   <Button variant="outline" onClick={() => setShowRotateKeyDialog(true)}>
@@ -155,12 +157,14 @@ function SecurityContent() {
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
+                <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                   <div className="flex items-center gap-3">
-                    <Download className="h-5 w-5 text-gray-600" />
+                    <Download className="h-5 w-5 text-muted-foreground" />
                     <div>
-                      <p className="font-medium text-gray-900">Export Key</p>
-                      <p className="text-sm text-gray-600">Download encryption key for backup</p>
+                      <p className="font-medium text-foreground">Export Key</p>
+                      <p className="text-sm text-muted-foreground">
+                        Download encryption key for backup
+                      </p>
                     </div>
                   </div>
                   <Button variant="outline">
@@ -195,10 +199,10 @@ function SecurityContent() {
                 ].map((item, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg border border-border"
                   >
                     <CheckCircle2 className="h-4 w-4 text-green-600 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">{item}</span>
+                    <span className="text-sm text-foreground">{item}</span>
                   </div>
                 ))}
               </div>
@@ -221,15 +225,15 @@ function SecurityContent() {
                 ].map((log, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between p-3 border border-gray-200 rounded-lg"
+                    className="flex items-center justify-between p-3 border border-border rounded-lg"
                   >
                     <div className="flex items-center gap-3">
                       <CheckCircle2
                         className={`h-4 w-4 ${log.type === 'info' ? 'text-blue-600' : 'text-green-600'}`}
                       />
-                      <span className="text-sm text-gray-900">{log.action}</span>
+                      <span className="text-sm text-foreground">{log.action}</span>
                     </div>
-                    <span className="text-xs text-gray-500">{log.time}</span>
+                    <span className="text-xs text-muted-foreground">{log.time}</span>
                   </div>
                 ))}
               </div>
@@ -253,8 +257,8 @@ function SecurityContent() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5" />
                 <div>
-                  <h4 className="font-medium text-gray-900 mb-1">Important Warning</h4>
-                  <ul className="text-sm text-gray-700 space-y-1">
+                  <h4 className="font-medium text-foreground mb-1">Important Warning</h4>
+                  <ul className="text-sm text-foreground space-y-1">
                     <li>• All credentials will be re-encrypted with the new key</li>
                     <li>• The old key will no longer work</li>
                     <li>• This operation cannot be undone</li>

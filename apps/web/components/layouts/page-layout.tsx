@@ -10,9 +10,11 @@ export interface PageLayoutProps extends React.HTMLAttributes<HTMLDivElement> {
 const PageLayout = React.forwardRef<HTMLDivElement, PageLayoutProps>(
   ({ className, children, background = 'default', container = true, ...props }, ref) => {
     const backgroundClasses = {
-      default: 'bg-white',
-      ocean: 'bg-gradient-to-br from-white via-ocean-50/20 to-ocean-100/40',
-      gradient: 'bg-gradient-to-br from-white via-ocean-50/30 to-ocean-200/20',
+      default: 'bg-background',
+      ocean:
+        'bg-gradient-to-br from-background via-ocean-50/20 to-ocean-100/40 dark:via-ocean-950/20 dark:to-ocean-900/40',
+      gradient:
+        'bg-gradient-to-br from-background via-ocean-50/30 to-ocean-200/20 dark:via-ocean-950/30 dark:to-ocean-800/20',
     };
 
     return (

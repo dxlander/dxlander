@@ -51,10 +51,10 @@ function SettingsContent() {
                     <div className="p-3 bg-purple-100 rounded-lg">
                       <Zap className="h-6 w-6 text-purple-600" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">AI Providers</h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h3 className="font-semibold text-foreground mb-2">AI Providers</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Configure AI models for code analysis and generation
                   </p>
                   <div className="flex items-center gap-2">
@@ -74,14 +74,14 @@ function SettingsContent() {
                     <div className="p-3 bg-ocean-100 rounded-lg">
                       <Server className="h-6 w-6 text-ocean-600" />
                     </div>
-                    <ExternalLink className="h-5 w-5 text-gray-400" />
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Deployment Targets</h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h3 className="font-semibold text-foreground mb-2">Deployment Targets</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Manage platform credentials (Vercel, Railway, AWS)
                   </p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                    <Badge variant="secondary" className="bg-muted text-foreground">
                       5 Platforms
                     </Badge>
                   </div>
@@ -97,14 +97,14 @@ function SettingsContent() {
                     <div className="p-3 bg-blue-100 rounded-lg">
                       <Key className="h-6 w-6 text-blue-600" />
                     </div>
-                    <ExternalLink className="h-5 w-5 text-gray-400" />
+                    <ExternalLink className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Secret Manager</h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h3 className="font-semibold text-foreground mb-2">Secret Manager</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Securely stored credentials and API keys
                   </p>
                   <div className="flex items-center gap-2">
-                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                    <Badge variant="secondary" className="bg-muted text-foreground">
                       Encrypted
                     </Badge>
                   </div>
@@ -120,10 +120,12 @@ function SettingsContent() {
                     <div className="p-3 bg-green-100 rounded-lg">
                       <Database className="h-6 w-6 text-green-600" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Database</h3>
-                  <p className="text-sm text-gray-600 mb-3">SQLite • 2.4 MB • 12 projects</p>
+                  <h3 className="font-semibold text-foreground mb-2">Database</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    SQLite • 2.4 MB • 12 projects
+                  </p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-green-100 text-green-700">
                       <CheckCircle2 className="h-3 w-3 mr-1" />
@@ -144,8 +146,8 @@ function SettingsContent() {
                     </div>
                     <ChevronRight className="h-5 w-5 text-ocean-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Security & Encryption</h3>
-                  <p className="text-sm text-gray-600 mb-4">
+                  <h3 className="font-semibold text-foreground mb-2">Security & Encryption</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
                     Master encryption key protects all credentials with AES-256-GCM
                   </p>
                   <div className="flex items-center gap-2">
@@ -153,7 +155,7 @@ function SettingsContent() {
                       <CheckCircle2 className="h-3 w-3 mr-1" />
                       {hasCustomKey ? 'Custom Key' : 'System Generated'}
                     </Badge>
-                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                    <Badge variant="secondary" className="bg-muted text-foreground">
                       Created 5 days ago
                     </Badge>
                   </div>
@@ -163,23 +165,23 @@ function SettingsContent() {
 
             {/* Backup & Restore */}
             <Link href="/dashboard/settings/backup">
-              <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 cursor-pointer border-gray-200 bg-gray-50 h-full">
+              <Card className="hover:shadow-elegant transition-all hover:border-ocean-300 cursor-pointer border-border bg-muted/50 h-full">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between mb-4">
-                    <div className="p-3 bg-gray-200 rounded-lg">
-                      <RefreshCw className="h-6 w-6 text-gray-600" />
+                    <div className="p-3 bg-muted rounded-lg">
+                      <RefreshCw className="h-6 w-6 text-muted-foreground" />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-gray-400" />
+                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Backup & Restore</h3>
-                  <p className="text-sm text-gray-600 mb-3">
+                  <h3 className="font-semibold text-foreground mb-2">Backup & Restore</h3>
+                  <p className="text-sm text-muted-foreground mb-3">
                     Manage database backups, restore points, and automatic backup schedules
                   </p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-green-100 text-green-700">
                       Auto-backup enabled
                     </Badge>
-                    <Badge variant="secondary" className="bg-gray-200 text-gray-700">
+                    <Badge variant="secondary" className="bg-muted text-foreground">
                       Last backup: 2 hours ago
                     </Badge>
                   </div>
