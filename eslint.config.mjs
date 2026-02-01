@@ -121,6 +121,30 @@ export default [
         },
     },
 
+    // Path Resolution Enforcement for API
+    // Prevents direct usage of .localPath in path.join() without resolveProjectPath()
+    // localPath stores RELATIVE paths - must be resolved to absolute before file operations
+    {
+        files: ['apps/api/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'CallExpression[callee.property.name="join"][arguments.0.property.name="localPath"]',
+                    message: '❌ Do not use .localPath directly in path.join(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first to get absolute path.',
+                },
+                {
+                    selector: 'CallExpression[callee.property.name="existsSync"][arguments.0.property.name="localPath"]',
+                    message: '❌ Do not use .localPath directly in fs.existsSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first',
+                },
+                {
+                    selector: 'CallExpression[callee.property.name="readFileSync"][arguments.0.property.name="localPath"]',
+                    message: '❌ Do not use .localPath directly in fs.readFileSync(). localPath stores RELATIVE paths. Use resolveProjectPath(entity.localPath) first',
+                },
+            ],
+        },
+    },
+
     // React/Next.js specific configuration for web app
     {
         files: ['apps/web/**/*.{ts,tsx}'],

@@ -13,6 +13,7 @@ import {
   type DeploymentActivityLog,
   type ErrorAnalysis,
   type SerializedErrorAnalysis,
+  resolveProjectPath,
 } from '@dxlander/shared';
 import type { PreFlightResult } from './executors/types';
 import { DeploymentAgentService } from './deployment-agent.service';
@@ -90,6 +91,12 @@ export class DeploymentExecutorService {
       throw new Error('Config set does not have a local path');
     }
 
+    // Resolve relative path to absolute for file operations
+    const resolvedConfigPath = resolveProjectPath(config.localPath);
+    if (!resolvedConfigPath) {
+      throw new Error('Could not resolve config path');
+    }
+
     // Get project
     const project = await db.query.projects.findFirst({
       where: eq(schema.projects.id, projectId),
@@ -99,15 +106,15 @@ export class DeploymentExecutorService {
       throw new Error('Project not found');
     }
 
-    const projectDir = path.dirname(path.dirname(config.localPath));
+    const projectDir = path.dirname(path.dirname(resolvedConfigPath));
     const filesDir = path.join(projectDir, 'files');
 
     if (!fs.existsSync(filesDir)) {
       throw new Error('Project source files not found');
     }
 
-    const dockerfilePath = path.join(config.localPath, 'Dockerfile');
-    const composeFilePath = path.join(config.localPath, 'docker-compose.yml');
+    const dockerfilePath = path.join(resolvedConfigPath, 'Dockerfile');
+    const composeFilePath = path.join(resolvedConfigPath, 'docker-compose.yml');
 
     if (!fs.existsSync(dockerfilePath)) {
       throw new Error('Dockerfile not found in config');
@@ -160,13 +167,13 @@ export class DeploymentExecutorService {
       fs.copyFileSync(dockerfilePath, path.join(buildDir, 'Dockerfile'));
       fs.copyFileSync(composeFilePath, path.join(buildDir, 'docker-compose.yml'));
 
-      const dockerignorePath = path.join(config.localPath, '.dockerignore');
+      const dockerignorePath = path.join(resolvedConfigPath, '.dockerignore');
       if (fs.existsSync(dockerignorePath)) {
         fs.copyFileSync(dockerignorePath, path.join(buildDir, '.dockerignore'));
       }
 
       // Prepare environment variables from config's _summary.json
-      const envVars = this.extractEnvironmentVariables(config.localPath);
+      const envVars = this.extractEnvironmentVariables(resolvedConfigPath);
       if (Object.keys(envVars).length > 0) {
         const envPath = path.join(buildDir, '.env');
         this.writeEnvFile(envVars, envPath);
@@ -312,6 +319,12 @@ export class DeploymentExecutorService {
       throw new Error('Config set not found or missing local path');
     }
 
+    // Resolve relative path to absolute for file operations
+    const resolvedConfigPath = resolveProjectPath(config.localPath);
+    if (!resolvedConfigPath) {
+      throw new Error('Could not resolve config path');
+    }
+
     // Get provision service names for image validation
     const configServices = await ConfigServiceService.getConfigServices(userId, configSetId);
     const provisionServiceNames = configServices
@@ -320,7 +333,7 @@ export class DeploymentExecutorService {
       .filter(Boolean) as string[];
 
     return await executor.runPreFlightChecks({
-      configPath: config.localPath,
+      configPath: resolvedConfigPath,
       userId,
       configSetId,
       provisionServiceNames,

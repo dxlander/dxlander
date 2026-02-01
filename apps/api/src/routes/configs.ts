@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { router, protectedProcedure, IdSchema } from '@dxlander/shared';
+import { router, protectedProcedure, IdSchema, resolveProjectPath } from '@dxlander/shared';
 import { ConfigGenerationService } from '../services/config-generation.service';
 
 const GenerateConfigSchema = z.object({
@@ -303,7 +303,12 @@ export const configsRouter = router({
           throw new Error('Configuration local path not found');
         }
 
-        const summaryPath = path.join(configSet.localPath, '_summary.json');
+        const resolvedPath = resolveProjectPath(configSet.localPath);
+        if (!resolvedPath) {
+          throw new Error('Could not resolve configuration path');
+        }
+
+        const summaryPath = path.join(resolvedPath, '_summary.json');
         await fs.writeFile(summaryPath, JSON.stringify(input.metadata, null, 2), 'utf-8');
 
         await db
