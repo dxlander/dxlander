@@ -46,12 +46,55 @@ export function getProjectConfigsDir(projectId: string): string {
   return path.join(getProjectDir(projectId), 'configs');
 }
 
-/**
- * Get specific config directory
- * Structure: ~/.dxlander/projects/{projectId}/configs/{configId}/
- */
 export function getConfigDir(projectId: string, configId: string): string {
   return path.join(getProjectConfigsDir(projectId), configId);
+}
+
+/**
+ * Convert absolute path to relative path from DXLANDER_HOME
+ * Example: /home/user/.dxlander/projects/abc123 -> projects/abc123
+ * This enables portable storage that works when .dxlander folder is moved
+ */
+export function getRelativeProjectPath(absolutePath: string): string {
+  const dxlanderHome = getDXLanderHome();
+  const resolvedPath = path.resolve(absolutePath);
+  const resolvedHome = path.resolve(dxlanderHome);
+
+  // On Windows, drive letters can differ in case (C: vs c:) but represent the same path
+  // Use case-insensitive comparison on Windows
+  const isWindows = process.platform === 'win32';
+  const normalizedPath = isWindows ? resolvedPath.toLowerCase() : resolvedPath;
+  const normalizedHome = isWindows ? resolvedHome.toLowerCase() : resolvedHome;
+  const homeWithSep = normalizedHome + path.sep;
+
+  if (normalizedPath === normalizedHome || normalizedPath.startsWith(homeWithSep)) {
+    return path.relative(resolvedHome, resolvedPath);
+  }
+
+  // Path is outside DXLANDER_HOME - this shouldn't happen in normal usage
+  // Log warning and return as-is for backward compatibility
+  console.warn(
+    `[Path Warning] Path "${absolutePath}" is outside DXLANDER_HOME. ` +
+      `This may cause portability issues. Ensure all project paths are within ${dxlanderHome}`
+  );
+  return absolutePath;
+}
+
+/**
+ * Resolve relative (or absolute) path to absolute path based on DXLANDER_HOME
+ * Example: projects/abc123 -> /home/user/.dxlander/projects/abc123
+ * Handles both relative paths (new format) and absolute paths (legacy format)
+ */
+export function resolveProjectPath(pathStr: string | null | undefined): string | null {
+  if (!pathStr) return null;
+
+  // If already absolute, return as-is (backward compatibility)
+  if (path.isAbsolute(pathStr)) {
+    return pathStr;
+  }
+
+  // Resolve relative path against DXLANDER_HOME
+  return path.join(getDXLanderHome(), pathStr);
 }
 
 /**
@@ -196,7 +239,7 @@ export function saveProjectFiles(projectId: string, files: Map<string, string>):
   return {
     filesCount: filesWritten,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path for portability
   };
 }
 
@@ -237,7 +280,7 @@ export function persistTempProjectDirectory(
   return {
     filesCount,
     totalSize,
-    localPath: projectRoot, // Return project root, not files dir
+    localPath: getRelativeProjectPath(projectRoot), // Return RELATIVE path for portability
   };
 }
 

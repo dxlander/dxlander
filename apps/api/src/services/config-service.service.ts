@@ -11,6 +11,7 @@ import {
   PROVISIONABLE_SERVICES,
   generateSecurePassword,
   buildConnectionString,
+  resolveProjectPath,
 } from '@dxlander/shared';
 import { SecretService } from './secret.service';
 
@@ -514,7 +515,11 @@ export class ConfigServiceService {
       try {
         const fs = await import('fs/promises');
         const path = await import('path');
-        const summaryPath = path.join(config.localPath, '_summary.json');
+        const resolvedPath = resolveProjectPath(config.localPath);
+        if (!resolvedPath) {
+          throw new Error('Could not resolve config path');
+        }
+        const summaryPath = path.join(resolvedPath, '_summary.json');
         const summaryContent = await fs.readFile(summaryPath, 'utf-8');
         const metadata = JSON.parse(summaryContent);
 
