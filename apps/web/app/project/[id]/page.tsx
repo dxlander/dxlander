@@ -46,6 +46,8 @@ export default function ProjectDetailPage({ params }: PageProps) {
   } = trpc.projects.get.useQuery({
     id: resolvedParams.id,
   });
+  console.log('dawdawd');
+  console.log(project, isLoading, 'dawdawd');
 
   // Fetch real configuration data - must be called unconditionally
   const { data: configSets = [] } = trpc.configs.list.useQuery({

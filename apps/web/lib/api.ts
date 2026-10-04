@@ -1,9 +1,3 @@
-/**
- * tRPC Client for DXLander
- * Provides type-safe API calls to the backend
- */
-
-// Simple REST API for setup status (used by middleware)
 interface SetupStatusResponse {
   setupComplete: boolean;
   hasAdminUser: boolean;

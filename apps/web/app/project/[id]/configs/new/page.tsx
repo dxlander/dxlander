@@ -3,6 +3,7 @@
 import { use, useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import { PageLayout, Header, Section } from '@/components/layouts';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +19,7 @@ import {
   Settings,
   Zap,
   XCircle,
+  RefreshCw,
 } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 import { useAnalysisProgress } from '@/lib/hooks/useSSE';
@@ -32,6 +34,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [stage, setStage] = useState<'ready' | 'analyzing' | 'generating'>('ready');
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   const {
     data: project,
@@ -54,18 +57,21 @@ export default function NewConfigurationPage({ params }: PageProps) {
     if (!analysisProgress || stage !== 'analyzing') return;
 
     if (analysisProgress.status === 'failed') {
-      console.error('Analysis failed:', analysisProgress.error);
+      const errorMsg =
+        analysisProgress.error || 'An unexpected error occurred during project analysis.';
+      console.error('Analysis failed:', errorMsg);
+      setGenerationError(errorMsg);
+      toast.error('Project analysis failed', {
+        description: errorMsg,
+      });
       setIsGenerating(false);
       setStage('ready');
-
-      if (analysisId) {
-        router.push(`/project/${resolvedParams.id}/logs?run=${analysisId}`);
-      }
       return;
     }
 
     if (analysisProgress.status === 'complete' && analysisId) {
       setStage('generating');
+      setGenerationError(null);
 
       generateConfigMutation.mutate(
         {
@@ -74,10 +80,16 @@ export default function NewConfigurationPage({ params }: PageProps) {
         },
         {
           onSuccess: (result) => {
+            toast.success('Configuration generated successfully');
             router.push(`/project/${resolvedParams.id}/configs/${result.configSetId}`);
           },
-          onError: (error) => {
-            console.error('Config generation failed:', error);
+          onError: (err) => {
+            const errorMsg = err.message || 'Failed to generate configuration files.';
+            console.error('Config generation failed:', err);
+            setGenerationError(errorMsg);
+            toast.error('Configuration generation error', {
+              description: errorMsg,
+            });
             setStage('ready');
             setIsGenerating(false);
           },
@@ -139,6 +151,7 @@ export default function NewConfigurationPage({ params }: PageProps) {
       return;
     }
 
+    setGenerationError(null);
     setIsGenerating(true);
     setStage('analyzing');
 
@@ -149,8 +162,14 @@ export default function NewConfigurationPage({ params }: PageProps) {
       });
 
       setAnalysisId(result.analysisId);
-    } catch (error: unknown) {
-      console.error('Failed to start analysis:', error);
+    } catch (err: unknown) {
+      const errorMsg =
+        err instanceof Error ? err.message : 'Failed to initialize analysis request.';
+      console.error('Failed to start analysis:', err);
+      setGenerationError(errorMsg);
+      toast.error('Initialization Failed', {
+        description: errorMsg,
+      });
       setIsGenerating(false);
       setStage('ready');
     }
@@ -246,6 +265,47 @@ export default function NewConfigurationPage({ params }: PageProps) {
                 </Card>
               )}
             </>
+          )}
+
+          {/* Error Notice Card */}
+          {generationError && (
+            <Card className="border-red-300 bg-red-50/60 shadow-sm">
+              <CardContent className="p-5">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-red-100 rounded-lg text-red-600 flex-shrink-0">
+                    <AlertCircle className="h-6 w-6" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold text-red-900 text-sm mb-1">
+                      Configuration Generation Failed
+                    </h4>
+                    <p className="text-xs text-red-800 leading-relaxed font-mono whitespace-pre-wrap bg-white/60 p-3 rounded border border-red-200 mt-2">
+                      {generationError}
+                    </p>
+                    <div className="mt-4 flex items-center gap-3">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="border-red-300 text-red-900 hover:bg-red-100"
+                        onClick={handleGenerate}
+                        disabled={isGenerating}
+                      >
+                        <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                        Try Again
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-gray-600 hover:text-gray-900"
+                        onClick={() => setGenerationError(null)}
+                      >
+                        Dismiss
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
           {/* Show AI Activity Monitor during analysis */}

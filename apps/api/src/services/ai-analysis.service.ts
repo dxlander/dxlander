@@ -1,10 +1,3 @@
-/**
- * AI Analysis Service
- *
- * Orchestrates AI-powered project analysis using configured providers.
- * Integrates with Claude Agent SDK, reads project files, and saves results.
- */
-
 import { db, schema } from '@dxlander/database';
 import {
   getProjectFilesDir,
@@ -17,6 +10,10 @@ import { and, desc, eq } from 'drizzle-orm';
 import * as fs from 'fs';
 import * as path from 'path';
 import { AIProviderService } from './ai-provider.service';
+
+// Constants for Token Optimization
+const MAX_FILE_CONTENT_LENGTH = 20000; // ~4000-5000 tokens max per file
+const MAX_TOTAL_CONTEXT_LENGTH = 300000; // Hard limit for total read context to prevent AI limits
 
 export class AIAnalysisService {
   /**
@@ -47,9 +44,6 @@ export class AIAnalysisService {
           'No default AI provider configured. Please configure an AI provider in settings.'
         );
       }
-
-      // TODO: Implement Groq rate limiting (1 analysis per 3 hours)
-      // See AIProviderService.checkGroqRateLimit() for implementation reference
 
       // Get latest analysis version
       const latestAnalysis = await db.query.analysisRuns.findFirst({
@@ -100,12 +94,14 @@ export class AIAnalysisService {
       // Log: Reading project files
       await this.logActivity(analysisId, 'read_files', 'Reading project files from disk');
 
-      // Read project files from files directory (not configs)
-      // project.localPath is the project root, we need to read from /files subdirectory
       const filesDirectory = getProjectFilesDir(project.id);
       const projectFiles = await this.readProjectFiles(filesDirectory);
 
-      await this.logActivity(analysisId, 'read_files', `Read ${projectFiles.length} files`);
+      await this.logActivity(
+        analysisId,
+        'read_files',
+        `Read ${projectFiles.length} files with token limits applied`
+      );
 
       // Update progress
       await this.updateProgress(analysisId, 20);
@@ -113,7 +109,7 @@ export class AIAnalysisService {
       // Prepare project context with progress callback
       const context: ProjectContext = {
         files: projectFiles,
-        projectPath: filesDirectory, // Path to files directory for AI to read source code
+        projectPath: filesDirectory,
         readme: projectFiles.find((f) => f.path.toLowerCase().includes('readme'))?.content,
         packageJson: projectFiles.find((f) => f.path === 'package.json')
           ? JSON.parse(projectFiles.find((f) => f.path === 'package.json')!.content)
@@ -124,11 +120,9 @@ export class AIAnalysisService {
           details?: string;
           message?: string;
         }) => {
-          // Log real-time progress to database
           const action = event.action || event.type;
           const result = event.message || 'Processing...';
 
-          // Parse details if it's a JSON string
           let parsedDetails = null;
           if (event.details) {
             try {
@@ -140,7 +134,6 @@ export class AIAnalysisService {
 
           await this.logActivity(analysisId, action, result, parsedDetails);
 
-          // Update progress incrementally (30% to 90%)
           const currentProgress = await db.query.analysisRuns.findFirst({
             where: eq(schema.analysisRuns.id, analysisId),
           });
@@ -150,7 +143,6 @@ export class AIAnalysisService {
             currentProgress.progress !== null &&
             currentProgress.progress < 90
           ) {
-            // Increment progress by small amounts
             const newProgress = Math.min(currentProgress.progress + 2, 89);
             await this.updateProgress(analysisId, newProgress);
           }
@@ -160,7 +152,6 @@ export class AIAnalysisService {
       // Log: Initializing AI provider
       await this.logActivity(analysisId, 'init_ai', `Initializing ${aiProvider.provider}`);
 
-      // Initialize AI provider using the AIProviderService
       let provider;
       try {
         provider = await AIProviderService.getProvider({
@@ -216,10 +207,8 @@ export class AIAnalysisService {
 
       await this.logActivity(analysisId, 'save_results', 'Analysis results saved successfully');
     } catch (error: any) {
-      // Log error
       await this.logActivity(analysisId, 'error', error.message);
 
-      // Update analysis run with error
       await db
         .update(schema.analysisRuns)
         .set({
@@ -233,22 +222,27 @@ export class AIAnalysisService {
   }
 
   /**
-   * Read project files from disk
-   *
-   * IMPORTANT: This should be called with the files directory path,
-   * not the project root. This ensures AI only reads source files.
+   * Read project files from disk with strict Token Optimization limits
    */
   private static async readProjectFiles(localPath: string): Promise<ProjectFile[]> {
     const files: ProjectFile[] = [];
+    let totalContextCharacters = 0;
 
     const readDir = async (dirPath: string, basePath: string = '') => {
+      // Abort if global character limit reached
+      if (totalContextCharacters >= MAX_TOTAL_CONTEXT_LENGTH) {
+        return;
+      }
+
       const entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
+        if (totalContextCharacters >= MAX_TOTAL_CONTEXT_LENGTH) break;
+
         const fullPath = path.join(dirPath, entry.name);
         const relativePath = path.join(basePath, entry.name);
 
-        // Skip common directories to ignore
+        // Enhanced Ignore Patterns to skip heavy artifacts and lock files
         const ignorePatterns = [
           'node_modules',
           '.git',
@@ -257,16 +251,28 @@ export class AIAnalysisService {
           'build',
           '.turbo',
           'coverage',
-          'configs', // Safety: Skip configs directory if it somehow exists in files
+          'configs',
+          'package-lock.json',
+          'yarn.lock',
+          'pnpm-lock.yaml',
+          'bun.lockb',
+          '.sqlite',
+          '.db',
+          '.DS_Store',
         ];
+
         if (entry.isDirectory() && ignorePatterns.some((p) => entry.name === p)) {
+          continue;
+        }
+
+        // Exact match skip for files
+        if (!entry.isDirectory() && ignorePatterns.includes(entry.name)) {
           continue;
         }
 
         if (entry.isDirectory()) {
           await readDir(fullPath, relativePath);
         } else {
-          // Read file content (skip binary files)
           const ext = path.extname(entry.name).toLowerCase();
           const textExtensions = [
             '.js',
@@ -296,17 +302,25 @@ export class AIAnalysisService {
 
           if (textExtensions.includes(ext) || entry.name.startsWith('.')) {
             try {
-              const content = await fs.promises.readFile(fullPath, 'utf-8');
+              let content = await fs.promises.readFile(fullPath, 'utf-8');
               const stats = await fs.promises.stat(fullPath);
 
+              // TRUNCATION LOGIC: Cut content if it's too large
+              if (content.length > MAX_FILE_CONTENT_LENGTH) {
+                const omissionMessage = `\n\n... [Content truncated for token efficiency. Showing first ${MAX_FILE_CONTENT_LENGTH} characters out of ${content.length}] ...`;
+                content = content.substring(0, MAX_FILE_CONTENT_LENGTH) + omissionMessage;
+                console.warn(`File ${relativePath} was truncated to save AI tokens.`);
+              }
+
+              totalContextCharacters += content.length;
+
               files.push({
-                path: relativePath.replace(/\\/g, '/'), // Normalize path
+                path: relativePath.replace(/\\/g, '/'),
                 content,
                 size: stats.size,
                 isDirectory: false,
               });
             } catch (_error) {
-              // Skip files that can't be read
               console.warn(`Could not read file: ${relativePath}`);
             }
           }
@@ -358,18 +372,14 @@ export class AIAnalysisService {
       where: eq(schema.analysisRuns.id, analysisId),
     });
 
-    if (!analysis) {
-      return null;
-    }
+    if (!analysis) return null;
 
-    // Get activity logs (ordered by timestamp DESC to get most recent first)
     const logs = await db.query.analysisActivityLogs.findMany({
       where: eq(schema.analysisActivityLogs.analysisRunId, analysisId),
       orderBy: [desc(schema.analysisActivityLogs.timestamp)],
-      limit: 50, // Limit to last 50 logs for performance
+      limit: 50,
     });
 
-    // Map logs to expected frontend format (status removed as deprecated)
     const activityLog = logs.map((log) => ({
       id: log.id,
       action: log.action,
@@ -388,7 +398,7 @@ export class AIAnalysisService {
       progress: analysis.progress || 0,
       currentAction: logs[0]?.action || 'Starting...',
       currentResult: logs[0]?.result || 'Initializing analysis',
-      activityLog: activityLog.reverse(), // Reverse to show oldest first in UI
+      activityLog: activityLog.reverse(),
       results: analysis.results ? JSON.parse(analysis.results) : null,
       error: analysis.errorMessage,
     };
@@ -402,9 +412,7 @@ export class AIAnalysisService {
       where: eq(schema.analysisRuns.id, analysisId),
     });
 
-    if (!analysis || !analysis.results) {
-      return null;
-    }
+    if (!analysis || !analysis.results) return null;
 
     return JSON.parse(analysis.results);
   }
@@ -413,7 +421,6 @@ export class AIAnalysisService {
    * Get analysis history for a project
    */
   static async getAnalysisHistory(projectId: string, userId: string): Promise<any[]> {
-    // Verify user owns the project
     const project = await db.query.projects.findFirst({
       where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
     });
@@ -422,23 +429,19 @@ export class AIAnalysisService {
       throw new Error('Project not found');
     }
 
-    // Get all analysis runs for the project
     const analysisRuns = await db.query.analysisRuns.findMany({
       where: eq(schema.analysisRuns.projectId, projectId),
       orderBy: [desc(schema.analysisRuns.createdAt)],
     });
 
-    // For each analysis run, get activity logs
     const analysisWithLogs = await Promise.all(
       analysisRuns.map(async (run) => {
-        // Get activity logs for this run
         const logs = await db.query.analysisActivityLogs.findMany({
           where: eq(schema.analysisActivityLogs.analysisRunId, run.id),
           orderBy: [desc(schema.analysisActivityLogs.timestamp)],
-          limit: 100, // Limit to last 100 logs
+          limit: 100,
         });
 
-        // Map logs to expected frontend format (status removed as deprecated)
         const activityLog = logs.map((log) => ({
           id: log.id,
           action: log.action,
@@ -453,7 +456,7 @@ export class AIAnalysisService {
 
         return {
           ...run,
-          activityLog: activityLog.reverse(), // Oldest first
+          activityLog: activityLog.reverse(),
         };
       })
     );

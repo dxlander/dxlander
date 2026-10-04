@@ -136,6 +136,13 @@ const PROVIDER_INFO = {
   },
 } as const;
 
+const OPENROUTER_MODELS = [
+  { value: 'qwen/qwen-2.5-coder-32b-instruct:free', label: 'Qwen 2.5 Coder 32B (Free)' },
+  { value: 'meta-llama/llama-3.3-70b-instruct:free', label: 'Llama 3.3 70B (Free)' },
+  { value: 'google/gemini-2.0-flash-exp:free', label: 'Gemini 2.0 Flash (Free)' },
+  { value: 'deepseek/deepseek-chat:free', label: 'DeepSeek Chat (Free)' },
+];
+
 type ProviderType = keyof typeof PROVIDER_INFO;
 
 interface AIProvider {
@@ -489,8 +496,8 @@ export function AIProvidersTab() {
       },
     };
 
-    // Only include API key if it was changed
-    if (formData.apiKey) {
+    // Only include API key if it was changed (and not empty)
+    if (formData.apiKey && formData.apiKey.trim() !== '') {
       updateData.apiKey = formData.apiKey;
     }
 

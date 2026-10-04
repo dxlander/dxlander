@@ -178,9 +178,9 @@ export const aiProvidersRouter = router({
           );
       }
 
-      // Encrypt API key if being updated (encryption service already initialized)
+      // Encrypt API key if being updated with a valid, non-empty string
       let encryptedApiKey: string | undefined;
-      if (input.apiKey) {
+      if (input.apiKey && input.apiKey.trim() !== '') {
         encryptedApiKey = encryptionService.encryptForStorage(input.apiKey);
       }
 

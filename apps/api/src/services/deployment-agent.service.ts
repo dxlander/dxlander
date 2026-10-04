@@ -634,7 +634,7 @@ export class DeploymentAgentService {
   }
 
   /**
-   * Tool: Read deployment file
+   * Tool: Read deployment file (with token optimization truncation)
    */
   private async toolReadFile(args: unknown): Promise<ToolResult> {
     const parsed = ReadDeploymentFileSchema.safeParse(args);
@@ -654,7 +654,15 @@ export class DeploymentAgentService {
       return { success: false, output: null, error: `File not found: ${filePath}` };
     }
 
-    const content = fs.readFileSync(fullPath, 'utf-8');
+    let content = fs.readFileSync(fullPath, 'utf-8');
+    const MAX_READ_TOOL_CHARS = 16000; // Cap file output to ~3500-4000 tokens
+
+    if (content.length > MAX_READ_TOOL_CHARS) {
+      content =
+        content.substring(0, MAX_READ_TOOL_CHARS) +
+        `\n\n... [Content truncated to ${MAX_READ_TOOL_CHARS} characters for token efficiency] ...`;
+    }
+
     return { success: true, output: { content } };
   }
 

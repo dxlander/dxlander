@@ -1,12 +1,29 @@
 'use client';
 
 import { createTRPCReact } from '@trpc/react-query';
-import { createTRPCClient, httpBatchLink } from '@trpc/client';
+import { createTRPCClient, httpBatchLink, TRPCClientError } from '@trpc/client';
 import type { AppRouter } from '../../../apps/api/src/routes';
 
-// Create tRPC React hooks
 // @ts-expect-error - tRPC v11.8 error codes type mismatch with react-query types
 export const trpc = createTRPCReact<AppRouter>();
+
+// Helper function to handle global errors
+const handleGlobalError = (error: unknown) => {
+  if (typeof window === 'undefined') return;
+
+  if (error instanceof TRPCClientError) {
+    // You can replace this with your toast library (e.g., toast.error(error.message))
+    console.error('API Error:', error.message);
+
+    if (error.data?.code === 'UNAUTHORIZED') {
+      // Handle unauthorized access globally
+      localStorage.removeItem('dxlander-token');
+      window.location.href = '/login'; // Redirect to login if appropriate
+    }
+  } else {
+    console.error('Unknown API Error:', error);
+  }
+};
 
 // Create vanilla tRPC client for use outside React components
 // @ts-expect-error - tRPC v11.8 error codes type mismatch
@@ -22,5 +39,3 @@ export const trpcClient = createTRPCClient<AppRouter>({
     }),
   ],
 });
-
-export type { AppRouter };

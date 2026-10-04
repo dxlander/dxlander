@@ -1,5 +1,3 @@
-// Design Tokens for DXLander
-// Use these constants for consistent spacing, colors, and animations
 
 export const spacing = {
   xs: '0.5rem', // 8px

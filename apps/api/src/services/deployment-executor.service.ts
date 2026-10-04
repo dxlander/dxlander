@@ -475,8 +475,17 @@ export class DeploymentExecutorService {
             updatedAt: new Date(),
           })
           .where(eq(schema.deployments.id, deploymentId));
-      } catch {
-        // Deployment may not exist
+      } catch (error) {
+        // Log the error properly so we can debug dashboard rendering issues
+        console.error(
+          `[DeploymentExecutor] Failed to fetch runtime logs for deployment ${deploymentId}:`,
+          error
+        );
+
+        // Provide a fallback message so the UI doesn't just show blank space for crashed instances
+        if (!result.runtimeLogs) {
+          result.runtimeLogs = `[System] Unable to fetch runtime logs from Docker.\nError: ${error instanceof Error ? error.message : 'Unknown error'}\nThis usually means the container hasn't started yet or has been removed.`;
+        }
       }
     }
 

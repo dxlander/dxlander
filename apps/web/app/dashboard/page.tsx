@@ -159,7 +159,7 @@ export default function Dashboard() {
 
             {/* Tabs with counts */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-              <TabsList className="grid w-full max-w-3xl grid-cols-4">
+              <TabsList className="grid w-full max-w-3xl grid-cols-3">
                 <TabsTrigger value="all" className="relative">
                   All Projects
                   {stats.all > 0 && (
@@ -184,14 +184,14 @@ export default function Dashboard() {
                     </Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger value="deployed">
+                {/* <TabsTrigger value="deployed">
                   Deployed
                   {stats.deployed > 0 && (
                     <Badge variant="secondary" className="ml-2 bg-indigo-100 text-indigo-700">
                       {stats.deployed}
                     </Badge>
                   )}
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value={activeTab} className="space-y-4">

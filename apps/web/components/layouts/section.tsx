@@ -21,7 +21,7 @@ const sectionVariants = cva('relative', {
       transparent: '',
       subtle: 'bg-ocean-50/20',
       card: 'bg-white/80 backdrop-blur-sm border border-ocean-200/30 rounded-2xl shadow-lg',
-      gradient: 'bg-gradient-to-r from-ocean-50/30 to-ocean-100/20',
+      gradient: 'bg-gradient-to-l from-ocean-50/30 to-ocean-100/20',
     },
   },
   defaultVariants: {

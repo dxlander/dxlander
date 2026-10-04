@@ -2,14 +2,6 @@
 
 import { Skeleton } from '@/components/ui/skeleton';
 
-/**
- * Homepage Component
- * This page should never render directly because middleware handles routing:
- * - If setup incomplete: redirects to /setup
- * - If setup complete: redirects to /dashboard
- *
- * Displays a skeleton loader (instead of spinner) while middleware or data loads.
- */
 export default function HomePage() {
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-ocean-50/40 to-white p-6 gap-6">

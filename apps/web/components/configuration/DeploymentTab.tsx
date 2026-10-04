@@ -115,16 +115,22 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
     { configSetId, limit: 20, page: 1 },
     { enabled: !!configSetId }
   );
-
+  console.log(deploymentsData);
   const { data: logsData, refetch: refetchLogs } = trpc.deployments.getLogs.useQuery(
-    { deploymentId: selectedDeploymentId || '', type: 'all', tail: 100 },
-    { enabled: !!selectedDeploymentId }
+    { deploymentId: selectedDeploymentId || 'pending-id', type: 'all', tail: 100 },
+    {
+      enabled: !!selectedDeploymentId,
+      refetchInterval: showLogsDialog ? 3000 : false,
+    }
   );
 
   const { data: activityLogsData, refetch: refetchActivityLogs } =
     trpc.deployments.getActivityLogs.useQuery(
-      { deploymentId: selectedDeploymentId || '' },
-      { enabled: !!selectedDeploymentId }
+      { deploymentId: selectedDeploymentId || 'pending-id' },
+      {
+        enabled: !!selectedDeploymentId,
+        refetchInterval: showLogsDialog ? 3000 : false,
+      }
     );
 
   // Mutations
@@ -210,11 +216,9 @@ export function DeploymentTab({ configSetId, projectId }: DeploymentTabProps) {
     }
   };
 
-  const handleViewLogs = (deploymentId: string) => {
-    setSelectedDeploymentId(deploymentId);
+  const handleViewLogs = (id: string) => {
+    setSelectedDeploymentId(id);
     setShowLogsDialog(true);
-    refetchLogs();
-    refetchActivityLogs();
   };
 
   const deployments = deploymentsData?.deployments || [];

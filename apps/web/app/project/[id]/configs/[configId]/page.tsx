@@ -80,6 +80,16 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
     id: resolvedParams.configId,
   });
 
+  const {
+    data: deploymentsData,
+    isLoading: deploymentsLoading,
+    refetch: refetchDeployments,
+  } = trpc.deployments.list.useQuery(
+    { configSetId: resolvedParams.configId, limit: 20, page: 1 },
+    { enabled: !!resolvedParams.configId }
+  );
+  console.log(deploymentsData?.total);
+
   // Fetch config generation logs
   const { data: configLogs } = trpc.configs.getLogs.useQuery({
     id: resolvedParams.configId,
@@ -308,6 +318,9 @@ export default function ConfigurationDetailPage({ params }: PageProps) {
               <TabsTrigger value="deployment" className="flex items-center gap-2">
                 <Rocket className="h-4 w-4" />
                 Deployment
+                <Badge variant="secondary" className="ml-1 bg-gray-100 text-gray-700">
+                  {deploymentsData?.total || 0}
+                </Badge>
               </TabsTrigger>
             </TabsList>
 

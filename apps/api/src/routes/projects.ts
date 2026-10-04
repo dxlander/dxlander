@@ -14,6 +14,7 @@ import {
   saveProjectFiles,
   validateProjectName,
 } from '@dxlander/shared';
+import { TRPCError } from '@trpc/server';
 import { randomUUID } from 'crypto';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import { z } from 'zod';
@@ -342,70 +343,64 @@ export const projectsRouter = router({
   /**
    * Delete a project and all associated data
    */
-  delete: protectedProcedure.input(IdSchema).mutation(async ({ input, ctx }) => {
+  delete: protectedProcedure.input(IdSchema).mutation(async ({ ctx, input }) => {
+    if (!ctx.userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'Unauthorized',
+      });
+    }
+
     const projectId = input.id;
-    const userId = ctx.userId;
-    if (!userId) throw new Error('Unauthorized');
+
+    // بررسی وجود و مالکیت پروژه
+    const project = await db.query.projects.findFirst({
+      where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, ctx.userId)),
+    });
+
+    if (!project) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'Project not found or access denied',
+      });
+    }
 
     try {
-      // Verify ownership
-      const project = await db.query.projects.findFirst({
-        where: and(eq(schema.projects.id, projectId), eq(schema.projects.userId, userId)),
-      });
+      // ۱. دریافت شناسه‌های کانفیگ‌ست‌ها پیش از ورود به تراکنش
+      const configSetsToDelete = await db
+        .select({ id: schema.configSets.id })
+        .from(schema.configSets)
+        .where(eq(schema.configSets.projectId, projectId));
 
-      if (!project) {
-        throw new Error('Project not found or access denied');
-      }
+      const configSetIds = configSetsToDelete.map((cs) => cs.id);
 
-      // Perform deletion in a transaction for data consistency
-      await db.transaction(async (tx) => {
-        // First, get all config sets for this project to delete related records
-        const configSetsToDelete = await tx
-          .select({ id: schema.configSets.id })
-          .from(schema.configSets)
-          .where(eq(schema.configSets.projectId, projectId));
-
-        const configSetIds = configSetsToDelete.map((cs) => cs.id);
-
-        // 1. Delete config activity logs (child records)
+      db.transaction((tx) => {
         if (configSetIds.length > 0) {
-          await tx
-            .delete(schema.configActivityLogs)
-            .where(inArray(schema.configActivityLogs.configSetId, configSetIds));
+          tx.delete(schema.configActivityLogs)
+            .where(inArray(schema.configActivityLogs.configSetId, configSetIds))
+            .run();
 
-          // 2. Delete config files
-          await tx
-            .delete(schema.configFiles)
-            .where(inArray(schema.configFiles.configSetId, configSetIds));
+          tx.delete(schema.configFiles)
+            .where(inArray(schema.configFiles.configSetId, configSetIds))
+            .run();
         }
 
-        // 3. Delete config sets
-        await tx.delete(schema.configSets).where(eq(schema.configSets.projectId, projectId));
+        tx.delete(schema.configSets).where(eq(schema.configSets.projectId, projectId)).run();
 
-        // 4. Delete build runs
-        await tx.delete(schema.buildRuns).where(eq(schema.buildRuns.projectId, projectId));
+        tx.delete(schema.buildRuns).where(eq(schema.buildRuns.projectId, projectId)).run();
 
-        // 5. Delete analysis runs
-        await tx.delete(schema.analysisRuns).where(eq(schema.analysisRuns.projectId, projectId));
+        tx.delete(schema.analysisRuns).where(eq(schema.analysisRuns.projectId, projectId)).run();
 
-        // 6. Delete deployments
-        await tx.delete(schema.deployments).where(eq(schema.deployments.projectId, projectId));
+        tx.delete(schema.deployments).where(eq(schema.deployments.projectId, projectId)).run();
 
-        // 7. Finally delete the project
-        await tx.delete(schema.projects).where(eq(schema.projects.id, projectId));
+        tx.delete(schema.projects).where(eq(schema.projects.id, projectId)).run();
       });
 
-      // Clean up file system (outside transaction)
       try {
-        deleteProjectFiles(projectId);
-        console.log(`[DELETE] Cleaned up project files: ${projectId}`);
-      } catch (fileError) {
-        console.error(`[DELETE] Failed to clean up project files: ${projectId}`, fileError);
-        // Don't fail the operation, but log the error for monitoring
+        await deleteProjectFiles(projectId);
+      } catch (cleanupError) {
+        console.error(`Failed to cleanup files for project ${projectId}:`, cleanupError);
       }
-
-      // Log successful deletion for audit purposes
-      console.log(`[DELETE] Project deleted: ${projectId} by user: ${userId}`);
 
       return {
         success: true,
@@ -417,18 +412,18 @@ export const projectsRouter = router({
     } catch (error) {
       console.error('Failed to delete project:', {
         projectId,
-        userId,
-        error: error instanceof Error ? error.message : error,
+        userId: ctx.userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
       });
 
-      if (error instanceof Error) {
-        // Provide more specific error messages
-        if (error.message.includes('Project not found')) {
-          throw new Error('Project not found or access denied');
-        }
+      if (error instanceof Error && error.message.includes('Project not found')) {
+        throw error;
       }
 
-      throw new Error('Failed to delete project. Please try again later.');
+      throw new TRPCError({
+        code: 'INTERNAL_SERVER_ERROR',
+        message: 'Failed to delete project. Please try again later.',
+      });
     }
   }),
 });

@@ -24,6 +24,7 @@ export default function StackDiscoveryPage({ params }: PageProps) {
   } = trpc.projects.get.useQuery({
     id: resolvedParams.id,
   });
+ 
 
   if (isLoading) {
     return (

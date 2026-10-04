@@ -17,7 +17,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
   (
     {
       className,
-      title = 'DXLander',
+      title = 'دی‌ایکس‌لندر',
       subtitle,
       badge,
       actions,
@@ -40,14 +40,20 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
       >
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
-            {/* Left side: Logo + Title */}
+            {/* بخش شروع (Start): لوگو و عنوان */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
               <Link href="/dashboard" className="flex-shrink-0">
-                <Image src="/logo.svg" alt="DXLander" width={32} height={32} className="h-8 w-8" />
+                <Image
+                  src="/logo.svg"
+                  alt="لوگوی دی‌ایکس‌لندر"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                />
               </Link>
 
               <div className="min-w-0 flex-1">
-                {/* Title row */}
+                {/* ردیف عنوان و نشان */}
                 <div className="flex items-center gap-2 flex-wrap">
                   <h1 className="text-lg sm:text-xl font-bold text-gradient-ocean truncate">
                     {title}
@@ -62,7 +68,7 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
                   )}
                 </div>
 
-                {/* Subtitle row - only on larger screens */}
+                {/* زیرعنوان در نمایشگرهای بزرگ‌تر */}
                 {subtitle && (
                   <p className="text-xs sm:text-sm text-ocean-600 mt-0.5 line-clamp-1 hidden sm:block">
                     {subtitle}
@@ -71,7 +77,6 @@ const Header = React.forwardRef<HTMLElement, HeaderProps>(
               </div>
             </div>
 
-            {/* Right side: Actions */}
             {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
           </div>
         </div>

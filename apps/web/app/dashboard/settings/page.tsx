@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ExternalLink,
 } from 'lucide-react';
+import { trpc } from '@/lib/trpc';
 
 function SettingsContent() {
   const [hasCustomKey] = useState(true);
@@ -30,6 +31,8 @@ function SettingsContent() {
       </Button>
     </Link>
   );
+
+  const { data: providers = [], isLoading, refetch } = trpc.aiProviders.list.useQuery();
 
   return (
     <PageLayout background="default">
@@ -59,7 +62,7 @@ function SettingsContent() {
                   </p>
                   <div className="flex items-center gap-2">
                     <Badge variant="secondary" className="bg-green-100 text-green-700">
-                      2 Active
+                      {providers.length || 0} Active
                     </Badge>
                   </div>
                 </CardContent>
